@@ -114,7 +114,5 @@ Kopiervorlage mit Anleitung: `plugins/simpack_template/polytess_simpack/_templat
 
 ## 7. Doku im Ordner
 
-- `STATUS.md` — aktueller Projektstand (Features, Registry, Layout, Grenzen)
 - `README.md` — Bedienung des Studios, Konzepte, Projektstruktur
-- `PLAN.md` — ursprünglicher Portierungsplan GC2/SM2 → Python
 - `LICENSE.txt` — Business Source License 1.1

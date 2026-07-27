@@ -6,8 +6,6 @@ Graph-Editors — als Desktop-Studio (PySide6) für Berechnungsworkflows:
 Verzeichnisse anlegen, Inputfiles templaten, Simpack-/Abaqus-Läufe und DOEs
 starten, Postprocessing, Loops.
 
-Architektur- und Portierungsdetails: siehe [PLAN.md](PLAN.md).
-
 ## Installation & Start
 
 ```bash
