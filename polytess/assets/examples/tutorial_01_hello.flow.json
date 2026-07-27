@@ -1,0 +1,174 @@
+{
+  "name": "Tutorial 1 — Hello polytess",
+  "lineage": {
+    "flow_id": "6a5903fd9ff14002a7aa3335a063ae0c",
+    "branch": "main",
+    "revision": 0,
+    "parent_branch": "",
+    "parent_revision": 0
+  },
+  "nodes": [
+    {
+      "guid": "dc6aabd89887400293277b21f09177e6",
+      "custom_name": "",
+      "x": -300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "StartNode"
+    },
+    {
+      "guid": "89e1c347eb104109864f8fc163cb9dff",
+      "custom_name": "Say Hello",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "Hello {name}!",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "results",
+                "$type": "GetConstantPath"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "$type": "CreateFolder"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "results/greeting.txt",
+                "$type": "GetConstantPath"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "content": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "Hello {name}!",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "append": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": false,
+                "$type": "GetConstantBool"
+              },
+              "$type": "PropertyGetBool"
+            },
+            "$type": "WriteTextFile"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "822f68f800564e6db520a12c22ab545b",
+      "custom_name": "",
+      "x": 600.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "ExitNode"
+    }
+  ],
+  "edges": [
+    {
+      "guid": "55b7d17d68fb40709eb2c557d8687aec",
+      "src_node": "dc6aabd89887400293277b21f09177e6",
+      "src_port": "out",
+      "dst_node": "89e1c347eb104109864f8fc163cb9dff",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "71c29f24be73483491a12c7bfe3306b8",
+      "src_node": "89e1c347eb104109864f8fc163cb9dff",
+      "src_port": "out",
+      "dst_node": "822f68f800564e6db520a12c22ab545b",
+      "dst_port": "in",
+      "$type": "Edge"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "variables": {
+    "items": [
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "name",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "world",
+          "$type": "ValueString"
+        },
+        "$type": "NameVariable"
+      }
+    ],
+    "$type": "NameVariables"
+  },
+  "lists": {
+    "items": [],
+    "$type": "ListVariables"
+  },
+  "pan_x": 0.0,
+  "pan_y": 0.0,
+  "zoom": 1.0,
+  "$type": "Graph"
+}

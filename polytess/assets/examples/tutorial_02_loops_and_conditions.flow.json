@@ -1,0 +1,360 @@
+{
+  "name": "Tutorial 2 — Loops & conditions",
+  "lineage": {
+    "flow_id": "fdbfdb9aea4940cf8995c6993d3842a2",
+    "branch": "main",
+    "revision": 0,
+    "parent_branch": "",
+    "parent_revision": 0
+  },
+  "nodes": [
+    {
+      "guid": "ad143e9598ea476d9e0a0c3f0350267f",
+      "custom_name": "",
+      "x": -300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "StartNode"
+    },
+    {
+      "guid": "100d3c6411884682a0ff0fe4abca547c",
+      "custom_name": "Prepare Data",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "jobs.csv",
+                "$type": "GetConstantPath"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "content": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "name;cpus\njob_a;2\njob_b;8\njob_c;4",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "append": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": false,
+                "$type": "GetConstantBool"
+              },
+              "$type": "PropertyGetBool"
+            },
+            "$type": "WriteTextFile"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "",
+                "$type": "GetConstantPath"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "separator": "auto",
+            "convert_numbers": true,
+            "table": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "",
+                "$type": "SetGraphTable"
+              },
+              "$type": "PropertySetTable"
+            },
+            "$type": "ReadCsvToTable"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "bbdd6f913f0443b493c7c0afcd7d396f",
+      "custom_name": "Process Rows",
+      "x": 300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "table": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "",
+                "$type": "GetGraphTable"
+              },
+              "$type": "PropertyGetTable"
+            },
+            "expose_columns": true,
+            "row_index_to": "row_index",
+            "actions": {
+              "instructions": [],
+              "$type": "InstructionList"
+            },
+            "$type": "LoopTable"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "5e69142293be49a3a5ea1f9add4ea92d",
+      "custom_name": "All Rows Seen?",
+      "x": 600.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "conditions": {
+        "conditions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "sign": true,
+            "table": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "",
+                "$type": "GetGraphTable"
+              },
+              "$type": "PropertyGetTable"
+            },
+            "comparison": "=",
+            "count": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": 0.0,
+                "$type": "GetConstantNumber"
+              },
+              "$type": "PropertyGetNumber"
+            },
+            "$type": "TableRowCount"
+          }
+        ],
+        "$type": "ConditionList"
+      },
+      "check_mode": "and",
+      "$type": "ConditionsNode"
+    },
+    {
+      "guid": "8366bcd573fb48f792cce6a5d03cec0e",
+      "custom_name": "Done",
+      "x": 900.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "All rows processed.",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "5cf8b330370844aaa587e1c03d6c4b16",
+      "custom_name": "Investigate",
+      "x": 900.0,
+      "y": 190.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "Unexpected row count — check jobs.csv",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "fdab94cfd7a14240b1669ffcc8ef1cc0",
+      "custom_name": "",
+      "x": 1500.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "ExitNode"
+    }
+  ],
+  "edges": [
+    {
+      "guid": "28bbd117f5924395ac75eb63159bef43",
+      "src_node": "ad143e9598ea476d9e0a0c3f0350267f",
+      "src_port": "out",
+      "dst_node": "100d3c6411884682a0ff0fe4abca547c",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "9d87a8b8f3d34e3cbb780b4e8653abef",
+      "src_node": "100d3c6411884682a0ff0fe4abca547c",
+      "src_port": "out",
+      "dst_node": "bbdd6f913f0443b493c7c0afcd7d396f",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "82a4e0ec5bea4172b3da0c277733c43d",
+      "src_node": "bbdd6f913f0443b493c7c0afcd7d396f",
+      "src_port": "out",
+      "dst_node": "5e69142293be49a3a5ea1f9add4ea92d",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "3395f104c9804d94bdb3452f0832825e",
+      "src_node": "5e69142293be49a3a5ea1f9add4ea92d",
+      "src_port": "success",
+      "dst_node": "8366bcd573fb48f792cce6a5d03cec0e",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "df48a12910ea4a0c84eba9047a97cea8",
+      "src_node": "5e69142293be49a3a5ea1f9add4ea92d",
+      "src_port": "fail",
+      "dst_node": "5cf8b330370844aaa587e1c03d6c4b16",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "1dd8dfee787b4ebbbec6986fe66d397f",
+      "src_node": "8366bcd573fb48f792cce6a5d03cec0e",
+      "src_port": "out",
+      "dst_node": "fdab94cfd7a14240b1669ffcc8ef1cc0",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "1a792899253647caa4785be70af75f28",
+      "src_node": "5cf8b330370844aaa587e1c03d6c4b16",
+      "src_port": "out",
+      "dst_node": "fdab94cfd7a14240b1669ffcc8ef1cc0",
+      "dst_port": "in",
+      "$type": "Edge"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "variables": {
+    "items": [
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "row_count",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": 0.0,
+          "$type": "ValueNumber"
+        },
+        "$type": "NameVariable"
+      }
+    ],
+    "$type": "NameVariables"
+  },
+  "lists": {
+    "items": [],
+    "$type": "ListVariables"
+  },
+  "pan_x": 0.0,
+  "pan_y": 0.0,
+  "zoom": 1.0,
+  "$type": "Graph"
+}

@@ -1,0 +1,44 @@
+# virtual env / caches
+.venv/
+__pycache__/
+.pytest_cache/
+.DS_Store
+
+# build artifacts (contain compiled modules and bundled personal licenses)
+build/
+dist/
+
+# client-internal tooling — never ships, never gets committed
+otools-py
+otools-py.meta
+
+# client-specific know-how stays local (redeveloped as custom instructions)
+custom_instructions/
+examples/otools/
+examples/otools.meta
+examples/meshvary/
+PLAN_OTOOLS.md
+PLAN_OTOOLS.md.meta
+
+# only simpack_template ships in git as the "how to write a plugin"
+# example; real domain plugins are local-only (own IP or client-specific)
+plugins/polytess_hpc/
+plugins/polytess_doe/
+plugins/polytess_meshvary/
+
+# tests that only make sense against the local-only content above
+tests/test_combine_loads.py
+tests/test_combine_loads.py.meta
+tests/test_modal_reduction.py
+tests/test_modal_reduction.py.meta
+tests/test_vendor_examples.py
+tests/test_vendor_examples.py.meta
+tests/test_meshvary_meshes.py
+tests/meshvary_meshes.py
+tests/meshvary_meshes.py.meta
+tests/test_meshvary_instructions.py
+tests/test_meshvary_instructions.py.meta
+tests/test_meshvary_io.py
+tests/test_meshvary_io.py.meta
+tests/test_meshvary_morph.py
+tests/test_meshvary_morph.py.meta

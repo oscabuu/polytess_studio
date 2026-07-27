@@ -1,0 +1,175 @@
+{
+  "name": "Tutorial 3 — Watch folder",
+  "lineage": {
+    "flow_id": "fede07e9cbbc46128bfdceb11edda87f",
+    "branch": "main",
+    "revision": 0,
+    "parent_branch": "",
+    "parent_revision": 0
+  },
+  "nodes": [
+    {
+      "guid": "0600b0bd499847bcb837e73fd4c2a3b1",
+      "custom_name": "",
+      "x": -300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "StartNode"
+    },
+    {
+      "guid": "c27e883de4964ec0a6cb719cef635e2d",
+      "custom_name": "On File Appeared",
+      "x": -300.0,
+      "y": 190.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "event": {
+        "is_enabled": true,
+        "breakpoint": false,
+        "pattern": "*",
+        "poll_interval": 2.0,
+        "ignore_existing": true,
+        "$type": "OnFileAppeared"
+      },
+      "$type": "TriggerNode"
+    },
+    {
+      "guid": "ca7c8e6260e14808bf6e8a24f575335e",
+      "custom_name": "Process File",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "Processing new file…",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "archive",
+                "$type": "GetConstantPath"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "$type": "CreateFolder"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "944839539bc44844a6615caa20bd1746",
+      "custom_name": "Archive",
+      "x": 300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "Move the file to archive/ here (Move / Rename block).",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "3efe87e6829c4235ad85d99ff7fa73d7",
+      "custom_name": "",
+      "x": 600.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "ExitNode"
+    }
+  ],
+  "edges": [
+    {
+      "guid": "5331326b08444dcc94a221fa9497180e",
+      "src_node": "c27e883de4964ec0a6cb719cef635e2d",
+      "src_port": "out",
+      "dst_node": "ca7c8e6260e14808bf6e8a24f575335e",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "b09e3c0d000540ec9d84f8d0036b8f44",
+      "src_node": "ca7c8e6260e14808bf6e8a24f575335e",
+      "src_port": "out",
+      "dst_node": "944839539bc44844a6615caa20bd1746",
+      "dst_port": "in",
+      "$type": "Edge"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "variables": {
+    "items": [],
+    "$type": "NameVariables"
+  },
+  "lists": {
+    "items": [],
+    "$type": "ListVariables"
+  },
+  "pan_x": 0.0,
+  "pan_y": 0.0,
+  "zoom": 1.0,
+  "$type": "Graph"
+}

@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polytess"
+dynamic = ["version"]
+description = "Node-based workflow studio for engineering computations (Game Creator 2 / State Machine 2 port)"
+requires-python = ">=3.11"
+license = {text = "BUSL-1.1"}
+dependencies = [
+    "PySide6>=6.6",
+    "qasync>=0.27",
+    "cryptography>=42",        # Ed25519 commercial-license-file verification
+    "reportlab>=4",            # flow documentation PDF export
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio"]
+ai = ["anthropic>=0.117"]      # assistants via Claude API
+ai-copilot = ["github-copilot-sdk>=1.0"]   # assistants via GitHub Copilot
+
+[project.scripts]
+polytess = "polytess.cli:main"
+
+[project.gui-scripts]
+polytess-studio = "polytess.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["polytess*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.setuptools.dynamic]
+version = {attr = "polytess.__version__"}

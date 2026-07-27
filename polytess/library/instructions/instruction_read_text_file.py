@@ -1,0 +1,32 @@
+# Copyright (c) 2026 Winthir Studios.
+# Licensed under the Business Source License 1.1 — see LICENSE.txt.
+# Converts to Apache License 2.0 on 2030-07-27.
+"""Auto-split: eine Klasse pro Datei (siehe Vorlage)."""
+
+from __future__ import annotations
+
+from polytess.core.instructions import Instruction
+from polytess.core.metadata import meta
+from polytess.core.properties import (
+    PropertyGetBool, PropertyGetPath, PropertyGetString, PropertySetString,
+    format_with_variables,
+)
+
+
+@meta(title="Read Text File", category="Files/Read Text File", icon="file", color="yellow",
+      description="Reads a text file into a variable")
+class ReadTextFile(Instruction):
+
+    def __init__(self, path: str = "", target=None):
+        super().__init__()
+        self.path = PropertyGetPath(path)
+        self.target = target if target is not None else PropertySetString()
+
+    @property
+    def title(self) -> str:
+        return f"Read {self.path} -> {self.target}"
+
+    async def run(self, ctx):
+        path = ctx.resolve_path(self.path.get(ctx))
+        with open(path, encoding="utf-8") as fh:
+            self.target.set(fh.read(), ctx)

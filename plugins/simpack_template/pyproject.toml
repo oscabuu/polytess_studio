@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polytess-simpack"
+version = "0.1.0"
+description = "Simpack/Abaqus domain actions for polytess (template)"
+requires-python = ">=3.11"
+dependencies = ["polytess"]
+
+# This is the magic hook: polytess imports every entry point in the
+# "polytess.plugins" group at startup, which registers all decorated
+# classes in the type registry (selector menus + serialization).
+[project.entry-points."polytess.plugins"]
+simpack = "polytess_simpack"
+
+[tool.setuptools.packages.find]
+include = ["polytess_simpack*"]

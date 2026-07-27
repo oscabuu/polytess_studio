@@ -1,0 +1,134 @@
+name: Release
+
+# tag push v* -> tests, then build the release artifacts:
+#   - Windows desktop executable (PyInstaller, plain source, zipped)
+#   - Linux desktop executable (PyInstaller, plain source, zipped)
+#   - Source tarball (plain Python, headless/server use — pip install
+#     the requirements and run polytess-cli directly, no build step)
+# Artifacts NEVER contain custom_instructions or license files.
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Qt runtime libraries (offscreen)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libegl1 libgl1 libxkbcommon0 libdbus-1-3
+      - name: Install dependencies
+        run: |
+          python -m pip install -q --upgrade pip
+          python -m pip install -q PySide6 qasync cryptography reportlab \
+            pytest pytest-asyncio
+      - name: Run test suite
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest tests/ -q --tb=short
+
+  windows-exe:
+    needs: tests
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install -q --upgrade pip
+          python -m pip install -q PySide6 qasync cryptography reportlab pyinstaller
+      - name: Build executable (plain source, no company content)
+        run: python build_exe.py --no-custom-library
+      - name: Smoke test CLI executable
+        run: |
+          dist\exe\polytess\polytess-cli.exe --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-executable
+          path: dist/polytess-*.zip
+          retention-days: 14
+
+  linux-exe:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install -q --upgrade pip
+          python -m pip install -q PySide6 qasync cryptography reportlab pyinstaller
+      - name: Build executable (plain source, no company content)
+        run: python build_exe.py --no-custom-library
+      - name: Smoke test CLI executable
+        run: dist/exe/polytess/polytess-cli --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-executable
+          path: dist/polytess-*.zip
+          retention-days: 14
+
+  source-tarball:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package source tarball (plain Python, no company content)
+        run: |
+          python - <<'PY'
+          import os, sys, tarfile
+          sys.path.insert(0, ".")
+          from polytess import __version__
+          out = f"dist/polytess-{__version__}-src.tar.xz"
+          os.makedirs("dist", exist_ok=True)
+          EXCLUDE = {".git", ".github", ".venv", ".pytest_cache", "build",
+                    "dist", "tests", "__pycache__"}
+          with tarfile.open(out, "w:xz", preset=9) as tar:
+              for entry in sorted(os.listdir(".")):
+                  if entry in EXCLUDE or entry.startswith("."):
+                      continue
+                  tar.add(entry, arcname=f"polytess/{entry}",
+                          filter=lambda ti: None if "__pycache__" in ti.name else ti)
+          print(f"tarball: {out} ({os.path.getsize(out) / 1024 / 1024:.1f} MB)")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-tarball
+          path: dist/polytess-*-src.tar.xz
+          retention-days: 14
+
+  publish:
+    needs: [windows-exe, linux-exe, source-tarball]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: artifacts
+      - name: Create GitHub release with artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" artifacts/* \
+            --repo "${{ github.repository }}" \
+            --title "polytess ${{ github.ref_name }}" \
+            --generate-notes

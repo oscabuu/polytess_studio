@@ -1,0 +1,412 @@
+"""GUI smoke tests (offscreen): construct the main window, load the demo
+workflow, drive scene/inspector/selector programmatically, run a workflow
+through the Qt event loop."""
+
+import asyncio
+import os
+
+import pytest
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtCore import QPointF  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
+
+import polytess.library  # noqa: F401,E402
+from polytess.core import GlobalScope  # noqa: E402
+from polytess.graph import ActionsNode, ConditionsNode, Graph, StartNode, TriggerNode  # noqa: E402
+
+EXAMPLE = os.path.join(os.path.dirname(__file__), "..", "examples", "demo.flow.json")
+
+
+@pytest.fixture(scope="module")
+def app():
+    app = QApplication.instance() or QApplication([])
+    yield app
+
+
+@pytest.fixture(autouse=True)
+def fresh_globals():
+    GlobalScope.reset()
+    yield
+    GlobalScope.reset()
+
+
+def test_theme_and_icons(app):
+    from polytess.gui.theme import build_qss
+    from polytess.gui.icons import icon
+    assert "QWidget" in build_qss()
+    for name in ("play", "stop", "folder", "bolt", "drag", "chevron-down"):
+        assert not icon(name).isNull()
+
+
+def test_app_icon(app, tmp_path):
+    from polytess.gui.app_icon import app_icon, export_png, render_pixmap
+    icon_obj = app_icon()
+    assert not icon_obj.isNull()
+    assert len(icon_obj.availableSizes()) >= 5
+    pixmap = render_pixmap(64)
+    assert pixmap.width() == 64 and not pixmap.isNull()
+    out = tmp_path / "icon.png"
+    export_png(str(out), 128)
+    assert out.exists() and out.stat().st_size > 1000
+
+
+def test_scene_items_and_connect(app):
+    from polytess.gui.graph.scene import GraphScene
+    graph = Graph("t")
+    graph.ensure_endpoints()
+    scene = GraphScene(graph)
+    assert len(scene.node_items) == 2
+
+    scene.add_node_at(ActionsNode, QPointF(10, 20))
+    assert len(scene.node_items) == 3
+    scene.undo_stack.undo()
+    assert len(scene.node_items) == 2
+    scene.undo_stack.redo()
+    assert len(scene.node_items) == 3
+
+    start = next(iter(graph.nodes_of_type(StartNode)))
+    actions = next(iter(graph.nodes_of_type(ActionsNode)))
+    from polytess.gui.graph.commands import ConnectCommand
+    scene.undo_stack.push(ConnectCommand(scene, start, "out", actions, "in"))
+    assert len(graph.edges) == 1
+    scene.undo_stack.undo()
+    assert len(graph.edges) == 0
+
+
+def test_node_item_geometry_and_ports(app):
+    from polytess.gui.graph.scene import GraphScene
+    graph = Graph("t")
+    node = ConditionsNode()
+    graph.add_node(node)
+    scene = GraphScene(graph)
+    item = scene.node_items[node.guid]
+    # two horizontal out ports -> port rows
+    assert len(item.port_rows) == 2
+    success = node.port("success")
+    fail = node.port("fail")
+    assert item.port_pos(success).y() != item.port_pos(fail).y()
+    hit = item.port_at(item.port_pos(success))
+    assert hit is success
+
+
+def test_copy_paste(app):
+    from polytess.gui.graph.scene import GraphScene
+    graph = Graph("t")
+    graph.ensure_endpoints()
+    a = graph.add_node(ActionsNode())
+    scene = GraphScene(graph)
+    scene.node_items[a.guid].setSelected(True)
+    scene.copy_selection()
+    scene.paste(QPointF(400, 400))
+    assert len([n for n in graph.nodes if isinstance(n, ActionsNode)]) == 2
+    guids = [n.guid for n in graph.nodes]
+    assert len(set(guids)) == len(guids)
+
+
+def test_group_wraps_selection_and_is_deletable(app):
+    from PySide6.QtCore import QPointF as _QPointF
+    from polytess.gui.graph.decorations import GroupItem
+    from polytess.gui.graph.scene import GraphScene
+    graph = Graph("t")
+    a, b = graph.add_node(ActionsNode()), graph.add_node(ActionsNode())
+    a.x, a.y = 0, 0
+    b.x, b.y = 500, 300
+    scene = GraphScene(graph)
+    scene.node_items[a.guid].setSelected(True)
+    scene.node_items[b.guid].setSelected(True)
+
+    scene.add_group_at(_QPointF(0, 0))
+    assert len(graph.groups) == 1
+    group = graph.groups[0]
+    # group frames BOTH selected nodes
+    for node in (a, b):
+        item = scene.node_items[node.guid]
+        assert group.x <= node.x and group.y <= node.y
+        assert node.x + item.width <= group.x + group.width
+        assert node.y + item.height <= group.y + group.height
+
+    # only the title bar is selectable, the body lets clicks through
+    group_item = next(i for i in scene.items() if isinstance(i, GroupItem))
+    assert group_item.shape().contains(_QPointF(group.width / 2, 10))
+    assert not group_item.shape().contains(_QPointF(group.width / 2,
+                                                    group.height / 2))
+
+    # groups are deletable (undoably)
+    scene.clearSelection()
+    group_item = next(i for i in scene.items() if isinstance(i, GroupItem))
+    group_item.setSelected(True)
+    scene.delete_selection()
+    assert len(graph.groups) == 0
+    scene.undo_stack.undo()
+    assert len(graph.groups) == 1
+
+
+def test_blackboard_lists_panel(app):
+    from PySide6.QtCore import Qt
+    from polytess.gui.blackboard import SCALAR_TYPES, BlackboardPanel
+    # "list" and "null" are no scalar variable types (lists live in Lists section)
+    assert "list" not in SCALAR_TYPES and "null" not in SCALAR_TYPES
+    assert "integer" in SCALAR_TYPES and "number" in SCALAR_TYPES
+
+    graph = Graph("t")
+    graph.lists.declare("cases", "string", ["a", "b"])
+    graph.variables.declare("model", "path", "/tmp/model.inp")
+    panel = BlackboardPanel()
+    panel.set_graph(graph)
+
+    tree = panel.graph_lists.tree
+    assert tree.topLevelItemCount() == 1
+    top = tree.topLevelItem(0)
+    assert top.childCount() == 2
+    assert top.child(1).text(1) == "b"
+
+    # + element on selected list
+    tree.setCurrentItem(top)
+    panel.graph_lists._add_element()
+    assert len(graph.lists.get("cases")) == 3
+
+    # − removes the selected element
+    top = tree.topLevelItem(0)
+    tree.setCurrentItem(top.child(0))
+    panel.graph_lists._remove_selected()
+    assert graph.lists.get("cases").items[0] == "b"
+
+    # element rows must be interactively editable (double-click editor)
+    top = tree.topLevelItem(0)
+    assert top.child(0).flags() & Qt.ItemIsEditable
+    assert top.flags() & Qt.ItemIsEditable   # list rename
+
+    # edit element value inline
+    top.child(0).setText(1, "z")
+    assert graph.lists.get("cases").items[0] == "z"
+
+    # path variable renders with a PathEdit (browse button)
+    from polytess.gui.widgets import PathEdit
+    table = panel.graph_vars.table
+    row = graph.variables.names().index("model")
+    assert isinstance(table.cellWidget(row, 2), PathEdit)
+    table.cellWidget(row, 2).setText("/tmp/other.inp")
+    assert graph.variables.get("model") == "/tmp/other.inp"
+
+    # − removes a whole list when the list itself is selected
+    tree.setCurrentItem(tree.topLevelItem(0))
+    panel.graph_lists._remove_selected()
+    assert len(graph.lists) == 0
+
+    # path lists: every element gets a PathEdit with browse button
+    graph.lists.declare("decks", "path", ["/tmp/a.inp", "/tmp/b.inp"])
+    top = next(tree.topLevelItem(i) for i in range(tree.topLevelItemCount())
+               if tree.topLevelItem(i).data(0, Qt.UserRole) == "decks")
+    editor = tree.itemWidget(top.child(0), 1)
+    assert isinstance(editor, PathEdit)
+    editor.setText("/tmp/c.inp")
+    assert graph.lists.get("decks").items[0] == "/tmp/c.inp"
+    assert graph.lists.get("decks").items[1] == "/tmp/b.inp"
+
+
+def test_blackboard_search_sort_filter(app):
+    from polytess.gui.blackboard import BlackboardPanel
+    graph = Graph("t")
+    graph.variables.declare("zeta", "number", 1)
+    graph.variables.declare("alpha", "string", "hello")
+    graph.variables.declare("count", "integer", 3)
+    panel = BlackboardPanel()
+    panel.set_graph(graph)
+    table_widget = panel.graph_vars
+
+    # type icons present on every name cell
+    assert not table_widget.table.item(0, 0).icon().isNull()
+
+    # sort by name (ascending / descending / back to insertion order)
+    table_widget._sort_by(0)
+    assert [table_widget.table.item(r, 0).text() for r in range(3)] == \
+        ["alpha", "count", "zeta"]
+    table_widget._sort_by(0)
+    assert table_widget.table.item(0, 0).text() == "zeta"
+    table_widget._sort_by(0)
+    assert table_widget.table.item(0, 0).text() == "zeta"   # insertion order
+    # sort by type groups equal types
+    table_widget._sort_by(1)
+    assert [table_widget.table.item(r, 1).text() for r in range(3)] == \
+        ["integer", "number", "string"]
+    table_widget._sort_by(1); table_widget._sort_by(1)      # reset
+
+    # search matches names and values
+    table_widget.header_bar.search.setText("alp")
+    assert table_widget.table.rowCount() == 1
+    assert table_widget.table.item(0, 0).text() == "alpha"
+    table_widget.header_bar.search.setText("hello")         # value match
+    assert table_widget.table.rowCount() == 1
+    table_widget.header_bar.search.setText("")
+    assert table_widget.table.rowCount() == 3
+
+    # type filter
+    table_widget.header_bar._filter_types = {"integer"}
+    table_widget.refresh()
+    assert table_widget.table.rowCount() == 1
+    assert table_widget.table.item(0, 0).text() == "count"
+    table_widget.header_bar._filter_types = set()
+    table_widget.refresh()
+
+    # editing still targets the right variable while sorted
+    table_widget._sort_by(0)   # alpha first
+    table_widget.table.item(0, 2).setText("changed")
+    assert graph.variables.get("alpha") == "changed"
+
+
+def test_template_edit_widget(app):
+    from polytess.core.properties import GetPathFormat
+    from polytess.gui.inspector.fields import build_fields_widget
+    from polytess.gui.widgets import TemplateEdit
+
+    graph = Graph("t")
+    graph.variables.declare("case", "string", "demo01")
+
+    editor = TemplateEdit("out/{case}/result", graph)
+    assert editor.preview.isVisibleTo(editor)
+    assert "out/demo01/result" in editor.preview.text()
+    editor.insert_placeholder("case")
+    assert editor.text().endswith("{case}")
+
+    # fields builder uses TemplateEdit for 'template' attributes
+    source = GetPathFormat("runs/{case}")
+    changes = []
+    widget = build_fields_widget(source, lambda: changes.append(1), graph=graph)
+    template_edits = widget.findChildren(TemplateEdit)
+    assert len(template_edits) == 1
+    template_edits[0].setText("neu/{case}")
+    assert source.template == "neu/{case}"
+    assert changes
+
+
+def test_references_dialog(app):
+    from polytess.core.refs import Reference, find_references
+    from polytess.gui.refs_dialog import ReferencesDialog
+    from polytess.core.properties import (GetGraphVariable, PropertyGetString,
+                                        PropertySetString, SetGraphVariable)
+    from polytess.library.instructions.instruction_set_string import SetString
+
+    graph = Graph("t")
+    graph.ensure_endpoints()
+    node = graph.add_node(ActionsNode())
+    inst = SetString()
+    inst.target = PropertySetString(SetGraphVariable("case"))
+    inst.value = PropertyGetString(GetGraphVariable("case"))
+    node.instructions.instructions.append(inst)
+
+    references = find_references(graph, "case", "graph")
+    assert len(references) == 2
+    picked = []
+    dialog = ReferencesDialog("case", "graph", references,
+                              on_goto=picked.append)
+    assert dialog.table.rowCount() == 2
+    dialog._goto(dialog.table.item(0, 1))
+    assert picked == [node.guid]
+    dialog.close()
+
+
+def test_pause_step_actions_exist(app):
+    import qasync
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    from polytess.gui.main_window import MainWindow
+    window = MainWindow()
+    assert not window.act_pause.isEnabled()      # only while running
+    assert not window.act_step.isEnabled()
+    assert window.act_pause.isCheckable()
+    # breakpoint toggle on the scene
+    doc = window.current_document()
+    node = doc.graph.nodes[0].__class__          # StartNode exists
+    a = doc.scene.graph.add_node(ActionsNode())
+    doc.scene.sync_items()
+    doc.scene.node_items[a.guid].setSelected(True)
+    doc.scene.toggle_breakpoints()
+    assert a.breakpoint is True
+    doc.scene.toggle_breakpoints()
+    assert a.breakpoint is False
+    window.tabs.clear()
+
+
+def test_type_selector_search(app):
+    from polytess.core.instructions import Instruction
+    from polytess.core.metadata import iter_subclasses
+    from polytess.gui.type_selector import TypeSelectorPopup, _search
+    candidates = list(iter_subclasses(Instruction))
+    hits = _search(candidates, "folder")
+    from polytess.library.instructions.instruction_create_folder import CreateFolder
+    assert CreateFolder in hits
+    popup = TypeSelectorPopup(candidates, lambda cls: None)
+    popup.search.setText("create folder")
+    assert popup.listing.count() > 0
+    popup.close()
+
+
+def test_inspector_builds_for_all_node_types(app):
+    from polytess.gui.inspector.inspector import InspectorPanel
+    from polytess.graph.nodes import (ActionsNode, BranchNode, ConditionsNode,
+                                    ExitNode, StartNode, SubGraphNode, TriggerNode)
+    from polytess.library.events.event_on_start import OnStart
+    from polytess.library.instructions.instruction_log_message import LogMessage
+    graph = Graph("t")
+    graph.ensure_endpoints()
+    panel = InspectorPanel()
+    for node_cls in (ActionsNode, ConditionsNode, BranchNode, TriggerNode, SubGraphNode):
+        node = graph.add_node(node_cls())
+        if isinstance(node, TriggerNode):
+            node.event = OnStart()
+        if isinstance(node, ActionsNode):
+            node.instructions.instructions.append(LogMessage("hi"))
+        panel.set_node(node, graph)
+    panel.set_node(next(iter(graph.nodes_of_type(StartNode))), graph)
+    panel.set_node(next(iter(graph.nodes_of_type(ExitNode))), graph)
+    panel.set_node(None, None)
+
+
+def test_poly_list_widget_edit_ops(app):
+    from polytess.core.instructions import Instruction
+    from polytess.gui.inspector.poly_list import PolymorphicListWidget
+    from polytess.library.instructions.instruction_log_message import LogMessage
+    from polytess.library.instructions.instruction_wait_seconds import WaitSeconds
+    items = [LogMessage("a"), WaitSeconds(1.0)]
+    widget = PolymorphicListWidget("Instructions", Instruction, items)
+    assert len(widget._rows) == 2
+    widget.duplicate_item(0)
+    assert len(items) == 3 and isinstance(items[1], LogMessage)
+    widget.delete_item(1)
+    assert len(items) == 2
+    widget.insert_item(0, WaitSeconds(2.0))
+    assert isinstance(items[0], WaitSeconds)
+    # title rendering
+    assert "Wait" in widget._rows[0].title_label.text()
+
+
+def test_main_window_open_and_run(app, tmp_path):
+    import qasync
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    from polytess.gui.main_window import MainWindow
+
+    window = MainWindow()
+    doc = window.open_document(os.path.abspath(EXAMPLE))
+    assert doc is not None
+    assert len(doc.graph.nodes) == 6
+
+    # run the demo workflow through the qasync loop
+    window.run_current()
+    assert doc.is_running
+
+    async def wait_done():
+        while doc.is_running:
+            await asyncio.sleep(0.05)
+
+    loop.run_until_complete(asyncio.wait_for(wait_done(), timeout=15))
+    assert doc.graph.variables.get("status") == "ok"
+    # log received output
+    assert any("Result file written" in text for _s, _l, text in window.log._entries)
+    window.tabs.clear()
+    # cleanup example output
+    import shutil
+    out_dir = os.path.join(os.path.dirname(os.path.abspath(EXAMPLE)), "out")
+    shutil.rmtree(out_dir, ignore_errors=True)

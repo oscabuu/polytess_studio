@@ -1,0 +1,339 @@
+{
+  "name": "Demo Workflow",
+  "nodes": [
+    {
+      "guid": "1959522c215c42dfa395e9ea4b84b7b6",
+      "custom_name": "",
+      "x": -420,
+      "y": 0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "Workflow started: case {case}",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "StartNode"
+    },
+    {
+      "guid": "2df01551feda4ff6afa751b0c50c5721",
+      "custom_name": "",
+      "x": 560,
+      "y": 0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "Workflow finished",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ExitNode"
+    },
+    {
+      "guid": "41897d7a8d0e427986f0f98ef909fe1e",
+      "custom_name": "Prepare Case",
+      "x": -140,
+      "y": -40,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "out/{case}",
+                "$type": "GetPathFormat"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "$type": "CreateFolder"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "out/{case}/result.txt",
+                "$type": "GetPathFormat"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "content": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "RESULT = 1\n",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "append": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": false,
+                "$type": "GetConstantBool"
+              },
+              "$type": "PropertyGetBool"
+            },
+            "$type": "WriteTextFile"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "83cc28fe14e34a4c96b65f466c5d8674",
+      "custom_name": "Result written?",
+      "x": 160,
+      "y": -40,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "conditions": {
+        "conditions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "sign": true,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "out/{case}/result.txt",
+                "$type": "GetPathFormat"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "$type": "FileExists"
+          }
+        ],
+        "$type": "ConditionList"
+      },
+      "check_mode": "and",
+      "$type": "ConditionsNode"
+    },
+    {
+      "guid": "c605914ceb0b475d9434919a4e6a4290",
+      "custom_name": "Report OK",
+      "x": 400,
+      "y": -120,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "Result file written",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "target": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "status",
+                "$type": "SetGraphVariable"
+              },
+              "$type": "PropertySetString"
+            },
+            "value": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "ok",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "SetString"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "d6a8fac9492441d487cc9c26531f523c",
+      "custom_name": "Report Failure",
+      "x": 400,
+      "y": 90,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "error",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": "Result file missing!",
+                "$type": "GetConstantString"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    }
+  ],
+  "edges": [
+    {
+      "guid": "9f6205b1aa2a435aacc7d5a9d51043fb",
+      "src_node": "1959522c215c42dfa395e9ea4b84b7b6",
+      "src_port": "out",
+      "dst_node": "41897d7a8d0e427986f0f98ef909fe1e",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "7bb00392d4e3451496fba988a4556157",
+      "src_node": "41897d7a8d0e427986f0f98ef909fe1e",
+      "src_port": "out",
+      "dst_node": "83cc28fe14e34a4c96b65f466c5d8674",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "5cbbaeb987a848ee9181b2bdc9f57905",
+      "src_node": "83cc28fe14e34a4c96b65f466c5d8674",
+      "src_port": "success",
+      "dst_node": "c605914ceb0b475d9434919a4e6a4290",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "9f9e008ea8be4f8ba4dffcdc97a4f50c",
+      "src_node": "83cc28fe14e34a4c96b65f466c5d8674",
+      "src_port": "fail",
+      "dst_node": "d6a8fac9492441d487cc9c26531f523c",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "48096dab8e784c0fad166207c69c8542",
+      "src_node": "c605914ceb0b475d9434919a4e6a4290",
+      "src_port": "out",
+      "dst_node": "2df01551feda4ff6afa751b0c50c5721",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "ffbb48fabf8b4892a8cdc6e37725f15e",
+      "src_node": "d6a8fac9492441d487cc9c26531f523c",
+      "src_port": "out",
+      "dst_node": "2df01551feda4ff6afa751b0c50c5721",
+      "dst_port": "in",
+      "$type": "Edge"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "variables": {
+    "items": [
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "case",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "demo01",
+          "$type": "ValueString"
+        },
+        "$type": "NameVariable"
+      }
+    ],
+    "$type": "NameVariables"
+  },
+  "lists": {
+    "items": [],
+    "$type": "ListVariables"
+  },
+  "pan_x": 0.0,
+  "pan_y": 0.0,
+  "zoom": 1.0,
+  "$type": "Graph"
+}
