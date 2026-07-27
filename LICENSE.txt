@@ -3,8 +3,8 @@ Business Source License 1.1
 Parameters
 
 Licensor:             Winthir Studios
-Licensed Work:        polytess (Workflow-Studio und Headless-Runner für
-                      Ingenieur-Berechnungen), Version 1.0.0 oder später.
+Licensed Work:        polytess (workflow studio and headless runner for
+                      engineering computations), Version 1.0.0 or later.
                       The Licensed Work is (c) 2026 Winthir Studios.
 Additional Use Grant: You may use, copy, modify and make production use
                       of the Licensed Work for any purpose, including
@@ -128,18 +128,18 @@ Corporation Ab.
 
 -----------------------------------------------------------------------------
 
-Drittkomponenten
+Third-Party Components
 
-polytess nutzt Komponenten unter eigenen Lizenzen, u. a.:
-- PySide6 / Qt for Python (LGPL v3) — dynamisch gelinkt und austauschbar
+polytess uses components under their own licenses, including:
+- PySide6 / Qt for Python (LGPL v3) — dynamically linked and replaceable
 - qasync (BSD), anthropic SDK (MIT), cryptography (Apache-2.0/BSD),
   reportlab (BSD-style)
-Die jeweiligen Lizenzbedingungen bleiben unberührt.
+The respective license terms remain unaffected.
 
-Hinweis (unverbindliche Zusammenfassung, kein Bestandteil der Lizenz):
-Diese Lizenz erlaubt jede Nutzung — auch intern-kommerziell — außer dem
-Weiterverkauf/Vertrieb der Software selbst oder als gehosteten Dienst.
-Ab dem 2030-07-27 gilt die Software automatisch als Apache License 2.0.
-Dieser Text ist eine Vorlage und ersetzt keine Rechtsberatung — vor
-Veröffentlichung juristisch prüfen lassen (insbesondere den Additional
-Use Grant und die Kontaktadresse).
+Note (non-binding summary, not part of the License):
+This license permits any use — including internal commercial use —
+except reselling/distributing the software itself or offering it as a
+hosted service. As of 2030-07-27, the software automatically becomes
+Apache License 2.0. This text is a template and does not replace legal
+advice — have it reviewed by a lawyer before publication (in particular
+the Additional Use Grant and the contact address).

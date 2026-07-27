@@ -293,7 +293,7 @@ class FlowAssistantPanel(QWidget):
             self._history.pop()
         self._transcript.append(("error", message))
         self._finish_request()
-        self._set_status("Fehler.")
+        self._set_status("Error.")
 
     def _finish_request(self) -> None:
         self._render()

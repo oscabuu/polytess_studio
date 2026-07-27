@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.0.3 — 2026-07-27
+- Translated the remaining German text to English throughout the repo
+  (README, HOWTO_LINUX, LICENSE.txt's non-legal notes, requirements.txt
+  comments, a leftover docstring shared by ~47 files, and one UI string)
+  so the whole project is fully English.
+
 ## 1.0.2 — 2026-07-27
 - Removed `PLAN.md` and `STATUS.md` (internal planning/status notes) and
   their references — this changelog now starts at the 1.0.0 relicense

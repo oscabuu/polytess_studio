@@ -1,23 +1,21 @@
-# polytess — Workflow Studio für Maschinenbau-Berechnungen
+# polytess — Workflow Studio for Mechanical-Engineering Computations
 
-Visual-Scripting-Studio (Variablen, Properties, Actions, Conditions,
-Events) mit Node-Graph-Editor
-Graph-Editors — als Desktop-Studio (PySide6) für Berechnungsworkflows:
-Verzeichnisse anlegen, Inputfiles templaten, Simpack-/Abaqus-Läufe und DOEs
-starten, Postprocessing, Loops.
+Visual-scripting studio (variables, properties, actions, conditions,
+events) with a node graph editor — a desktop studio (PySide6) for
+computation workflows: setting up directories, templating input files,
+running Simpack/Abaqus jobs and DOEs, post-processing, loops.
 
 ## Installation & Start
 
 ```bash
-cd Assets/Python
 python3 -m venv .venv
 ./.venv/bin/pip install -e ".[dev]"
 
-# GUI-Studio
-./.venv/bin/python -m polytess                      # leeres Studio
+# GUI studio
+./.venv/bin/python -m polytess                      # empty studio
 ./.venv/bin/python -m polytess examples/demo.flow.json
 
-# Headless (Batch / Rechenserver / HPC)
+# Headless (batch / compute server / HPC)
 ./.venv/bin/python -m polytess.cli run examples/demo.flow.json --var case=run42
 ./.venv/bin/python -m polytess.cli validate examples/demo.flow.json
 
@@ -25,51 +23,56 @@ python3 -m venv .venv
 ./.venv/bin/python -m pytest
 ```
 
-## Bedienung (Studio)
+## Using the Studio
 
-| Aktion | Bedienung |
+| Action | How |
 |---|---|
-| Node erzeugen | Rechtsklick auf Canvas → *Add Node…* oder `Ctrl+Space` (durchsuchbares Menü) |
-| Verbinden | Von einem Port (Kreis) zu einem anderen ziehen |
-| Node bearbeiten | Node selektieren → **Inspector** (rechts): Actions/Conditions-Listen |
-| Action hinzufügen | Inspector → *Add Instruction…* → Kategorie-Baum/Suche |
-| Feld = Variable statt Wert | Dropdown-Button rechts neben dem Feld → z. B. *Graph Variable* |
-| Reorder | Zeile am Drag-Handle ziehen (blauer Zielbalken) |
-| Kontextmenü Zeile | Copy/Paste/Replace/Insert/Breakpoint/Disable/Help |
-| Variablen | **Variables**-Dock (links): Graph- und Global-Scope, live während des Runs |
-| Ausführen | `F5` / ▶ — laufende Nodes blau, Erfolg grün, Fehlschlag rot; Log unten |
+| Create a node | Right-click the canvas → *Add Node…* or `Ctrl+Space` (searchable menu) |
+| Connect | Drag from one port (circle) to another |
+| Edit a node | Select the node → **Inspector** (right): Actions/Conditions lists |
+| Add an action | Inspector → *Add Instruction…* → category tree/search |
+| Field = variable instead of value | Dropdown button right of the field → e.g. *Graph Variable* |
+| Reorder | Drag a row by its handle (blue drop indicator) |
+| Row context menu | Copy/Paste/Replace/Insert/Breakpoint/Disable/Help |
+| Variables | **Variables** dock (left): graph and global scope, live during a run |
+| Run | `F5` / ▶ — running nodes blue, success green, failure red; log below |
 | Stop | `Shift+F5` / ■ |
-| Pan / Zoom / Fit | Mittlere Maustaste / Mausrad / `F` |
-| Undo/Redo | `Ctrl+Z` / `Ctrl+Shift+Z` (Graph-Struktur) |
-| Kopieren/Einfügen | `Ctrl+C` / `Ctrl+V` / `Ctrl+D` (Nodes inkl. interner Kanten) |
-| Gruppen / Notizen | Rechtsklick → *Add Group* / *Add Sticky Note* (Doppelklick editiert) |
-| Sub-Workflow | Sub-Workflow-Node, Doppelklick öffnet ihn als Tab |
+| Pan / zoom / fit | Middle mouse button / wheel / `F` |
+| Undo/Redo | `Ctrl+Z` / `Ctrl+Shift+Z` (graph structure) |
+| Copy/Paste | `Ctrl+C` / `Ctrl+V` / `Ctrl+D` (nodes incl. internal edges) |
+| Groups / notes | Right-click → *Add Group* / *Add Sticky Note* (double-click to edit) |
+| Sub-workflow | Sub-Workflow node, double-click opens it as a tab |
 
-## Konzepte
+## Concepts
 
-- **Instruction** (`async run(ctx)`): eine Action; Listen laufen sequentiell,
-  mit relativem Programmzeiger (Skip/Restart/Stop).
-- **Condition** (`run(ctx) -> bool`): mit If/Not-Vorzeichen; Listen mit AND/OR.
-- **Branch**: Conditions + Instructions; BranchList = if/elif/else.
-- **Event**: befeuert Trigger-Nodes (On Start, On Signal, On Timer, On File Changed).
-- **PropertyGet/PropertySet**: jedes Feld ist Konstante ODER Variablen-Verweis
-  (Graph/Global, List-Picks, Formatted String `{var}`, Env-Var, DateTime, …).
-- **Graph**: Start/Exit/Actions/Conditions/Branch/Trigger/Sub-Workflow-Nodes;
-  push-basierte Ausführung, mehrere Ausgangskanten laufen parallel;
-  Conditions-Node verzweigt über *Success*/*Fail*-Ports.
-- **Persistenz**: getaggtes JSON (`*.flow.json`), diff-freundlich, versionierbar.
+- **Instruction** (`async run(ctx)`): an action; lists run sequentially,
+  with a relative program counter (Skip/Restart/Stop).
+- **Condition** (`run(ctx) -> bool`): with an If/Not sign; lists combine
+  with AND/OR.
+- **Branch**: conditions + instructions; BranchList = if/elif/else.
+- **Event**: fires trigger nodes (On Start, On Signal, On Timer, On File
+  Changed).
+- **PropertyGet/PropertySet**: every field is a constant OR a variable
+  reference (graph/global, list picks, formatted string `{var}`, env
+  var, date/time, …).
+- **Graph**: Start/Exit/Actions/Conditions/Branch/Trigger/Sub-Workflow
+  nodes; push-based execution, multiple outgoing edges run in parallel;
+  the Conditions node branches via *Success*/*Fail* ports.
+- **Persistence**: tagged JSON (`*.flow.json`), diff-friendly, version
+  control-friendly.
 
-## Eigene Domain-Actions (Simpack, Abaqus, …)
+## Your Own Domain Actions (Simpack, Abaqus, …)
 
-Vorlage: [plugins/simpack_template](plugins/simpack_template) — eigenes Paket
-mit Entry-Point `polytess.plugins`; wird beim Start automatisch geladen.
+Template: [plugins/simpack_template](plugins/simpack_template) — its
+own package with the `polytess.plugins` entry point; loaded
+automatically at startup.
 
-**Ablage-Konvention: eine Klasse pro Datei:**
+**File convention: one class per file:**
 `instruction_<name>.py` / `condition_<name>.py` / `event_<name>.py`.
-Alle so benannten Dateien im Plugin-Ordner (und in `polytess/library/…`)
-werden beim Start **automatisch geladen** — neue Datei ablegen genügt,
-keine Import-Zeile nötig. Dateien mit führendem `_` werden übersprungen
-(z. B. die Kopiervorlage `_template.py`).
+Every file named this way in the plugin folder (and in
+`polytess/library/…`) is **loaded automatically** at startup — dropping
+in a new file is enough, no import line needed. Files with a leading
+`_` are skipped (e.g. the copy template `_template.py`).
 
 ```python
 @meta(title="Run Simpack Solver", category="Simpack/Run Simpack Solver",
@@ -77,47 +80,47 @@ keine Import-Zeile nötig. Dateien mit führendem `_` werden übersprungen
 class RunSimpackSolver(Instruction):
     def __init__(self, model: str = ""):
         super().__init__()
-        self.model = PropertyGetPath(model)      # Konstante ODER Variable
+        self.model = PropertyGetPath(model)      # constant OR variable
 
     @property
-    def title(self):                             # dynamischer Listentitel
+    def title(self):                             # dynamic list title
         return f"Simpack solve {self.model}"
 
     async def run(self, ctx):
         ...                                      # ctx.info/error, ctx.resolve_path,
-                                                 # RunCommand-Muster für Subprozesse
+                                                 # RunCommand pattern for subprocesses
 ```
 
 ```bash
 ./.venv/bin/pip install -e plugins/simpack_template
 ```
 
-## Projektstruktur
+## Project Structure
 
 ```
 polytess/
-├── core/       # GUI-frei: Werte, Variablen, Properties, Instructions,
-│               # Conditions, Events, Signals, Serialisierung
-├── graph/      # GUI-frei: Graph-Modell, Node-Typen, asyncio-Processor
-├── library/    # generische Actions/Conditions/Events (Files, Process, …)
-├── gui/        # PySide6-Studio (Theme, Graph-Editor, Inspector, Log, …)
-├── cli.py      # Headless-Runner
-└── __main__.py # Studio-Start
-plugins/        # Domain-Plugin-Vorlagen (Simpack/Abaqus)
-examples/       # Beispiel-Workflows
-tests/          # pytest (Core, Graph, Library, GUI-Smoke offscreen)
+├── core/       # GUI-free: values, variables, properties, instructions,
+│               # conditions, events, signals, serialization
+├── graph/      # GUI-free: graph model, node types, asyncio processor
+├── library/    # generic actions/conditions/events (files, process, …)
+├── gui/        # PySide6 studio (theme, graph editor, inspector, log, …)
+├── cli.py      # headless runner
+└── __main__.py # studio entry point
+plugins/        # domain-plugin templates (Simpack/Abaqus)
+examples/       # example workflows
+tests/          # pytest (core, graph, library, GUI smoke offscreen)
 ```
 
-## Hinweise
+## Notes
 
-- Undo/Redo deckt die Graph-Struktur ab (Nodes/Kanten/Positionen);
-  Feld-Änderungen im Inspector sind direkt (kein Undo).
-- Der Node-Body zeigt eine Live-Vorschau der Actions/Conditions;
-  editiert wird im Inspector (Selektion genügt).
-- `ValueNumber` ist `float` (double).
+- Undo/Redo covers the graph structure (nodes/edges/positions); field
+  edits in the Inspector are immediate (no undo).
+- The node body shows a live preview of its actions/conditions; editing
+  happens in the Inspector (selecting the node is enough).
+- `ValueNumber` is `float` (double).
 
-## Lizenz
+## License
 
-[Business Source License 1.1](LICENSE.txt) — frei nutzbar, auch
-kommerziell/intern, nur kein Weiterverkauf/Hosting als eigenes Produkt.
-Wandelt sich am 2030-07-27 automatisch in Apache License 2.0.
+[Business Source License 1.1](LICENSE.txt) — free to use, including
+commercially/internally, just no resale/hosting as your own product.
+Automatically converts to Apache License 2.0 on 2030-07-27.
