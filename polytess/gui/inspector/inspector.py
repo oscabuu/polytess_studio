@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QCursor
+from PySide6.QtGui import QCursor, QUndoStack
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFrame,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QScrollArea, QToolButton, QVBoxLayout, QWidget)
@@ -27,6 +27,8 @@ from polytess.graph.model import Graph, Node
 from polytess.graph.nodes import (ActionsNode, BranchNode, ConditionsNode,
                                 ExitNode, StartNode, SubGraphNode, TriggerNode)
 from polytess.gui.icons import icon
+from polytess.gui.inspector.commands import (EditFieldCommand, ListEditCommand,
+                                             UndoCallbacks)
 from polytess.gui.inspector.fields import build_fields_widget, make_label
 from polytess.gui.inspector.poly_list import PolymorphicListWidget
 from polytess.gui.theme import ACCENTS, COLORS
@@ -44,6 +46,11 @@ class InspectorPanel(QWidget):
         super().__init__(parent)
         self._node: Node | None = None
         self._graph: Graph | None = None
+        self._undo: UndoCallbacks | None = None
+        # active tab's QUndoStack — set by MainWindow on tab switch/add/close.
+        # None means "no undoable edits" (e.g. a widget built in isolation
+        # in a test): field/list editors then apply changes directly.
+        self.undo_stack: QUndoStack | None = None
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -67,6 +74,40 @@ class InspectorPanel(QWidget):
         if self._node is not None:
             self._build()
 
+    def refresh_if_showing(self, node: Node) -> None:
+        """Rebuild if *node* is currently displayed — used by undo/redo of a
+        content edit so the field widgets pick up the reverted/reapplied
+        values (a live edit never needs this: the widget the user is
+        typing/toggling into already shows the new value)."""
+        if self._node is node:
+            self._build()
+
+    # ---- undo helpers -------------------------------------------------------- #
+
+    def _make_undo_callbacks(self, node: Node) -> UndoCallbacks:
+
+        def push_field(target, attr, old_value, new_value, label="Edit Field"):
+            if old_value == new_value:
+                return
+            if self.undo_stack is not None:
+                self.undo_stack.push(EditFieldCommand(
+                    target, attr, old_value, new_value, node, self, label))
+
+        def push_list(items, before, after, label="Edit List"):
+            if self.undo_stack is not None:
+                self.undo_stack.push(ListEditCommand(
+                    items, before, after, node, self, label))
+
+        return UndoCallbacks(push_field, push_list)
+
+    def _set_field(self, target, attr: str, value, label: str = "Edit Field") -> None:
+        old = getattr(target, attr)
+        if old == value:
+            return
+        setattr(target, attr, value)
+        self._emit_changed()
+        self._undo.push_field(target, attr, old, value, label)
+
     # ---- building ----------------------------------------------------------- #
 
     def _placeholder(self) -> None:
@@ -81,6 +122,7 @@ class InspectorPanel(QWidget):
 
     def _build(self) -> None:   # noqa: C901
         node, graph = self._node, self._graph
+        self._undo = self._make_undo_callbacks(node)
         content = QWidget()
         layout = QVBoxLayout(content)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -104,7 +146,7 @@ class InspectorPanel(QWidget):
             name_edit = QLineEdit(node.custom_name)
             name_edit.setPlaceholderText(node.default_name)
             name_edit.textChanged.connect(
-                lambda text: (setattr(node, "custom_name", text), self._emit_changed()))
+                lambda text: self._set_field(node, "custom_name", text, "Rename Node"))
             head_layout.addWidget(name_edit, 1)
         else:
             name_label = QLabel(f"<b>{node.name}</b>")
@@ -113,14 +155,14 @@ class InspectorPanel(QWidget):
         enabled_box = QCheckBox("Enabled")
         enabled_box.setChecked(node.enabled)
         enabled_box.toggled.connect(
-            lambda value: (setattr(node, "enabled", value), self._emit_changed()))
+            lambda value: self._set_field(node, "enabled", value, "Toggle Enabled"))
         head_layout.addWidget(enabled_box)
 
         bp_box = QCheckBox("Breakpoint")
         bp_box.setChecked(node.breakpoint)
         bp_box.setToolTip("Pause execution when this node starts (shortcut: B)")
         bp_box.toggled.connect(
-            lambda value: (setattr(node, "breakpoint", value), self._emit_changed()))
+            lambda value: self._set_field(node, "breakpoint", value, "Toggle Breakpoint"))
         head_layout.addWidget(bp_box)
         layout.addWidget(header)
 
@@ -142,7 +184,7 @@ class InspectorPanel(QWidget):
             mode_combo.addItems(["and", "or"])
             mode_combo.setCurrentText(node.check_mode)
             mode_combo.currentTextChanged.connect(
-                lambda value: (setattr(node, "check_mode", value), self._emit_changed()))
+                lambda value: self._set_field(node, "check_mode", value, "Change Check Mode"))
             mode_row.addWidget(mode_combo, 1)
             layout.addLayout(mode_row)
             layout.addWidget(self._list_widget("Conditions", Condition,
@@ -169,7 +211,8 @@ class InspectorPanel(QWidget):
                      direct_add_cls=None) -> PolymorphicListWidget:
         widget = PolymorphicListWidget(title, base_cls, items, graph=self._graph,
                                        favorites_key=fav_key,
-                                       direct_add_cls=direct_add_cls)
+                                       direct_add_cls=direct_add_cls,
+                                       undo=self._undo)
         widget.changed.connect(self._emit_changed)
         return widget
 
@@ -192,8 +235,10 @@ class InspectorPanel(QWidget):
             button.setText("(choose event…)")
 
         def pick(cls):
+            old_event = node.event
             node.event = cls()
             self._emit_changed()
+            self._undo.push_field(node, "event", old_event, node.event, "Change Event")
             self._build()
 
         def open_popup():
@@ -207,7 +252,7 @@ class InspectorPanel(QWidget):
 
         if node.event is not None:
             fields = build_fields_widget(node.event, self._emit_changed,
-                                         graph=self._graph, depth=1)
+                                         graph=self._graph, depth=1, undo=self._undo)
             if fields is not None:
                 layout.addWidget(fields)
         return container
@@ -224,7 +269,7 @@ class InspectorPanel(QWidget):
         row.addWidget(make_label("Workflow File"))
         edit = QLineEdit(node.file)
         edit.textChanged.connect(
-            lambda text: (setattr(node, "file", text), self._emit_changed()))
+            lambda text: self._set_field(node, "file", text, "Change Workflow File"))
         row.addWidget(edit, 1)
         browse = QToolButton()
         browse.setIcon(icon("folder", "text-light"))

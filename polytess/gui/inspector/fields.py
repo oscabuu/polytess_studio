@@ -95,12 +95,13 @@ class PropertyFieldRow(QWidget):
     """Label + source dropdown + indented sub-fields."""
 
     def __init__(self, label: str, prop, on_changed: Callable[[], None],
-                 graph=None, depth: int = 0, parent=None):
+                 graph=None, depth: int = 0, parent=None, undo=None):
         super().__init__(parent)
         self._prop = prop
         self._on_changed = on_changed
         self._graph = graph
         self._depth = depth
+        self._undo = undo
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -136,7 +137,7 @@ class PropertyFieldRow(QWidget):
             if child.widget():
                 child.widget().deleteLater()
         sub = build_fields_widget(source, self._on_changed, graph=self._graph,
-                                  depth=self._depth + 1)
+                                  depth=self._depth + 1, undo=self._undo)
         if sub is not None:
             sub_layout.addWidget(sub)
         self.sub_container.setVisible(sub is not None)
@@ -146,9 +147,13 @@ class PropertyFieldRow(QWidget):
         kind = "set" if isinstance(self._prop, PropertySet) else "get"
 
         def pick(cls):
+            old_source = self._prop.source
             self._prop.source = cls()
             self._rebuild()
             self._on_changed()
+            if self._undo is not None:
+                self._undo.push_field(self._prop, "source", old_source,
+                                      self._prop.source, "Change Source")
 
         popup = TypeSelectorPopup(candidates, pick, parent=self.window(),
                                   favorites_key=f"sources-{kind}-{type(self._prop).value_type}")
@@ -156,77 +161,87 @@ class PropertyFieldRow(QWidget):
 
 
 def _scalar_editor(obj, attr: str, value, on_changed: Callable[[], None],
-                   graph=None) -> QWidget | None:
+                   graph=None, undo=None) -> QWidget | None:
     choices = getattr(type(obj), "FIELD_CHOICES", {}).get(attr)
+
+    def commit(v) -> None:
+        old = getattr(obj, attr)
+        if old == v:
+            return
+        setattr(obj, attr, v)
+        on_changed()
+        if undo is not None:
+            undo.push_field(obj, attr, old, v, f"Edit {humanize(attr).title()}")
+
     if attr == "sign" and isinstance(value, bool):
         combo = QComboBox()
         combo.addItems(["If", "Not"])
         combo.setCurrentIndex(0 if value else 1)
-        combo.currentIndexChanged.connect(
-            lambda idx: (setattr(obj, attr, idx == 0), on_changed()))
+        combo.currentIndexChanged.connect(lambda idx: commit(idx == 0))
         return combo
     if isinstance(value, bool):
         box = QCheckBox()
         box.setChecked(value)
-        box.toggled.connect(lambda v: (setattr(obj, attr, v), on_changed()))
+        box.toggled.connect(commit)
         return box
     if isinstance(value, list):
         # direct list entry (GetConstantList.items)
         from polytess.gui.widgets import StringListEdit
         list_edit = StringListEdit(value)
-        list_edit.changed.connect(lambda v: (setattr(obj, attr, v), on_changed()))
+        list_edit.changed.connect(commit)
         return list_edit
     if isinstance(value, int):
         spin = QSpinBox()
         spin.setRange(-10**9, 10**9)
         spin.setValue(value)
-        spin.valueChanged.connect(lambda v: (setattr(obj, attr, int(v)), on_changed()))
+        spin.valueChanged.connect(lambda v: commit(int(v)))
         return spin
     if isinstance(value, float):
         spin = QDoubleSpinBox()
         spin.setRange(-1e12, 1e12)
         spin.setDecimals(6)
         spin.setValue(value)
-        spin.valueChanged.connect(lambda v: (setattr(obj, attr, float(v)), on_changed()))
+        spin.valueChanged.connect(lambda v: commit(float(v)))
         return spin
     if isinstance(value, str):
         # constant path fields get a browse button (file/folder dialog)
         if attr == "value" and getattr(type(obj), "value_type", "") == "path":
             from polytess.gui.widgets import PathEdit
             path_edit = PathEdit(value)
-            path_edit.textChanged.connect(
-                lambda v: (setattr(obj, attr, v), on_changed()))
+            path_edit.textChanged.connect(commit)
             return path_edit
         # Formatted String/Path templates: variable-insert button + preview
         if attr == "template":
             from polytess.gui.widgets import TemplateEdit
             template_edit = TemplateEdit(value, graph)
-            template_edit.textChanged.connect(
-                lambda v: (setattr(obj, attr, v), on_changed()))
+            template_edit.textChanged.connect(commit)
             return template_edit
         if choices:
             combo = QComboBox()
             combo.addItems(list(choices))
             if value in choices:
                 combo.setCurrentText(value)
-            combo.currentTextChanged.connect(
-                lambda v: (setattr(obj, attr, v), on_changed()))
+            combo.currentTextChanged.connect(commit)
             return combo
         provider = _var_ref_provider(obj, attr, graph)
         if provider is not None:
             field = VariableRefField(value, provider)
-            field.textChanged.connect(
-                lambda v: (setattr(obj, attr, v), on_changed()))
+            field.textChanged.connect(commit)
             return field
         edit = QLineEdit(value)
-        edit.textChanged.connect(lambda v: (setattr(obj, attr, v), on_changed()))
+        edit.textChanged.connect(commit)
         return edit
     return None
 
 
 def build_fields_widget(obj, on_changed: Callable[[], None], graph=None,
-                        parent=None, depth: int = 0) -> QWidget | None:
-    """Editor widget for all public fields of *obj*; None if it has none."""
+                        parent=None, depth: int = 0, undo=None) -> QWidget | None:
+    """Editor widget for all public fields of *obj*; None if it has none.
+
+    *undo* is an ``UndoCallbacks`` (see inspector/commands.py) or None —
+    threaded through to every nested field/list editor so edits become
+    undoable; None falls back to applying changes directly (e.g. a
+    widget built in isolation in a test)."""
     from polytess.gui.inspector.poly_list import PolymorphicListWidget
     from polytess.core.instructions import Instruction
     from polytess.core.conditions import Branch, Condition
@@ -261,25 +276,27 @@ def build_fields_widget(obj, on_changed: Callable[[], None], graph=None,
             grid.setVerticalSpacing(3)
             grid_row = 0
             layout.addWidget(PropertyFieldRow(label_text, value, on_changed,
-                                              graph, depth=depth))
+                                              graph, depth=depth, undo=undo))
         elif isinstance(value, InstructionList):
             lst = PolymorphicListWidget(label_text, Instruction, value.instructions,
-                                        graph=graph, favorites_key="instructions")
+                                        graph=graph, favorites_key="instructions",
+                                        undo=undo)
             lst.changed.connect(on_changed)
             layout.addWidget(lst)
         elif isinstance(value, ConditionList):
             lst = PolymorphicListWidget(label_text, Condition, value.conditions,
-                                        graph=graph, favorites_key="conditions")
+                                        graph=graph, favorites_key="conditions",
+                                        undo=undo)
             lst.changed.connect(on_changed)
             layout.addWidget(lst)
         elif isinstance(value, BranchList):
             lst = PolymorphicListWidget(label_text, Branch, value.branches,
                                         graph=graph, favorites_key="branches",
-                                        direct_add_cls=Branch)
+                                        direct_add_cls=Branch, undo=undo)
             lst.changed.connect(on_changed)
             layout.addWidget(lst)
         else:
-            editor = _scalar_editor(obj, attr, value, on_changed, graph)
+            editor = _scalar_editor(obj, attr, value, on_changed, graph, undo)
             if editor is None:
                 continue
             grid.addWidget(make_label(label_text, depth), grid_row, 0)

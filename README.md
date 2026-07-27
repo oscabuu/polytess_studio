@@ -38,7 +38,7 @@ python3 -m venv .venv
 | Run | `F5` / ▶ — running nodes blue, success green, failure red; log below |
 | Stop | `Shift+F5` / ■ |
 | Pan / zoom / fit | Middle mouse button / wheel / `F` |
-| Undo/Redo | `Ctrl+Z` / `Ctrl+Shift+Z` (graph structure) |
+| Undo/Redo | `Ctrl+Z` / `Ctrl+Shift+Z` (graph structure and node content) |
 | Copy/Paste | `Ctrl+C` / `Ctrl+V` / `Ctrl+D` (nodes incl. internal edges) |
 | Groups / notes | Right-click → *Add Group* / *Add Sticky Note* (double-click to edit) |
 | Sub-workflow | Sub-Workflow node, double-click opens it as a tab |
@@ -113,8 +113,9 @@ tests/          # pytest (core, graph, library, GUI smoke offscreen)
 
 ## Notes
 
-- Undo/Redo covers the graph structure (nodes/edges/positions); field
-  edits in the Inspector are immediate (no undo).
+- Undo/Redo covers the graph structure (nodes/edges/positions) and node
+  content (field values, Instructions/Conditions/Branches list edits);
+  rapid edits to the same field (e.g. typing) merge into one undo step.
 - The node body shows a live preview of its actions/conditions; editing
   happens in the Inspector (selecting the node is enough).
 - `ValueNumber` is `float` (double).

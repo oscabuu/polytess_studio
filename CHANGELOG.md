@@ -4,6 +4,14 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.1.0 — 2026-07-27
+- Undo/Redo now covers node **content**, not just graph structure: field
+  edits (header fields, Property source values, source-type swaps, the
+  trigger event type) and Instructions/Conditions/Branches list edits
+  (insert/replace/duplicate/delete/reorder) are all undoable.
+  Consecutive edits to the same field (e.g. typing) merge into a single
+  undo step.
+
 ## 1.0.3 — 2026-07-27
 - Translated the remaining German text to English throughout the repo
   (README, HOWTO_LINUX, LICENSE.txt's non-legal notes, requirements.txt

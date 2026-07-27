@@ -328,9 +328,11 @@ class MainWindow(QMainWindow):
         doc = self.current_document()
         if doc is None:
             self.inspector.set_node(None, None)
+            self.inspector.undo_stack = None
             self.blackboard.set_graph(None)
             return
         self.undo_group.setActiveStack(doc.scene.undo_stack)
+        self.inspector.undo_stack = doc.scene.undo_stack
         self.blackboard.set_graph(doc.graph)
         self.inspector.set_node(None, None)
         self._refresh_tab_title(doc)

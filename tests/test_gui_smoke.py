@@ -410,3 +410,122 @@ def test_main_window_open_and_run(app, tmp_path):
     import shutil
     out_dir = os.path.join(os.path.dirname(os.path.abspath(EXAMPLE)), "out")
     shutil.rmtree(out_dir, ignore_errors=True)
+
+
+def test_field_edit_is_undoable_and_merges(app):
+    from PySide6.QtGui import QUndoStack
+    from PySide6.QtWidgets import QDoubleSpinBox
+    from polytess.gui.inspector.inspector import InspectorPanel
+    from polytess.library.instructions.instruction_wait_seconds import WaitSeconds
+
+    graph = Graph("t")
+    graph.ensure_endpoints()
+    node = graph.add_node(ActionsNode())
+    inst = WaitSeconds(1.0)
+    inst._ui_expanded = True
+    node.instructions.instructions.append(inst)
+
+    panel = InspectorPanel()
+    stack = QUndoStack()
+    panel.undo_stack = stack
+    panel.set_node(node, graph)
+
+    spin = panel.findChildren(QDoubleSpinBox)[0]
+    # three rapid edits (like typing/scrubbing) merge into one undo step
+    spin.setValue(2.0)
+    spin.setValue(3.0)
+    spin.setValue(4.0)
+    assert inst.seconds.source.value == 4.0
+    assert stack.count() == 1
+
+    stack.undo()
+    assert inst.seconds.source.value == 1.0
+    # undo rebuilt the inspector (refresh_if_showing) — the old widget is
+    # gone, re-query to confirm the field widget itself picked it up too
+    assert panel.findChildren(QDoubleSpinBox)[0].value() == 1.0
+
+    stack.redo()
+    assert inst.seconds.source.value == 4.0
+
+
+def test_node_header_field_is_undoable(app):
+    from PySide6.QtGui import QUndoStack
+    from PySide6.QtWidgets import QCheckBox
+    from polytess.gui.inspector.inspector import InspectorPanel
+
+    graph = Graph("t")
+    graph.ensure_endpoints()
+    node = graph.add_node(ActionsNode())
+    assert node.enabled is True
+
+    panel = InspectorPanel()
+    stack = QUndoStack()
+    panel.undo_stack = stack
+    panel.set_node(node, graph)
+
+    enabled_box = next(cb for cb in panel.findChildren(QCheckBox)
+                       if cb.text() == "Enabled")
+    enabled_box.setChecked(False)
+    assert node.enabled is False
+    assert stack.count() == 1
+
+    stack.undo()
+    assert node.enabled is True
+    stack.redo()
+    assert node.enabled is False
+
+
+def test_poly_list_structural_edits_are_undoable(app):
+    from PySide6.QtGui import QUndoStack
+    from polytess.gui.inspector.inspector import InspectorPanel
+    from polytess.gui.inspector.poly_list import PolymorphicListWidget
+    from polytess.library.instructions.instruction_log_message import LogMessage
+    from polytess.library.instructions.instruction_wait_seconds import WaitSeconds
+
+    graph = Graph("t")
+    graph.ensure_endpoints()
+    node = graph.add_node(ActionsNode())
+    node.instructions.instructions.append(LogMessage("a"))
+    node.instructions.instructions.append(WaitSeconds(1.0))
+    items = node.instructions.instructions
+
+    panel = InspectorPanel()
+    stack = QUndoStack()
+    panel.undo_stack = stack
+    panel.set_node(node, graph)
+
+    list_widget = panel.findChild(PolymorphicListWidget)
+    list_widget.duplicate_item(0)
+    assert len(items) == 3 and isinstance(items[1], LogMessage)
+    assert stack.count() == 1
+
+    stack.undo()
+    assert len(node.instructions.instructions) == 2
+    stack.redo()
+    assert len(node.instructions.instructions) == 3
+
+    # delete and reorder are separate undo steps (not merged with each other)
+    list_widget = panel.findChild(PolymorphicListWidget)
+    list_widget.delete_item(0)
+    assert len(node.instructions.instructions) == 2
+    assert stack.count() == 2
+    stack.undo()
+    assert len(node.instructions.instructions) == 3
+
+
+def test_inspector_undo_stack_follows_active_tab(app):
+    import qasync
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    from polytess.gui.main_window import MainWindow
+
+    window = MainWindow()
+    doc1 = window.current_document()
+    assert window.inspector.undo_stack is doc1.scene.undo_stack
+
+    doc2 = window.new_document()
+    assert window.inspector.undo_stack is doc2.scene.undo_stack
+
+    window.tabs.setCurrentWidget(doc1)
+    assert window.inspector.undo_stack is doc1.scene.undo_stack
+    window.tabs.clear()

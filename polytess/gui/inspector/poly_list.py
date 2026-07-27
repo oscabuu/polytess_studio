@@ -117,7 +117,8 @@ class ItemRow(QWidget):
         body_layout = QVBoxLayout(self.body)
         body_layout.setContentsMargins(10, 5, 7, 5)
         from polytess.gui.inspector.fields import build_fields_widget
-        fields = build_fields_widget(item, self._on_fields_changed, graph=owner.graph)
+        fields = build_fields_widget(item, self._on_fields_changed, graph=owner.graph,
+                                     undo=owner.undo)
         if fields is not None:
             body_layout.addWidget(fields)
         else:
@@ -148,9 +149,13 @@ class ItemRow(QWidget):
         self.refresh()
 
     def _toggle_enabled(self) -> None:
-        self.item.is_enabled = not self.item.is_enabled
+        old = self.item.is_enabled
+        self.item.is_enabled = not old
         self.refresh()
         self.owner.changed.emit()
+        if self.owner.undo is not None:
+            self.owner.undo.push_field(self.item, "is_enabled", old,
+                                       self.item.is_enabled, "Toggle Enabled")
 
     def _duplicate(self) -> None:
         self.owner.duplicate_item(self.index)
@@ -189,9 +194,13 @@ class ItemRow(QWidget):
         menu.exec(global_pos)
 
     def _toggle_breakpoint(self) -> None:
-        self.item.breakpoint = not self.item.breakpoint
+        old = self.item.breakpoint
+        self.item.breakpoint = not old
         self.refresh()
         self.owner.changed.emit()
+        if self.owner.undo is not None:
+            self.owner.undo.push_field(self.item, "breakpoint", old,
+                                       self.item.breakpoint, "Toggle Breakpoint")
 
     def _show_help(self) -> None:
         m = get_meta(type(self.item))
@@ -256,13 +265,15 @@ class PolymorphicListWidget(QWidget):
 
     def __init__(self, title: str, base_cls: type, items: list, graph=None,
                  favorites_key: str = "", direct_add_cls: type | None = None,
-                 parent=None):
+                 parent=None, undo=None):
         super().__init__(parent)
         self.base_cls = base_cls
         self.items = items          # the *live* model list, mutated in place
         self.graph = graph
         self.favorites_key = favorites_key
         self.direct_add_cls = direct_add_cls
+        # UndoCallbacks (inspector/commands.py) or None — see build_fields_widget
+        self.undo = undo
         self._rows: list[ItemRow] = []
         self._drag_row: ItemRow | None = None
         self._drop_index: int | None = None
@@ -330,28 +341,43 @@ class PolymorphicListWidget(QWidget):
     def _add_clicked(self) -> None:
         self.pick_type(lambda cls: self.insert_item(len(self.items), cls()))
 
+    def _snapshot(self) -> list:
+        return [item.copy() for item in self.items]
+
+    def _push_undo(self, before: list, label: str) -> None:
+        if self.undo is not None:
+            self.undo.push_list(self.items, before, self._snapshot(), label)
+
     def insert_item(self, index: int, item) -> None:
+        before = self._snapshot()
         item._ui_expanded = True
         self.items.insert(index, item)
         self.rebuild()
         self.changed.emit()
+        self._push_undo(before, "Insert Item")
 
     def replace_item(self, index: int, item) -> None:
+        before = self._snapshot()
         item._ui_expanded = True
         self.items[index] = item
         self.rebuild()
         self.changed.emit()
+        self._push_undo(before, "Replace Item")
 
     def duplicate_item(self, index: int) -> None:
+        before = self._snapshot()
         clone = self.items[index].copy()
         self.items.insert(index + 1, clone)
         self.rebuild()
         self.changed.emit()
+        self._push_undo(before, "Duplicate Item")
 
     def delete_item(self, index: int) -> None:
+        before = self._snapshot()
         del self.items[index]
         self.rebuild()
         self.changed.emit()
+        self._push_undo(before, "Delete Item")
 
     def paste_item(self, index: int) -> None:
         item = _clip_paste(self.base_cls)
@@ -407,12 +433,14 @@ class PolymorphicListWidget(QWidget):
             self._drag_row = None
             self._clear_markers()
             if dst is not None and dst != src and dst != src + 1:
+                before = self._snapshot()
                 item = self.items.pop(src)
                 if dst > src:
                     dst -= 1
                 self.items.insert(dst, item)
                 self.rebuild()
                 self.changed.emit()
+                self._push_undo(before, "Reorder Items")
             self._drop_index = None
             return True
         return super().eventFilter(obj, event)
