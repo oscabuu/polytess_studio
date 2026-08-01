@@ -4,6 +4,14 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.2.0 — 2026-07-27
+- Flow Assistant and Code Assistant chat inputs: Enter now sends the
+  message; Shift+Enter inserts a newline (was Ctrl+Enter to send).
+- Settings → Python: configurable list of extra `sys.path` directories
+  ("Include Paths") so custom_library modules and in-studio Python code
+  can import your own local packages without an environment variable.
+  Applies immediately on save, no restart needed.
+
 ## 1.1.0 — 2026-07-27
 - Undo/Redo now covers node **content**, not just graph structure: field
   edits (header fields, Property source values, source-type swaps, the

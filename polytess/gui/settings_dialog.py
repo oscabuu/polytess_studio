@@ -19,8 +19,10 @@ from PySide6.QtWidgets import (QCheckBox, QColorDialog, QComboBox, QDialog,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QSpinBox, QTabWidget, QVBoxLayout, QWidget)
 
-from polytess.core.app_settings import DEFAULTS, AppSettings
+from polytess.core.app_settings import (DEFAULTS, AppSettings,
+                                       sync_python_include_paths)
 from polytess.gui.theme import ACCENTS
+from polytess.gui.widgets import StringListEdit
 
 
 class _ColorButton(QPushButton):
@@ -219,6 +221,24 @@ class SettingsDialog(QDialog):
         report_layout.addStretch(1)
         tabs.addTab(report_page, "Reports")
 
+        # ---- python ----------------------------------------------------------- #
+        python_page = QWidget()
+        python_layout = QVBoxLayout(python_page)
+        python_layout.addWidget(QLabel("<b>Include Paths</b>"))
+        self.python_include_paths = StringListEdit(
+            [str(p) for p in settings.get("python_include_paths") or []])
+        python_layout.addWidget(self.python_include_paths)
+        python_hint = QLabel(
+            "Extra directories added to sys.path at startup (and "
+            "immediately when you save here) — so custom_library modules "
+            "and in-studio Python code can import your own local packages "
+            "without an environment variable.")
+        python_hint.setWordWrap(True)
+        python_hint.setStyleSheet(f"color: {ACCENTS['text-light']};")
+        python_layout.addWidget(python_hint)
+        python_layout.addStretch(1)
+        tabs.addTab(python_page, "Python")
+
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
@@ -253,5 +273,8 @@ class SettingsDialog(QDialog):
         settings.set("report_color_primary", self.color_primary.color())
         settings.set("report_color_secondary", self.color_secondary.color())
         settings.set("report_color_accent", self.color_accent.color())
+        settings.set("python_include_paths",
+                     [p.strip() for p in self.python_include_paths.values() if p.strip()])
         settings.save()
+        sync_python_include_paths()
         self.accept()

@@ -1,4 +1,6 @@
-# Copyright (c) 2026 Winthir Studios. All rights reserved.
+# Copyright (c) 2026 Winthir Studios.
+# Licensed under the Business Source License 1.1 — see LICENSE.txt.
+# Converts to Apache License 2.0 on 2030-07-27.
 """In-app manual, example gallery and tutorial flows."""
 
 import os

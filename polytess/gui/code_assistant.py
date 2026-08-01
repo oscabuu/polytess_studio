@@ -472,7 +472,8 @@ class AssistantChatPanel(QWidget):
 
         self.input = QPlainTextEdit()
         self.input.setPlaceholderText(
-            "Ask about instructions, conditions, events…  (Ctrl+Enter sends)")
+            "Ask about instructions, conditions, events…  "
+            "(Enter sends, Shift+Enter for a new line)")
         self.input.setFixedHeight(64)
         self.input.installEventFilter(self)
         layout.addWidget(self.input)
@@ -507,8 +508,9 @@ class AssistantChatPanel(QWidget):
     def eventFilter(self, obj, event):   # noqa: N802 (Qt API)
         from PySide6.QtCore import QEvent
         if obj is self.input and event.type() == QEvent.KeyPress:
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter) \
-                    and event.modifiers() & Qt.ControlModifier:
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                if event.modifiers() & Qt.ShiftModifier:
+                    return False        # Shift+Enter -> newline (default)
                 self.send()
                 return True
         return super().eventFilter(obj, event)

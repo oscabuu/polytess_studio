@@ -42,6 +42,38 @@ def test_settings_roundtrip(tmp_path):
     assert reloaded.get("command_server") == "myserver"
 
 
+def test_sync_python_include_paths_add_and_remove(tmp_path):
+    from polytess.core.app_settings import sync_python_include_paths
+    p1 = str(tmp_path / "a")
+    p2 = str(tmp_path / "b")
+
+    AppSettings.reset(path="", python_include_paths=[p1, p2])
+    sync_python_include_paths()
+    assert p1 in sys.path and p2 in sys.path
+
+    # narrowing the setting drops the removed path, keeps the other
+    AppSettings.reset(path="", python_include_paths=[p2])
+    sync_python_include_paths()
+    assert p1 not in sys.path and p2 in sys.path
+
+    # empty setting cleans up fully
+    AppSettings.reset(path="", python_include_paths=[])
+    sync_python_include_paths()
+    assert p1 not in sys.path and p2 not in sys.path
+
+
+def test_sync_python_include_paths_ignores_foreign_entries():
+    from polytess.core.app_settings import sync_python_include_paths
+    foreign = "/some/other/path-not-managed-by-us"
+    sys.path.append(foreign)
+    try:
+        AppSettings.reset(path="", python_include_paths=[])
+        sync_python_include_paths()
+        assert foreign in sys.path      # never touches paths it didn't add
+    finally:
+        sys.path.remove(foreign)
+
+
 # ---- command wrapping -------------------------------------------------------- #
 
 def test_build_argv_local():
