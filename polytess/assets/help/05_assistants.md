@@ -1,8 +1,9 @@
 # AI assistants
 
 polytess has two built-in AI assistants. Configure the provider under
-**Settings → Assistant**: Anthropic (Claude API key) or GitHub Copilot
-(your Copilot subscription; GitHub Enterprise host supported).
+**Settings → Assistant**: Claude (Agent SDK, one-time `claude login`) or
+GitHub Copilot (your Copilot subscription; GitHub Enterprise host
+supported).
 
 ## Flow Assistant (Ctrl+Shift+F)
 

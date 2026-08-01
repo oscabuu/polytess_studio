@@ -38,12 +38,12 @@ DEFAULTS: dict[str, Any] = {
     "fem_path_local": "",
     "fem_path_remote": "",
     # studio assistants (code editor + flow assistant). Provider:
-    # "anthropic" (Claude API, api key) or "copilot" (GitHub Copilot SDK,
-    # uses the user's Copilot login/subscription — works with GitHub
-    # Enterprise via github_host, e.g. https://firma.ghe.com).
-    "assistant_provider": "anthropic",
-    "anthropic_api_key": "",
-    "assistant_model": "claude-opus-4-8",
+    # "claude_agent" (Claude Agent SDK, auth via one-time 'claude login' —
+    # no API key stored here) or "copilot" (GitHub Copilot SDK, uses the
+    # user's Copilot login/subscription — works with GitHub Enterprise via
+    # github_host, e.g. https://firma.ghe.com).
+    "assistant_provider": "claude_agent",
+    "assistant_model": "",
     "copilot_model": "claude-sonnet-4.5",
     "github_host": "",
     "github_token": "",

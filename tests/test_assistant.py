@@ -9,12 +9,11 @@ from polytess.core.app_settings import AppSettings
 from polytess.gui.code_assistant import (build_registry_summary,
                                        build_system_prompt,
                                        build_user_message,
-                                       extract_python_block, resolve_api_key)
+                                       extract_python_block)
 
 
 @pytest.fixture(autouse=True)
-def isolated_settings(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+def isolated_settings():
     yield
     AppSettings.reset(path="", use_command_server=False)
 
@@ -56,21 +55,11 @@ def test_extract_python_block():
     assert extract_python_block(text) == "print(2)\n"
 
 
-def test_resolve_api_key(monkeypatch):
-    AppSettings.reset(path="", use_command_server=False)
-    assert resolve_api_key() == ""
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-env")
-    assert resolve_api_key() == "sk-env"
-    AppSettings.reset(path="", use_command_server=False,
-                      anthropic_api_key="sk-settings")
-    assert resolve_api_key() == "sk-settings"     # settings win over env
-
-
 def test_report_defaults_present():
     settings = AppSettings.reset(path="")
     assert settings.get("report_font") == "Arial"
     assert settings.get("report_color_primary").startswith("#")
-    assert settings.get("assistant_model") == "claude-opus-4-8"
+    assert settings.get("assistant_provider") == "claude_agent"
 
 
 def test_chat_panel_streaming_flow(tmp_path):

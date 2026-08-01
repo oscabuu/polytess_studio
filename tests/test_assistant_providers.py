@@ -7,6 +7,8 @@ branching and provider-aware status."""
 import pytest
 
 from polytess.core.app_settings import AppSettings
+from polytess.gui.claude_agent_provider import (
+    build_transcript_prompt as build_claude_agent_prompt)
 from polytess.gui.copilot_provider import (build_transcript_prompt,
                                            enterprise_env)
 
@@ -38,6 +40,18 @@ def test_transcript_prompt():
     assert prompt.index("first") < prompt.index("second")
 
 
+def test_claude_agent_transcript_prompt():
+    single = [{"role": "user", "content": "hello"}]
+    assert build_claude_agent_prompt(single) == "hello"
+
+    multi = [{"role": "user", "content": "first"},
+             {"role": "assistant", "content": "answer"},
+             {"role": "user", "content": "second"}]
+    prompt = build_claude_agent_prompt(multi)
+    assert "User: first" in prompt and "Assistant: answer" in prompt
+    assert prompt.index("first") < prompt.index("second")
+
+
 def test_worker_reports_missing_sdk(qt_app):
     """Provider 'copilot' without the SDK installed fails with a helpful
     message instead of crashing."""
@@ -51,6 +65,19 @@ def test_worker_reports_missing_sdk(qt_app):
     assert failures and "github-copilot-sdk" in failures[0]
 
 
+def test_worker_reports_missing_claude_agent_sdk(qt_app):
+    """Default provider without the SDK installed fails with a helpful
+    message instead of crashing (dev machines won't have it by default)."""
+    AppSettings.reset(path="", use_command_server=False,
+                      assistant_provider="claude_agent")
+    from polytess.gui.code_assistant import AssistantWorker
+    worker = AssistantWorker("system", [{"role": "user", "content": "hi"}])
+    failures: list[str] = []
+    worker.failed.connect(failures.append)
+    worker.run()
+    assert failures and "claude-agent-sdk" in failures[0]
+
+
 def test_provider_status_lines():
     from polytess.gui.code_assistant import provider_ready_status
     AppSettings.reset(path="", use_command_server=False,
@@ -60,14 +87,8 @@ def test_provider_status_lines():
     assert "Copilot" in status and "firma.ghe.com" in status
 
     AppSettings.reset(path="", use_command_server=False,
-                      assistant_provider="anthropic", anthropic_api_key="")
-    import os
-    had = os.environ.pop("ANTHROPIC_API_KEY", None)
-    try:
-        assert "API key" in provider_ready_status()
-    finally:
-        if had is not None:
-            os.environ["ANTHROPIC_API_KEY"] = had
+                      assistant_provider="claude_agent")
+    assert "Claude Agent SDK" in provider_ready_status()
 
 
 @pytest.fixture(scope="module")

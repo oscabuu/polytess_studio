@@ -10,8 +10,9 @@ Events plus the three file templates) and it knows what already exists
 in a worker thread and stream into the chat panel; the response's python
 code block can be inserted into the editor directly.
 
-Requires the ``anthropic`` package (``pip install polytess[ai]``) and an API
-key — Settings dialog or the ``ANTHROPIC_API_KEY`` environment variable.
+Requires the ``claude-agent-sdk`` package (``pip install polytess[ai]``)
+and a one-time ``claude login`` (Settings has no API-key field for this
+provider — auth is the Claude Code CLI session, bundled with the SDK).
 """
 
 from __future__ import annotations
@@ -303,11 +304,6 @@ class AttachmentBar(QWidget):
         self.clear_button.setVisible(bool(self._attachments))
 
 
-def resolve_api_key() -> str:
-    key = str(AppSettings.instance().get("anthropic_api_key") or "").strip()
-    return key or os.environ.get("ANTHROPIC_API_KEY", "").strip()
-
-
 def extract_python_block(text: str) -> str:
     """The last ```python fenced block of an assistant answer ('' if none)."""
     blocks = re.findall(r"```python\n(.*?)```", text, re.DOTALL)
@@ -336,59 +332,29 @@ class AssistantWorker(QThread):
 
     def run(self) -> None:   # noqa: C901
         provider = str(AppSettings.instance().get("assistant_provider")
-                       or "anthropic")
+                       or "claude_agent")
         if provider == "copilot":
             self._run_copilot()
             return
+        self._run_claude_agent()
+
+    def _run_claude_agent(self) -> None:
+        """One request through the Claude Agent SDK (Claude Code CLI)."""
+        from polytess.gui.claude_agent_provider import stream_claude_agent
+        settings = AppSettings.instance()
         try:
-            import anthropic
-        except ImportError:
-            self.failed.emit("The 'anthropic' package is not installed — "
-                             "run: .venv/bin/python -m pip install anthropic")
-            return
-        key = resolve_api_key()
-        if not key:
-            self.failed.emit("No API key configured — set it in Settings "
-                             "(gear icon) or export ANTHROPIC_API_KEY.")
-            return
-        model = str(AppSettings.instance().get("assistant_model")
-                    or "claude-opus-4-8")
-        client = anthropic.Anthropic(api_key=key)
-        parts: list[str] = []
-        try:
-            with client.messages.stream(
-                model=model,
-                max_tokens=32000,
-                thinking={"type": "adaptive"},
-                system=[{
-                    "type": "text",
-                    "text": self._system,
-                    "cache_control": {"type": "ephemeral"},
-                }],
-                messages=self._messages,
-            ) as stream:
-                for text in stream.text_stream:
-                    if self._cancelled:
-                        break
-                    parts.append(text)
-                    self.chunk.emit(text)
-        except anthropic.AuthenticationError:
-            self.failed.emit("Authentication failed — check the API key "
-                             "in Settings.")
-            return
-        except anthropic.RateLimitError:
-            self.failed.emit("Rate limited — wait a moment and try again.")
-            return
-        except anthropic.APIConnectionError:
-            self.failed.emit("Network error — could not reach the Claude API.")
-            return
-        except anthropic.APIStatusError as exc:
-            self.failed.emit(f"API error {exc.status_code}: {exc.message}")
+            text = stream_claude_agent(
+                self._system, self._messages,
+                model=str(settings.get("assistant_model") or ""),
+                on_chunk=self.chunk.emit,
+                is_cancelled=lambda: self._cancelled)
+        except RuntimeError as exc:
+            self.failed.emit(str(exc))
             return
         except Exception as exc:   # worker thread must never crash the app
             self.failed.emit(f"{exc.__class__.__name__}: {exc}")
             return
-        self.finished_ok.emit("".join(parts))
+        self.finished_ok.emit(text)
 
     def _run_copilot(self) -> None:
         """One streaming request through the GitHub Copilot SDK."""
@@ -414,15 +380,13 @@ class AssistantWorker(QThread):
 def provider_ready_status() -> str:
     """Status-line text describing the active assistant provider."""
     settings = AppSettings.instance()
-    if str(settings.get("assistant_provider") or "anthropic") == "copilot":
+    if str(settings.get("assistant_provider") or "claude_agent") == "copilot":
         host = str(settings.get("github_host") or "").strip()
         where = host or "github.com"
         return (f"Ready — GitHub Copilot via {where} "
                 f"({settings.get('copilot_model')}).")
-    if resolve_api_key():
-        return "Ready."
-    return ("No API key — set it in Settings (gear icon) or export "
-            "ANTHROPIC_API_KEY.")
+    return ("Ready — Claude Agent SDK (run 'claude login' once if this "
+            "is the first use).")
 
 
 # --------------------------------------------------------------------------- #
