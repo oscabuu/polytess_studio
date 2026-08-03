@@ -164,6 +164,9 @@ class StringListEdit(QWidget):
         add.clicked.connect(self._add)
         self._layout.addWidget(add)
 
+    def values(self) -> list[str]:
+        return list(self._items)
+
     def _emit(self) -> None:
         self.changed.emit(list(self._items))
 

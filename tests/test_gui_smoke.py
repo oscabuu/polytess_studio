@@ -4,6 +4,7 @@ through the Qt event loop."""
 
 import asyncio
 import os
+import sys
 
 import pytest
 
@@ -511,6 +512,29 @@ def test_poly_list_structural_edits_are_undoable(app):
     assert stack.count() == 2
     stack.undo()
     assert len(node.instructions.instructions) == 3
+
+
+def test_settings_dialog_python_include_paths_roundtrip(app, tmp_path):
+    from polytess.core.app_settings import AppSettings
+    from polytess.gui.settings_dialog import SettingsDialog
+
+    AppSettings.reset(path=str(tmp_path / "settings.json"))
+    dialog = SettingsDialog()
+    assert dialog.python_include_paths.values() == []
+
+    dialog.python_include_paths._items = ["/a/b", " ", "/c/d"]
+    dialog.python_include_paths._rebuild()
+    dialog._save()
+
+    settings = AppSettings.instance()
+    # blank rows are dropped, real ones kept in order
+    assert settings.get("python_include_paths") == ["/a/b", "/c/d"]
+    assert "/a/b" in sys.path and "/c/d" in sys.path
+
+    # cleanup: don't leak into other tests
+    from polytess.core.app_settings import sync_python_include_paths
+    AppSettings.reset(path="", python_include_paths=[])
+    sync_python_include_paths()
 
 
 def test_inspector_undo_stack_follows_active_tab(app):

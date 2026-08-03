@@ -38,12 +38,12 @@ DEFAULTS: dict[str, Any] = {
     "fem_path_local": "",
     "fem_path_remote": "",
     # studio assistants (code editor + flow assistant). Provider:
-    # "anthropic" (Claude API, api key) or "copilot" (GitHub Copilot SDK,
-    # uses the user's Copilot login/subscription — works with GitHub
-    # Enterprise via github_host, e.g. https://firma.ghe.com).
-    "assistant_provider": "anthropic",
-    "anthropic_api_key": "",
-    "assistant_model": "claude-opus-4-8",
+    # "claude_agent" (Claude Agent SDK, auth via one-time 'claude login' —
+    # no API key stored here) or "copilot" (GitHub Copilot SDK, uses the
+    # user's Copilot login/subscription — works with GitHub Enterprise via
+    # github_host, e.g. https://firma.ghe.com).
+    "assistant_provider": "claude_agent",
+    "assistant_model": "",
     "copilot_model": "claude-sonnet-4.5",
     "github_host": "",
     "github_token": "",
@@ -54,6 +54,9 @@ DEFAULTS: dict[str, Any] = {
     "report_color_primary": "#1f4e63",
     "report_color_secondary": "#519932",
     "report_color_accent": "#e9754c",
+    # extra directories on sys.path — for custom_library modules (and any
+    # in-studio Python execution) that import from your own local packages
+    "python_include_paths": [],
 }
 
 
@@ -113,3 +116,24 @@ class AppSettings:
 
     def set(self, key: str, value: Any) -> None:
         self.values[key] = value
+
+
+_injected_python_paths: list[str] = []
+
+
+def sync_python_include_paths() -> None:
+    """Add ``python_include_paths`` to ``sys.path`` (idempotent) and drop
+    previously-injected entries that were removed from the setting again.
+    Called at startup and whenever the settings dialog saves — only ever
+    touches paths this function itself added, never sys.path entries from
+    anywhere else."""
+    import sys
+    global _injected_python_paths
+    wanted = [p for p in (AppSettings.instance().get("python_include_paths") or []) if p]
+    for path in _injected_python_paths:
+        if path not in wanted and path in sys.path:
+            sys.path.remove(path)
+    for path in wanted:
+        if path not in sys.path:
+            sys.path.insert(0, path)
+    _injected_python_paths = wanted

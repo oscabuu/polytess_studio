@@ -9,12 +9,11 @@ from polytess.core.app_settings import AppSettings
 from polytess.gui.code_assistant import (build_registry_summary,
                                        build_system_prompt,
                                        build_user_message,
-                                       extract_python_block, resolve_api_key)
+                                       extract_python_block)
 
 
 @pytest.fixture(autouse=True)
-def isolated_settings(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+def isolated_settings():
     yield
     AppSettings.reset(path="", use_command_server=False)
 
@@ -56,21 +55,11 @@ def test_extract_python_block():
     assert extract_python_block(text) == "print(2)\n"
 
 
-def test_resolve_api_key(monkeypatch):
-    AppSettings.reset(path="", use_command_server=False)
-    assert resolve_api_key() == ""
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-env")
-    assert resolve_api_key() == "sk-env"
-    AppSettings.reset(path="", use_command_server=False,
-                      anthropic_api_key="sk-settings")
-    assert resolve_api_key() == "sk-settings"     # settings win over env
-
-
 def test_report_defaults_present():
     settings = AppSettings.reset(path="")
     assert settings.get("report_font") == "Arial"
     assert settings.get("report_color_primary").startswith("#")
-    assert settings.get("assistant_model") == "claude-opus-4-8"
+    assert settings.get("assistant_provider") == "claude_agent"
 
 
 def test_chat_panel_streaming_flow(tmp_path):
@@ -103,3 +92,45 @@ def test_chat_panel_streaming_flow(tmp_path):
     panel._on_failed("No API key configured")
     assert panel._transcript[-1][0] == "error"
     assert panel.send_button.isEnabled()
+
+
+def _enter_event(shift: bool = False):
+    from PySide6.QtCore import QEvent, Qt
+    from PySide6.QtGui import QKeyEvent
+    modifiers = Qt.ShiftModifier if shift else Qt.NoModifier
+    return QKeyEvent(QEvent.KeyPress, Qt.Key_Return, modifiers)
+
+
+def test_code_assistant_enter_sends_shift_enter_newline(tmp_path):
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    from polytess.gui.code_assistant import AssistantChatPanel
+    from polytess.gui.code_editor import CodeEditorPanel
+
+    editor = CodeEditorPanel(folder=str(tmp_path))
+    panel = AssistantChatPanel(editor_panel=editor)
+    sent = []
+    panel.send = lambda: sent.append(True)
+
+    assert panel.eventFilter(panel.input, _enter_event(shift=True)) is False
+    assert sent == []          # Shift+Enter did not send — a newline instead
+
+    assert panel.eventFilter(panel.input, _enter_event()) is True
+    assert sent == [True]      # plain Enter sends
+
+
+def test_flow_assistant_enter_sends_shift_enter_newline():
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    from polytess.gui.flow_assistant import FlowAssistantPanel
+
+    panel = FlowAssistantPanel()
+    sent = []
+    panel.send = lambda: sent.append(True)
+
+    assert panel.eventFilter(panel.input, _enter_event(shift=True)) is False
+    assert sent == []
+    assert panel.eventFilter(panel.input, _enter_event()) is True
+    assert sent == [True]

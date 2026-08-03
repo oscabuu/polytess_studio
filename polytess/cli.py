@@ -24,6 +24,8 @@ def _load_everything() -> None:
        ``$POLYTESS_PLUGINS_PATH``) — no pip install needed, which keeps the
        portable folder working on machines where editable installs fail
        (e.g. NFS homes)."""
+    from polytess.core.app_settings import sync_python_include_paths
+    sync_python_include_paths()
     import polytess.library  # noqa: F401  (registers built-in types)
     from importlib.metadata import entry_points
     for ep in (list(entry_points(group="polytess.plugins"))

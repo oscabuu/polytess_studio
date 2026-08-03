@@ -20,6 +20,10 @@ Python file, and the built-in code assistant writes most of it for you.
 - **Save = live**: the block hot-reloads and appears in the menus
   immediately. Errors show up in the editor, not as crashes.
 
+Need to `import` your own local packages from a custom block? Add their
+folders under **Settings → Python → Include Paths** — no environment
+variable needed, and changes apply immediately without a restart.
+
 ## Rules of thumb
 
 - Raise an exception to fail the node — never swallow errors silently.

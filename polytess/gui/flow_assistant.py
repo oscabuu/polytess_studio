@@ -172,7 +172,7 @@ class FlowAssistantPanel(QWidget):
         self.input = QPlainTextEdit()
         self.input.setPlaceholderText(
             "Describe your process — the agent designs the flow…  "
-            "(Ctrl+Enter sends)")
+            "(Enter sends, Shift+Enter for a new line)")
         self.input.setFixedHeight(72)
         self.input.installEventFilter(self)
         layout.addWidget(self.input)
@@ -208,8 +208,9 @@ class FlowAssistantPanel(QWidget):
     def eventFilter(self, obj, event):   # noqa: N802 (Qt API)
         from PySide6.QtCore import QEvent
         if obj is self.input and event.type() == QEvent.KeyPress:
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter) \
-                    and event.modifiers() & Qt.ControlModifier:
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+                if event.modifiers() & Qt.ShiftModifier:
+                    return False        # Shift+Enter -> newline (default)
                 self.send()
                 return True
         return super().eventFilter(obj, event)

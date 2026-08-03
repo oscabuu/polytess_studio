@@ -4,6 +4,24 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.3.0 — 2026-08-01
+- Replaced the direct Anthropic Messages API integration with the
+  **Claude Agent SDK** as the default assistant provider for the Flow
+  Assistant and Code Assistant. Authentication is now a one-time
+  `claude login` (Claude Code CLI, bundled with the SDK) instead of an
+  API key — the "Anthropic API Key" setting is gone. Both assistants
+  stay plain chat: every built-in SDK tool is disabled, so behavior is
+  otherwise unchanged. GitHub Copilot remains available as an
+  alternative provider.
+
+## 1.2.0 — 2026-07-27
+- Flow Assistant and Code Assistant chat inputs: Enter now sends the
+  message; Shift+Enter inserts a newline (was Ctrl+Enter to send).
+- Settings → Python: configurable list of extra `sys.path` directories
+  ("Include Paths") so custom_library modules and in-studio Python code
+  can import your own local packages without an environment variable.
+  Applies immediately on save, no restart needed.
+
 ## 1.1.0 — 2026-07-27
 - Undo/Redo now covers node **content**, not just graph structure: field
   edits (header fields, Property source values, source-type swaps, the

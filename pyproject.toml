@@ -17,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-asyncio"]
-ai = ["anthropic>=0.117"]      # assistants via Claude API
+ai = ["claude-agent-sdk>=0.1"] # assistants via Claude Agent SDK
 ai-copilot = ["github-copilot-sdk>=1.0"]   # assistants via GitHub Copilot
 
 [project.scripts]

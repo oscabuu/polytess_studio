@@ -5,7 +5,8 @@
 
 Edits the AppSettings singleton (~/.polytess/settings.json):
 - Command server: console commands run as ``ssh <server> "command"``
-- Claude assistant: API key + model for the code-editor chat
+- Assistant: provider (Claude Agent SDK / GitHub Copilot) + model for the
+  code-editor chat and flow assistant
 - Reports: default corporate font and colors for generated reports/plots
 """
 
@@ -19,8 +20,10 @@ from PySide6.QtWidgets import (QCheckBox, QColorDialog, QComboBox, QDialog,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QSpinBox, QTabWidget, QVBoxLayout, QWidget)
 
-from polytess.core.app_settings import DEFAULTS, AppSettings
+from polytess.core.app_settings import (DEFAULTS, AppSettings,
+                                       sync_python_include_paths)
 from polytess.gui.theme import ACCENTS
+from polytess.gui.widgets import StringListEdit
 
 
 class _ColorButton(QPushButton):
@@ -146,22 +149,17 @@ class SettingsDialog(QDialog):
         assistant_form = QFormLayout()
         assistant_form.setHorizontalSpacing(12)
         self.assistant_provider = QComboBox()
-        self.assistant_provider.addItem("Anthropic (Claude API)", "anthropic")
+        self.assistant_provider.addItem("Claude (Agent SDK)", "claude_agent")
         self.assistant_provider.addItem("GitHub Copilot (subscription)",
                                         "copilot")
         current_provider = str(settings.get("assistant_provider")
-                               or "anthropic")
+                               or "claude_agent")
         self.assistant_provider.setCurrentIndex(
             1 if current_provider == "copilot" else 0)
         assistant_form.addRow("Provider", self.assistant_provider)
-        self.api_key = QLineEdit(str(settings.get("anthropic_api_key")))
-        self.api_key.setEchoMode(QLineEdit.Password)
-        self.api_key.setPlaceholderText("sk-ant-…  (empty = use "
-                                        "ANTHROPIC_API_KEY env var)")
-        assistant_form.addRow("Anthropic API Key", self.api_key)
         self.model = QLineEdit(str(settings.get("assistant_model")))
-        self.model.setPlaceholderText(DEFAULTS["assistant_model"])
-        assistant_form.addRow("Model (Anthropic)", self.model)
+        self.model.setPlaceholderText("empty = Claude Code CLI default")
+        assistant_form.addRow("Model (Claude)", self.model)
         self.copilot_model = QLineEdit(str(settings.get("copilot_model")))
         self.copilot_model.setPlaceholderText(DEFAULTS["copilot_model"])
         assistant_form.addRow("Model (Copilot)", self.copilot_model)
@@ -177,12 +175,13 @@ class SettingsDialog(QDialog):
         assistant_layout.addLayout(assistant_form)
         assistant_hint = QLabel(
             "Used by both studio assistants (code editor chat + flow "
-            "assistant). Anthropic: API key here or ANTHROPIC_API_KEY env "
-            "var. GitHub Copilot: needs 'pip install github-copilot-sdk' "
-            "and a one-time login — on GitHub Enterprise: "
-            "copilot login --host https://&lt;tenant&gt;.ghe.com — the "
-            "host configured above is exported as COPILOT_GH_HOST for "
-            "every request.")
+            "assistant). Claude: needs 'pip install claude-agent-sdk' and "
+            "a one-time 'claude login' in a terminal — no API key is "
+            "stored here. GitHub Copilot: needs 'pip install "
+            "github-copilot-sdk' and a one-time login — on GitHub "
+            "Enterprise: copilot login --host https://&lt;tenant&gt;.ghe.com "
+            "— the host configured above is exported as COPILOT_GH_HOST "
+            "for every request.")
         assistant_hint.setWordWrap(True)
         assistant_hint.setStyleSheet(f"color: {ACCENTS['text-light']};")
         assistant_layout.addWidget(assistant_hint)
@@ -219,6 +218,24 @@ class SettingsDialog(QDialog):
         report_layout.addStretch(1)
         tabs.addTab(report_page, "Reports")
 
+        # ---- python ----------------------------------------------------------- #
+        python_page = QWidget()
+        python_layout = QVBoxLayout(python_page)
+        python_layout.addWidget(QLabel("<b>Include Paths</b>"))
+        self.python_include_paths = StringListEdit(
+            [str(p) for p in settings.get("python_include_paths") or []])
+        python_layout.addWidget(self.python_include_paths)
+        python_hint = QLabel(
+            "Extra directories added to sys.path at startup (and "
+            "immediately when you save here) — so custom_library modules "
+            "and in-studio Python code can import your own local packages "
+            "without an environment variable.")
+        python_hint.setWordWrap(True)
+        python_hint.setStyleSheet(f"color: {ACCENTS['text-light']};")
+        python_layout.addWidget(python_hint)
+        python_layout.addStretch(1)
+        tabs.addTab(python_page, "Python")
+
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
@@ -240,9 +257,7 @@ class SettingsDialog(QDialog):
                          fields["path_remote"].text().strip())
         settings.set("assistant_provider",
                      self.assistant_provider.currentData())
-        settings.set("anthropic_api_key", self.api_key.text().strip())
-        settings.set("assistant_model",
-                     self.model.text().strip() or DEFAULTS["assistant_model"])
+        settings.set("assistant_model", self.model.text().strip())
         settings.set("copilot_model",
                      self.copilot_model.text().strip()
                      or DEFAULTS["copilot_model"])
@@ -253,5 +268,8 @@ class SettingsDialog(QDialog):
         settings.set("report_color_primary", self.color_primary.color())
         settings.set("report_color_secondary", self.color_secondary.color())
         settings.set("report_color_accent", self.color_accent.color())
+        settings.set("python_include_paths",
+                     [p.strip() for p in self.python_include_paths.values() if p.strip()])
         settings.save()
+        sync_python_include_paths()
         self.accept()
