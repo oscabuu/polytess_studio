@@ -4,6 +4,11 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.7.2 — 2026-08-03
+- .gitignore: `externe_Instructions/` added to the local-only section
+  (external client-specific instruction drafts and their test data
+  never get committed).
+
 ## 1.7.1 — 2026-08-03
 - Flow Assistant: two standing rules added to its instructions — name
   missing building blocks openly and hand them to the code assistant

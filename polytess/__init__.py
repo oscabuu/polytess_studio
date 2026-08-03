@@ -9,7 +9,7 @@ HPC or locally, post-processing — built from reusable blocks on a
 node graph, runnable in the desktop studio (PySide6) or headless.
 """
 
-__version__ = "1.7.1"
+__version__ = "1.7.2"
 
 # ---- legacy import alias ---------------------------------------------------- #
 # polytess was previously named polyflow, and before that gcflow. User
