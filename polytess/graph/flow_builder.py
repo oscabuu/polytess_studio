@@ -45,15 +45,16 @@ from polytess.core.conditions import Branch, BranchList, Condition, ConditionLis
 from polytess.core.events import Event
 from polytess.core.instructions import Instruction, InstructionList
 from polytess.core.metadata import get_meta, iter_subclasses
-from polytess.core.properties import (GetGlobalList, GetGlobalTable,
-                                    GetGlobalVariable, GetGraphList,
-                                    GetGraphTable, GetGraphVariable,
-                                    GetPathFormat, GetStringFormat, GetTarget,
-                                    PropertyGet, PropertyGetList,
-                                    PropertyGetPath, PropertyGetTable,
-                                    PropertySet, SetGlobalList, SetGlobalTable,
+from polytess.core.properties import (GetConstantList, GetGlobalList,
+                                    GetGlobalTable, GetGlobalVariable,
+                                    GetGraphList, GetGraphTable,
+                                    GetGraphVariable, GetNone, GetPathFormat,
+                                    GetStringFormat, GetTarget, PropertyGet,
+                                    PropertyGetList, PropertyGetPath,
+                                    PropertyGetTable, PropertySet,
+                                    SetGlobalList, SetGlobalTable,
                                     SetGlobalVariable, SetGraphList,
-                                    SetGraphTable, SetGraphVariable)
+                                    SetGraphTable, SetGraphVariable, SetNone)
 from polytess.graph.model import Graph
 from polytess.graph.nodes import (ActionsNode, BranchNode, ConditionsNode,
                                 ExitNode, StartNode, SubGraphNode, TriggerNode)
@@ -377,6 +378,156 @@ def build_flow(data: dict) -> BuildResult:
     _layout(graph)
     result.graph = graph
     return result
+
+
+# ---- graph export (inverse of build_flow, for assistant context) ------------------- #
+
+def _export_get_source(source) -> object:
+    """PropertySource -> simplified-schema param value (None = default,
+    string form = unrepresentable computed source)."""
+    if source is None or isinstance(source, GetNone):
+        return None
+    if isinstance(source, (GetGraphVariable, GetGraphList, GetGraphTable)) \
+            and not isinstance(source, (GetGlobalTable,)):
+        return {"var": source.name}
+    if isinstance(source, (GetGlobalVariable, GetGlobalList, GetGlobalTable)):
+        return {"global": source.name}
+    if isinstance(source, (GetStringFormat, GetPathFormat)):
+        return {"template": source.template}
+    if isinstance(source, GetTarget):
+        return {"target": True}
+    if isinstance(source, GetConstantList):
+        return list(source.items)
+    if hasattr(source, "value"):             # GetConstantString/Number/...
+        return source.value
+    return f"<{source.display}>"             # computed source — informative only
+
+
+def _export_set_source(source) -> object:
+    if source is None or isinstance(source, SetNone):
+        return None
+    if isinstance(source, (SetGlobalVariable, SetGlobalList, SetGlobalTable)):
+        return {"global": source.name}
+    if isinstance(source, (SetGraphVariable, SetGraphList, SetGraphTable)):
+        return source.name
+    return f"<{source.display}>"             # computed target — informative only
+
+
+def _export_params(obj) -> dict:
+    """Public fields of a block -> simplified params dict (defaults omitted
+    where cheaply detectable, i.e. unset sources and empty strings)."""
+    params: dict = {}
+    for key, value in vars(obj).items():
+        if key.startswith("_"):
+            continue
+        if isinstance(value, PropertyGet):
+            exported = _export_get_source(getattr(value, "source", None))
+            if exported is not None and exported != "":
+                params[key] = exported
+        elif isinstance(value, PropertySet):
+            exported = _export_set_source(getattr(value, "source", None))
+            if exported is not None and exported != "":
+                params[key] = exported
+        elif isinstance(value, InstructionList):
+            blocks = [_export_block(i) for i in value.instructions]
+            if blocks:
+                params[key] = blocks
+        elif isinstance(value, ConditionList):
+            blocks = [_export_block(c) for c in value.conditions]
+            if blocks:
+                params[key] = blocks
+        elif isinstance(value, (bool, int, float)):
+            params[key] = value
+        elif isinstance(value, str):
+            if value:
+                params[key] = value
+    return params
+
+
+def _export_block(block) -> dict:
+    return {"type": type(block).__name__, "params": _export_params(block)}
+
+
+def flow_to_data(graph: Graph) -> dict:
+    """Serialize a Graph into the assistant's simplified flow schema —
+    the inverse of build_flow, lossy for computed property sources (which
+    export as informative "<...>" strings). Used to show the assistant
+    the currently open flow."""
+    data: dict = {"name": graph.name, "variables": [], "lists": [],
+                  "nodes": [], "edges": []}
+    for var in graph.variables:
+        data["variables"].append({"name": var.name, "type": var.type_id,
+                                  "value": var.value.get()})
+    for lst in graph.lists:
+        data["lists"].append({"name": lst.name, "type": lst.type_id,
+                              "items": list(lst.items)})
+
+    ids: dict[str, str] = {}
+    counter = 0
+    for node in graph.nodes:
+        if isinstance(node, StartNode):
+            ids[node.guid] = "start"
+        elif isinstance(node, ExitNode):
+            ids[node.guid] = "exit"
+        else:
+            counter += 1
+            ids[node.guid] = f"n{counter}"
+
+    for node in graph.nodes:
+        node_id = ids[node.guid]
+        spec: dict = {"id": node_id}
+        if isinstance(node, StartNode):
+            spec["kind"] = "start"
+            blocks = [_export_block(i) for i in node.instructions]
+            if not blocks:
+                continue                     # implicit start, nothing to say
+            spec["instructions"] = blocks
+        elif isinstance(node, ExitNode):
+            spec["kind"] = "exit"
+            blocks = [_export_block(i) for i in node.instructions]
+            if not blocks:
+                continue                     # implicit exit
+            spec["instructions"] = blocks
+        elif isinstance(node, ActionsNode):
+            spec["kind"] = "actions"
+            spec["instructions"] = [_export_block(i)
+                                    for i in node.instructions]
+        elif isinstance(node, ConditionsNode):
+            spec["kind"] = "conditions"
+            spec["mode"] = node.check_mode
+            spec["conditions"] = [_export_block(c) for c in node.conditions]
+        elif isinstance(node, BranchNode):
+            spec["kind"] = "branch"
+            spec["branches"] = [
+                {"name": branch.name,
+                 "conditions": [_export_block(c)
+                                for c in branch.conditions.conditions],
+                 "instructions": [_export_block(i)
+                                  for i in branch.instructions.instructions]}
+                for branch in node.branches.branches]
+        elif isinstance(node, TriggerNode):
+            spec["kind"] = "trigger"
+            if node.event is not None:
+                spec["event"] = _export_block(node.event)
+        elif isinstance(node, SubGraphNode):
+            spec["kind"] = "subworkflow"
+            spec["file"] = node.file
+        else:
+            continue
+        if getattr(node, "custom_name", ""):
+            spec["name"] = node.custom_name
+        data["nodes"].append(spec)
+
+    for edge in graph.edges:
+        src = ids.get(edge.src_node)
+        dst = ids.get(edge.dst_node)
+        if src is None or dst is None:
+            continue
+        spec = {"from": src, "to": dst}
+        if edge.src_port not in ("out", ""):
+            spec["port"] = edge.src_port
+        data["edges"].append(spec)
+    return data
 
 
 # ---- missing-block prompt ----------------------------------------------------------- #

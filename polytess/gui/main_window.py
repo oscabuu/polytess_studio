@@ -576,7 +576,12 @@ class MainWindow(QMainWindow):
         dock = getattr(self, "dock_flow_assistant", None)
         if dock is None:
             from polytess.gui.flow_assistant import FlowAssistantPanel
-            panel = FlowAssistantPanel()
+
+            def open_graph():
+                doc = self.current_document()
+                return doc.graph if doc is not None else None
+
+            panel = FlowAssistantPanel(graph_provider=open_graph)
             panel.open_graph.connect(self._open_built_graph)
             panel.status_message.connect(
                 lambda text: self.statusBar().showMessage(text, 5000))

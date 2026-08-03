@@ -469,10 +469,18 @@ class AssistantChatPanel(QWidget):
         self.insert_button = QToolButton()
         self.insert_button.setIcon(icon("edit", "teal"))
         self.insert_button.setToolTip("Insert the last python code block "
-                                      "into the editor")
+                                      "at the editor cursor")
         self.insert_button.setEnabled(False)
         self.insert_button.clicked.connect(self._insert_code)
         bar.addWidget(self.insert_button)
+        self.apply_button = QToolButton()
+        self.apply_button.setIcon(icon("transform", "green"))
+        self.apply_button.setToolTip("Replace the WHOLE editor content with "
+                                     "the last python code block (undo with "
+                                     "Ctrl+Z in the editor)")
+        self.apply_button.setEnabled(False)
+        self.apply_button.clicked.connect(self._apply_code)
+        bar.addWidget(self.apply_button)
         clear_button = QToolButton()
         clear_button.setIcon(icon("trash", "text-light"))
         clear_button.setToolTip("Clear conversation")
@@ -596,6 +604,7 @@ class AssistantChatPanel(QWidget):
         self._streaming_text = ""
         self._system_prompt = None       # re-read registry on next question
         self.insert_button.setEnabled(False)
+        self.apply_button.setEnabled(False)
         self._render()
         self._set_status("Conversation cleared.")
 
@@ -614,7 +623,10 @@ class AssistantChatPanel(QWidget):
             self._transcript[-1] = ("assistant", full_text)
         self._history.append({"role": "assistant", "content": full_text})
         self._finish_request()
-        self.insert_button.setEnabled(bool(extract_python_block(full_text)))
+        has_code = bool(extract_python_block(full_text))
+        self.insert_button.setEnabled(has_code)
+        self.apply_button.setEnabled(has_code
+                                     and self._editor_panel is not None)
         self._set_status("Done.")
 
     def _on_failed(self, message: str) -> None:
@@ -638,18 +650,38 @@ class AssistantChatPanel(QWidget):
     def _render(self) -> None:
         self.view.set_transcript(self._transcript)
 
+    def _last_code_block(self) -> str:
+        for role, text in reversed(self._transcript):
+            if role == "assistant":
+                return extract_python_block(text)
+        return ""
+
     def _insert_code(self) -> None:
         """Insert the last python block at the editor cursor (replaces the
         selection if there is one)."""
         if self._editor_panel is None:
             return
-        for role, text in reversed(self._transcript):
-            if role == "assistant":
-                code = extract_python_block(text)
-                if code:
-                    self._editor_panel.edit.insertPlainText(code)
-                    self._editor_panel.edit.setFocus()
-                return
+        code = self._last_code_block()
+        if code:
+            self._editor_panel.edit.insertPlainText(code)
+            self._editor_panel.edit.setFocus()
+
+    def _apply_code(self) -> None:
+        """Replace the whole editor content with the last python block.
+        Uses a text cursor (not setPlainText) so the editor's undo stack
+        survives — Ctrl+Z restores the previous file content."""
+        if self._editor_panel is None:
+            return
+        code = self._last_code_block()
+        if not code:
+            return
+        from PySide6.QtGui import QTextCursor
+        edit = self._editor_panel.edit
+        cursor = edit.textCursor()
+        cursor.select(QTextCursor.SelectionType.Document)
+        cursor.insertText(code)
+        edit.setFocus()
+        self._set_status("Editor content replaced (Ctrl+Z to undo).")
 
     def _set_status(self, message: str) -> None:
         self.status.setText(message)

@@ -19,13 +19,20 @@ building block against the installed catalog:
 block that does not exist yet, the assistant proposes a ready-to-use
 prompt for the code assistant (pencil button).
 
+The assistant also sees the **currently open flow** — ask it to extend
+or modify it ("add a syntax check after the folder setup") and it
+answers with the complete updated flow, which "Insert flow" opens as a
+new document next to the original.
+
 ## Code assistant (in the Code Editor)
 
 **Library → Code Editor**, chat icon: the assistant knows the full
-contract for custom Instructions/Conditions/Events and everything
-already installed. Ask for a new block — the answer contains a complete
-file you can insert with one click; saving hot-reloads it into the
-menus instantly.
+contract for custom Instructions/Conditions/Events, everything already
+installed, and the file currently open in the editor. Ask for a new
+block or for changes to the open file — the answer contains a complete
+file. The pencil button inserts it at the cursor; the apply button
+replaces the whole editor content with it (Ctrl+Z undoes). Saving
+hot-reloads the class into the menus instantly.
 
 ## Attachments
 

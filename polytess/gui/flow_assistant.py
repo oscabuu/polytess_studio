@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel,
                                QWidget)
 
 from polytess.graph.flow_builder import (build_flow, build_flow_registry_summary,
-                                       missing_blocks_prompt)
+                                       flow_to_data, missing_blocks_prompt)
 from polytess.gui.chat_view import ChatView
 from polytess.gui.code_assistant import AssistantWorker, WaitingStatusCycler
 from polytess.gui.icons import icon
@@ -84,6 +84,17 @@ section "### Missing building blocks" listing each of them and ONE
 (it writes custom Instructions/Conditions/Events) — precise enough that
 the resulting class (same class name!) makes your flow work.
 
+## Currently open flow
+When the user message starts with a <current_flow> block, that is the
+workflow currently open in the studio, in the same schema. Modification
+requests ("add a check after X", "rename the variable") refer to it:
+answer with the COMPLETE updated flow (all existing nodes plus your
+changes) — inserting replaces nothing automatically, the user opens
+your version as a new document. Param values shown as "<...>" are
+computed sources the schema cannot express — keep the affected fields
+out of your params so they retain those sources when rebuilt, and
+mention this.
+
 ## Rules
 - ALWAYS answer in English, even when the user writes in German.
 - Prefer existing blocks over inventing new ones; run console commands
@@ -117,13 +128,15 @@ def extract_text_block(text: str) -> str:
 
 class FlowAssistantPanel(QWidget):
     """Chat dock that designs flows. ``open_graph`` receives the built
-    Graph; ``send_to_code_assistant`` (optional) receives a prompt text."""
+    Graph; ``graph_provider`` (optional callable returning the currently
+    open Graph or None) lets the assistant see the open flow."""
 
     open_graph = Signal(object)              # Graph
     status_message = Signal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, graph_provider=None):
         super().__init__(parent)
+        self._graph_provider = graph_provider
         self._history: list[dict] = []
         self._transcript: list[tuple[str, str]] = []
         self._streaming_text = ""
@@ -235,9 +248,12 @@ class FlowAssistantPanel(QWidget):
         from polytess.gui.code_assistant import format_attachments
         attachments = self.attach_bar.take()
         user_message, shown = question, question
+        current = self._current_flow_context()
+        if current:
+            user_message = current + "\n\n" + user_message
         if attachments:
             user_message = (format_attachments(attachments) + "\n\n"
-                            + question)
+                            + user_message)
             shown = question + "\n" + "  ".join(
                 f"📎 {name}" for name, _ in attachments)
 
@@ -260,6 +276,22 @@ class FlowAssistantPanel(QWidget):
         self.stop_button.setEnabled(True)
         self._set_status(self._waiting.start())
         self._waiting_timer.start()
+
+    def _current_flow_context(self) -> str:
+        """The currently open flow as a <current_flow> block ('' if none)."""
+        if self._graph_provider is None:
+            return ""
+        try:
+            graph = self._graph_provider()
+        except Exception:
+            return ""
+        if graph is None:
+            return ""
+        data = flow_to_data(graph)
+        if not data.get("nodes") and not data.get("variables"):
+            return ""                        # empty scratch document
+        return (f'<current_flow name="{graph.name}">\n'
+                f"{json.dumps(data, indent=1)}\n</current_flow>")
 
     def _stop(self) -> None:
         if self._worker is not None:

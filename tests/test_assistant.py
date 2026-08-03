@@ -100,6 +100,14 @@ def test_chat_panel_streaming_flow(tmp_path):
     panel._insert_code()
     assert "print('hi')" in editor.edit.toPlainText()
 
+    # apply replaces the whole editor content, undoably
+    assert panel.apply_button.isEnabled()
+    editor.edit.setPlainText("old content that should vanish")
+    panel._apply_code()
+    assert editor.edit.toPlainText() == "print('hi')\n"
+    editor.edit.undo()
+    assert editor.edit.toPlainText() == "old content that should vanish"
+
     # failure path keeps the UI consistent
     panel._transcript.append(("assistant", ""))
     panel._history.append({"role": "user", "content": "q2"})
@@ -148,3 +156,29 @@ def test_flow_assistant_enter_sends_shift_enter_newline():
     assert sent == []
     assert panel.eventFilter(panel.input, _enter_event()) is True
     assert sent == [True]
+
+
+def test_flow_assistant_sees_open_flow():
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    from polytess.graph.flow_builder import build_flow
+    from polytess.gui.flow_assistant import FlowAssistantPanel
+
+    graph = build_flow({
+        "name": "Open Flow",
+        "nodes": [{"id": "a", "kind": "actions", "instructions": [
+            {"type": "LogMessage", "params": {"message": "hi"}}]}],
+        "edges": [{"from": "start", "to": "a"}],
+    }).graph
+
+    # without a provider: no context block
+    assert FlowAssistantPanel()._current_flow_context() == ""
+    # with a provider returning None (no open document): no context block
+    assert FlowAssistantPanel(
+        graph_provider=lambda: None)._current_flow_context() == ""
+
+    panel = FlowAssistantPanel(graph_provider=lambda: graph)
+    context = panel._current_flow_context()
+    assert context.startswith('<current_flow name="Open Flow">')
+    assert "LogMessage" in context and context.endswith("</current_flow>")

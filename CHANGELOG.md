@@ -4,6 +4,16 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.4.0 — 2026-08-03
+- The Flow Assistant now sees the currently open flow: modification
+  requests ("add a check after X") get the full existing workflow as
+  context (new exporter `flow_to_data`, the inverse of `build_flow`)
+  and answer with the complete updated flow.
+- The Code Assistant can now effectively edit the open file: a new
+  apply button replaces the whole editor content with the proposed
+  code block (undoable with Ctrl+Z), alongside the existing
+  insert-at-cursor button.
+
 ## 1.3.1 — 2026-08-03
 - While an assistant request is running, the status line now cycles
   through playful messages ("Reticulating splines…", "Herding tokens…")

@@ -5,7 +5,7 @@
 blocks, param binding; chat markdown rendering."""
 
 from polytess.graph.flow_builder import (build_flow, build_flow_registry_summary,
-                                       missing_blocks_prompt)
+                                       flow_to_data, missing_blocks_prompt)
 from polytess.graph.nodes import (ActionsNode, ConditionsNode, ExitNode,
                                 StartNode, TriggerNode)
 
@@ -123,6 +123,39 @@ def test_registry_summary_lists_fields():
     assert "LogMessage" in summary
     assert "FileExists" in summary
     assert "### Events" in summary
+
+
+def test_flow_to_data_roundtrip():
+    """Export of a built graph rebuilds to the same structure."""
+    graph = build_flow(_flow()).graph
+    data = flow_to_data(graph)
+
+    assert data["name"] == "Test Flow"
+    assert {"name": "deck", "type": "string", "value": "MR_001"} \
+        in data["variables"]
+    kinds = [n["kind"] for n in data["nodes"]]
+    assert kinds.count("actions") == 1 and kinds.count("conditions") == 1
+    actions = next(n for n in data["nodes"] if n["kind"] == "actions")
+    assert actions["name"] == "Vorbereiten"
+    types = [i["type"] for i in actions["instructions"]]
+    assert types == ["CreateFolder", "LogMessage"]
+    log_params = actions["instructions"][1]["params"]
+    assert log_params["message"] == {"template": "Deck {deck}"}
+
+    # edges keep ports and the implicit start/exit ids
+    assert {"from": "start", "to": actions["id"]} in data["edges"]
+    conditions = next(n for n in data["nodes"] if n["kind"] == "conditions")
+    assert {"from": conditions["id"], "port": "success",
+            "to": "exit"} in data["edges"]
+
+    # and the export builds back into an equivalent graph
+    rebuilt = build_flow(data)
+    assert rebuilt.ok, (rebuilt.errors, rebuilt.missing)
+    assert len(rebuilt.graph.edges) == len(graph.edges)
+    rebuilt_actions = next(iter(rebuilt.graph.nodes_of_type(ActionsNode)))
+    ctx = _ctx(rebuilt.graph)
+    assert list(rebuilt_actions.instructions)[1].message.get(ctx) \
+        == "Deck MR_001"
 
 
 def test_markdown_rendering():
