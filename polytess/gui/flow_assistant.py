@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel,
 from polytess.graph.flow_builder import (build_flow, build_flow_registry_summary,
                                        missing_blocks_prompt)
 from polytess.gui.chat_view import ChatView
-from polytess.gui.code_assistant import AssistantWorker
+from polytess.gui.code_assistant import AssistantWorker, WaitingStatusCycler
 from polytess.gui.icons import icon
 from polytess.gui.theme import ACCENTS
 
@@ -200,6 +200,13 @@ class FlowAssistantPanel(QWidget):
         self._render_timer.setInterval(120)
         self._render_timer.timeout.connect(self._render)
 
+        # rotate a playful status line while waiting for the first chunk
+        self._waiting = WaitingStatusCycler("Claude is designing the flow")
+        self._waiting_timer = QTimer(self)
+        self._waiting_timer.setInterval(2200)
+        self._waiting_timer.timeout.connect(
+            lambda: self._set_status(self._waiting.next()))
+
         from polytess.gui.code_assistant import provider_ready_status
         self._set_status(provider_ready_status())
 
@@ -251,11 +258,13 @@ class FlowAssistantPanel(QWidget):
         self._render_timer.start()
         self.send_button.setEnabled(False)
         self.stop_button.setEnabled(True)
-        self._set_status("Claude is designing the flow…")
+        self._set_status(self._waiting.start())
+        self._waiting_timer.start()
 
     def _stop(self) -> None:
         if self._worker is not None:
             self._worker.cancel()
+            self._waiting_timer.stop()
             self._set_status("Stopping…")
 
     def clear_chat(self) -> None:
@@ -275,11 +284,13 @@ class FlowAssistantPanel(QWidget):
     # ---- worker callbacks ---------------------------------------------------- #
 
     def _on_chunk(self, text: str) -> None:
+        self._waiting_timer.stop()
         self._streaming_text += text
         if self._transcript:
             self._transcript[-1] = ("assistant", self._streaming_text)
 
     def _on_finished(self, full_text: str) -> None:
+        self._waiting_timer.stop()
         self._render_timer.stop()
         if self._transcript:
             self._transcript[-1] = ("assistant", full_text)
@@ -288,6 +299,7 @@ class FlowAssistantPanel(QWidget):
         self._evaluate_answer(full_text)
 
     def _on_failed(self, message: str) -> None:
+        self._waiting_timer.stop()
         self._render_timer.stop()
         if self._transcript and self._transcript[-1] == ("assistant", ""):
             self._transcript.pop()

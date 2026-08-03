@@ -62,6 +62,20 @@ def test_report_defaults_present():
     assert settings.get("assistant_provider") == "claude_agent"
 
 
+def test_waiting_status_cycler_covers_all_phrases_before_repeating():
+    from polytess.gui.code_assistant import WAITING_PHRASES, WaitingStatusCycler
+
+    cycler = WaitingStatusCycler("Prefix")
+    first = cycler.start()
+    assert first.startswith("Prefix — ")
+    seen = {first}
+    for _ in range(len(WAITING_PHRASES) - 1):
+        text = cycler.next()
+        assert text not in seen        # no repeat within one full pass
+        seen.add(text)
+    assert len(seen) == len(WAITING_PHRASES)
+
+
 def test_chat_panel_streaming_flow(tmp_path):
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtWidgets import QApplication

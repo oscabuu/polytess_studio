@@ -18,6 +18,7 @@ provider — auth is the Claude Code CLI session, bundled with the SDK).
 from __future__ import annotations
 
 import os
+import random
 import re
 
 from PySide6.QtCore import Qt, QThread, QTimer, Signal
@@ -311,6 +312,57 @@ def extract_python_block(text: str) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# playful waiting status (rotates while a request is in flight)
+# --------------------------------------------------------------------------- #
+
+WAITING_PHRASES = [
+    "Wrangling electrons…",
+    "Consulting the node oracle…",
+    "Bribing the scheduler…",
+    "Untangling the graph…",
+    "Counting keywords…",
+    "Reticulating splines…",
+    "Polishing the deck…",
+    "Herding tokens…",
+    "Waking up the interns…",
+    "Aligning the property slots…",
+    "Sharpening the icons…",
+    "Convincing the linter…",
+    "Simulating the simulation…",
+    "Looking up the registry…",
+    "Warming up the CLI…",
+    "Negotiating with the parser…",
+]
+
+
+class WaitingStatusCycler:
+    """Cycles ``WAITING_PHRASES`` into a status label while a request runs
+    (each full pass is shuffled so phrases don't repeat back-to-back
+    across requests)."""
+
+    def __init__(self, prefix: str = "Claude is thinking"):
+        self._prefix = prefix
+        self._order: list[str] = []
+        self._index = 0
+
+    def start(self) -> str:
+        self._order = random.sample(WAITING_PHRASES, len(WAITING_PHRASES))
+        self._index = 0
+        return self._first_text()
+
+    def _first_text(self) -> str:
+        return f"{self._prefix} — {self._order[0]}"
+
+    def next(self) -> str:
+        if not self._order:
+            return self._first_text()
+        self._index = (self._index + 1) % len(self._order)
+        if self._index == 0:
+            random.shuffle(self._order)
+        return f"{self._prefix} — {self._order[self._index]}"
+
+
+# --------------------------------------------------------------------------- #
 # streaming worker
 # --------------------------------------------------------------------------- #
 
@@ -465,6 +517,13 @@ class AssistantChatPanel(QWidget):
         self._render_timer.setInterval(120)
         self._render_timer.timeout.connect(self._render)
 
+        # rotate a playful status line while waiting for the first chunk
+        self._waiting = WaitingStatusCycler("Claude is thinking")
+        self._waiting_timer = QTimer(self)
+        self._waiting_timer.setInterval(2200)
+        self._waiting_timer.timeout.connect(
+            lambda: self._set_status(self._waiting.next()))
+
         self._set_status(provider_ready_status())
 
     # ---- events -------------------------------------------------------------- #
@@ -520,11 +579,13 @@ class AssistantChatPanel(QWidget):
         self._render_timer.start()
         self.send_button.setEnabled(False)
         self.stop_button.setEnabled(True)
-        self._set_status("Claude is answering…")
+        self._set_status(self._waiting.start())
+        self._waiting_timer.start()
 
     def _stop(self) -> None:
         if self._worker is not None:
             self._worker.cancel()
+            self._waiting_timer.stop()
             self._set_status("Stopping…")
 
     def clear_chat(self) -> None:
@@ -541,11 +602,13 @@ class AssistantChatPanel(QWidget):
     # ---- worker callbacks ------------------------------------------------------ #
 
     def _on_chunk(self, text: str) -> None:
+        self._waiting_timer.stop()
         self._streaming_text += text
         if self._transcript:
             self._transcript[-1] = ("assistant", self._streaming_text)
 
     def _on_finished(self, full_text: str) -> None:
+        self._waiting_timer.stop()
         self._render_timer.stop()
         if self._transcript:
             self._transcript[-1] = ("assistant", full_text)
@@ -555,6 +618,7 @@ class AssistantChatPanel(QWidget):
         self._set_status("Done.")
 
     def _on_failed(self, message: str) -> None:
+        self._waiting_timer.stop()
         self._render_timer.stop()
         if self._transcript and self._transcript[-1] == ("assistant", ""):
             self._transcript.pop()

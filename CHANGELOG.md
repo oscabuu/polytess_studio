@@ -4,6 +4,11 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.3.1 — 2026-08-03
+- While an assistant request is running, the status line now cycles
+  through playful messages ("Reticulating splines…", "Herding tokens…")
+  instead of a static "Claude is answering…" — Claude-Code style.
+
 ## 1.3.0 — 2026-08-01
 - Replaced the direct Anthropic Messages API integration with the
   **Claude Agent SDK** as the default assistant provider for the Flow
