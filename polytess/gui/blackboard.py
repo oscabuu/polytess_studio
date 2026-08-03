@@ -298,11 +298,16 @@ class _VariablesTable(QWidget):
                     lambda text, name=var.name: self._set_value(name, text))
                 self.table.setCellWidget(row, 2, editor)
             elif var.type_id == "table":
-                from polytess.core import tables as _tables
-                summary_item = QTableWidgetItem(
-                    f"{_tables.summary(var.value.get())}   (double-click…)")
-                summary_item.setFlags(summary_item.flags() & ~Qt.ItemIsEditable)
-                self.table.setItem(row, 2, summary_item)
+                from polytess.gui.widgets import InlineTableEdit
+                placeholder = QTableWidgetItem("")
+                placeholder.setFlags(placeholder.flags() & ~Qt.ItemIsEditable)
+                self.table.setItem(row, 2, placeholder)
+                editor = InlineTableEdit(var.value.get(),
+                                         f"Table: {var.name}")
+                editor.changed.connect(
+                    lambda table, name=var.name: self._set_value(name, table))
+                self.table.setCellWidget(row, 2, editor)
+                self.table.setRowHeight(row, editor.preferred_height())
             elif var.type_id == "vector3":
                 from polytess.core.values import format_vector3
                 self.table.setItem(

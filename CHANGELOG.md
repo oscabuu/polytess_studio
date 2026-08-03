@@ -4,6 +4,13 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.5.0 — 2026-08-03
+- Table variables in the Blackboard now render as a real inline table —
+  column headers on top, the rows' values below, cells editable in
+  place, with +/− row/column buttons — instead of a summary line that
+  needed a double-click into the editor dialog. The full-size editor
+  dialog stays available via the pencil button on the inline table.
+
 ## 1.4.0 — 2026-08-03
 - The Flow Assistant now sees the currently open flow: modification
   requests ("add a check after X") get the full existing workflow as

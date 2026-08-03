@@ -207,6 +207,53 @@ def test_blackboard_lists_panel(app):
     assert graph.lists.get("decks").items[1] == "/tmp/b.inp"
 
 
+def test_blackboard_table_variable_renders_inline_grid(app):
+    """Table variables show as a real table (headers on top, editable
+    values below) instead of a summary line."""
+    from polytess.gui.blackboard import BlackboardPanel
+    from polytess.gui.widgets import InlineTableEdit
+
+    graph = Graph("t")
+    graph.variables.declare("loads", "table", {
+        "columns": ["deck", "load"],
+        "rows": [{"deck": "MR_001", "load": 12},
+                 {"deck": "MR_002", "load": 15}]})
+    panel = BlackboardPanel()
+    panel.set_graph(graph)
+
+    table = panel.graph_vars.table
+    row = graph.variables.names().index("loads")
+    editor = table.cellWidget(row, 2)
+    assert isinstance(editor, InlineTableEdit)
+    assert [editor.grid.horizontalHeaderItem(c).text()
+            for c in range(editor.grid.columnCount())] == ["deck", "load"]
+    assert editor.grid.rowCount() == 2
+    assert editor.grid.item(0, 0).text() == "MR_001"
+
+    # inline cell edit writes back into the variable
+    editor.grid.item(1, 1).setText("99")
+    assert graph.variables.get("loads")["rows"][1]["load"] == 99
+
+    # structural edits write back too
+    editor._add_row()
+    assert len(graph.variables.get("loads")["rows"]) == 3
+
+
+def test_inline_table_edit_roundtrip(app):
+    from polytess.gui.widgets import InlineTableEdit
+
+    data = {"columns": ["a", "b"], "rows": [{"a": 1, "b": "x"}]}
+    changes = []
+    widget = InlineTableEdit(data)
+    widget.changed.connect(changes.append)
+    assert widget.table() == data
+    assert not changes                     # loading emits nothing
+
+    widget.grid.item(0, 0).setText("2")
+    assert changes and changes[-1]["rows"][0]["a"] == 2
+    assert widget.preferred_height() <= InlineTableEdit.MAX_HEIGHT + 26
+
+
 def test_blackboard_search_sort_filter(app):
     from polytess.gui.blackboard import BlackboardPanel
     graph = Graph("t")

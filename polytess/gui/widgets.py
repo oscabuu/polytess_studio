@@ -231,6 +231,137 @@ class PathEdit(QWidget):
             self.edit.setText(path)
 
 
+class InlineTableEdit(QWidget):
+    """Compact inline spreadsheet for a table variable
+    ({"columns": [...], "rows": [...]}): headers on top, one grid row per
+    table row, cells editable in place; +/− buttons manage rows and
+    columns, the expand button opens the full TableEditorDialog."""
+
+    changed = Signal(dict)
+
+    MAX_HEIGHT = 168
+
+    def __init__(self, table: dict, title: str = "Table", parent=None):
+        super().__init__(parent)
+        from polytess.core import tables as _tables
+        from PySide6.QtWidgets import (QAbstractScrollArea, QTableWidget,
+                                       QTableWidgetItem)
+        self._tables = _tables
+        self._QTableWidgetItem = QTableWidgetItem
+        self._title = title
+        self._updating = False
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 1, 0, 1)
+        layout.setSpacing(1)
+
+        self.grid = QTableWidget()
+        self.grid.setSizeAdjustPolicy(
+            QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
+        self.grid.verticalHeader().setVisible(False)
+        self.grid.verticalHeader().setDefaultSectionSize(20)
+        self.grid.horizontalHeader().setDefaultSectionSize(84)
+        self.grid.setMaximumHeight(self.MAX_HEIGHT)
+        self.grid.itemChanged.connect(self._on_cell_changed)
+        layout.addWidget(self.grid)
+
+        bar = QHBoxLayout()
+        bar.setSpacing(1)
+        for icon_name, tip, slot in (
+                ("plus", "Add row", self._add_row),
+                ("minus", "Remove selected row", self._remove_row),
+                ("list", "Add column…", self._add_column),
+                ("cancel", "Remove selected column", self._remove_column),
+                ("edit", "Open in the table editor…", self._open_dialog)):
+            button = QToolButton()
+            button.setIcon(icon(icon_name, "text-light"))
+            button.setToolTip(tip)
+            button.setAutoRaise(True)
+            button.clicked.connect(slot)
+            bar.addWidget(button)
+        bar.addStretch(1)
+        layout.addLayout(bar)
+
+        self._load(table)
+
+    # ---- data ------------------------------------------------------------- #
+
+    def _load(self, table: dict) -> None:
+        self._updating = True
+        columns = self._tables.columns_of(table)
+        rows = self._tables.rows_of(table)
+        self.grid.setColumnCount(len(columns))
+        self.grid.setHorizontalHeaderLabels(columns)
+        self.grid.setRowCount(len(rows))
+        for r, row in enumerate(rows):
+            for c, column in enumerate(columns):
+                self.grid.setItem(r, c, self._QTableWidgetItem(
+                    str(row.get(column, ""))))
+        self._updating = False
+
+    def table(self) -> dict:
+        columns = [self.grid.horizontalHeaderItem(c).text()
+                   for c in range(self.grid.columnCount())]
+        rows = []
+        for r in range(self.grid.rowCount()):
+            row = {}
+            for c, column in enumerate(columns):
+                item = self.grid.item(r, c)
+                row[column] = self._tables.convert_scalar(item.text()) \
+                    if item is not None else ""
+            rows.append(row)
+        return {"columns": columns, "rows": rows}
+
+    def preferred_height(self) -> int:
+        header = self.grid.horizontalHeader().height()
+        body = self.grid.rowCount() * self.grid.verticalHeader() \
+            .defaultSectionSize()
+        return min(self.MAX_HEIGHT, header + body + 8) + 26   # + button bar
+
+    def _emit(self) -> None:
+        if not self._updating:
+            self.changed.emit(self.table())
+
+    # ---- edits -------------------------------------------------------------- #
+
+    def _on_cell_changed(self, _item) -> None:
+        self._emit()
+
+    def _add_row(self) -> None:
+        self.grid.insertRow(self.grid.rowCount())
+        self._emit()
+
+    def _remove_row(self) -> None:
+        row = self.grid.currentRow()
+        if row >= 0:
+            self.grid.removeRow(row)
+            self._emit()
+
+    def _add_column(self) -> None:
+        from PySide6.QtWidgets import QInputDialog
+        name, ok = QInputDialog.getText(self, "New Column", "Name:")
+        if ok and name.strip():
+            index = self.grid.columnCount()
+            self._updating = True
+            self.grid.insertColumn(index)
+            self.grid.setHorizontalHeaderItem(
+                index, self._QTableWidgetItem(name.strip()))
+            self._updating = False
+            self._emit()
+
+    def _remove_column(self) -> None:
+        column = self.grid.currentColumn()
+        if column >= 0:
+            self.grid.removeColumn(column)
+            self._emit()
+
+    def _open_dialog(self) -> None:
+        dialog = TableEditorDialog(self.table(), self._title, self)
+        if dialog.exec() == QDialog.Accepted:
+            self._load(dialog.result_table())
+            self._emit()
+
+
 class TableEditorDialog(QDialog):
     """Spreadsheet-style editor for a table variable
     ({"columns": [...], "rows": [...]})."""
