@@ -17,6 +17,13 @@ from polytess.core.properties import (PropertyGetTransform, PropertySetTransform
       keywords=("assign", "pose", "placement", "position", "rotation"))
 class SetTransform(Instruction):
 
+    FIELD_HELP = {
+        "target": "Graph or global variable that receives the "
+                  "transform.",
+        "value": "The transform (position + rotation) to store; can "
+                 "also be read from another variable.",
+    }
+
     def __init__(self, target=None, value=None):
         super().__init__()
         self.target = target if target is not None \

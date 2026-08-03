@@ -19,6 +19,17 @@ from polytess.core.properties import (
       keywords=("save", "create", "text", "output"))
 class WriteTextFile(Instruction):
 
+    FIELD_HELP = {
+        "path": "File to write; relative paths resolve against the working "
+                "directory. Missing parent folders are created "
+                "automatically.",
+        "content": "Text written to the file (UTF-8); can come from a "
+                   "variable source.",
+        "append": "If enabled, the content is appended to the end of an "
+                  "existing file; if disabled (default), the file is "
+                  "overwritten.",
+    }
+
     def __init__(self, path: str = "", content: str = "", append: bool = False):
         super().__init__()
         self.path = PropertyGetPath(path)

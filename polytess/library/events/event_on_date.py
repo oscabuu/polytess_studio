@@ -27,6 +27,19 @@ from polytess.core.properties import PropertyGetDate
 class OnDate(Event):
     persistent = True
 
+    FIELD_HELP = {
+        "date": "Date/time to fire at; a fixed date or a date variable. "
+                "Moving the variable (e.g. via Set Date) re-arms the "
+                "trigger; each distinct date fires once. The date string "
+                "becomes the Loop Target of the triggered flow.",
+        "fire_if_past": "If enabled, the trigger also fires when the date "
+                        "is already in the past at workflow start; if "
+                        "disabled (default), past dates are consumed "
+                        "silently.",
+        "poll_interval_s": "Seconds between checks for a moved/changed "
+                           "date (default 1.0, minimum 0.05).",
+    }
+
     def __init__(self, date: str = ""):
         super().__init__()
         self.date = PropertyGetDate(date)

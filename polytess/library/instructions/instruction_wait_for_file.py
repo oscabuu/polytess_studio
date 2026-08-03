@@ -23,6 +23,20 @@ from polytess.core.properties import PropertyGetBool, PropertyGetNumber, Propert
       keywords=("poll", "hpc", "job", "result", "exists", "monitor"))
 class WaitForFile(Instruction):
 
+    FIELD_HELP = {
+        "path": "File to wait for; relative paths resolve against the "
+                "working directory. The node finishes as soon as the file "
+                "exists.",
+        "poll_interval_s": "Seconds between existence checks (minimum "
+                           "0.05 s, default 60 s). Lower values react "
+                           "faster but poll more often.",
+        "timeout_hours": "Maximum waiting time in hours (default 24); "
+                         "0 waits forever without a deadline.",
+        "fail_on_timeout": "If enabled (default), the node raises an error "
+                           "when the timeout expires; if disabled, only a "
+                           "warning is logged and the flow continues.",
+    }
+
     def __init__(self, path: str = "", poll_interval_s: float = 60.0,
                  timeout_hours: float = 24.0):
         super().__init__()

@@ -16,6 +16,12 @@ from polytess.core.properties import (PropertyGetVector3, PropertySetVector3,
       keywords=("assign", "position", "xyz", "vector"))
 class SetVector3(Instruction):
 
+    FIELD_HELP = {
+        "target": "Graph or global variable that receives the vector.",
+        "value": "The (x, y, z) vector to store; can also be read from "
+                 "another variable.",
+    }
+
     def __init__(self, target=None, value=None):
         super().__init__()
         self.target = target if target is not None \

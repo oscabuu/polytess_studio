@@ -158,6 +158,18 @@ def get_meta(cls: type) -> Meta:
     return m
 
 
+def get_field_help(cls: type) -> dict[str, str]:
+    """Merged ``FIELD_HELP`` of *cls* and its bases (subclass wins).
+
+    ``FIELD_HELP`` is a class-level dict mapping attribute names to a
+    short explanation of what the parameter provides and how it is used
+    — shown as tooltips in the inspector and fed to the assistants."""
+    merged: dict[str, str] = {}
+    for base in reversed(cls.__mro__):
+        merged.update(base.__dict__.get("FIELD_HELP") or {})
+    return merged
+
+
 # --------------------------------------------------------------------------- #
 # Category tree + fuzzy search
 # --------------------------------------------------------------------------- #

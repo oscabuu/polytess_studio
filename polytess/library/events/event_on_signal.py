@@ -17,6 +17,12 @@ from polytess.core.signals import signals
 class OnSignal(Event):
     persistent = True
 
+    FIELD_HELP = {
+        "signal": "Name of the signal to listen for; fires whenever an "
+                  "Emit Signal with this name runs. The emitted payload "
+                  "becomes the Loop Target of the triggered flow.",
+    }
+
     def __init__(self, signal: str = ""):
         super().__init__()
         self.signal = signal

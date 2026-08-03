@@ -23,6 +23,14 @@ from polytess.library.instructions.instruction_run_command import RunCommand
       keywords=("script", "postprocessing", "python"))
 class RunPythonScript(RunCommand):
 
+    FIELD_HELP = {
+        "script": "Python script file to execute with the current "
+                  "interpreter; relative paths resolve against the "
+                  "working directory.",
+        "arguments": "Command-line arguments appended after the script "
+                     "path (shell-like syntax).",
+    }
+
     def __init__(self, script: str = "", arguments: str = ""):
         super().__init__()
         self.script = PropertyGetPath(script)

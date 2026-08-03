@@ -13,6 +13,11 @@ from polytess.core.metadata import meta
       description="Skips the next N instructions in this list")
 class SkipNext(Instruction):
 
+    FIELD_HELP = {
+        "count": "How many of the following instructions in this list "
+                 "are skipped (default 1); values below 0 skip none.",
+    }
+
     def __init__(self, count: int = 1):
         super().__init__()
         self.count = int(count)

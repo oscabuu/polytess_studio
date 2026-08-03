@@ -27,6 +27,18 @@ _MISSING = object()
 class OnVariableChanged(Event):
     persistent = True
 
+    FIELD_HELP = {
+        "variable": "Graph/global variable or list to watch; the new value "
+                    "becomes the Loop Target of the triggered flow. Leave "
+                    "the name empty to fire on ANY change in the chosen "
+                    "scope — then the changed variable's name is the Loop "
+                    "Target.",
+        "only_on_change": "If enabled (default), writes that keep the "
+                          "value identical are skipped (also breaks "
+                          "self-triggering loops); if disabled, every "
+                          "write fires.",
+    }
+
     def __init__(self, name: str = ""):
         super().__init__()
         self.variable = PropertyVariableRef(name)

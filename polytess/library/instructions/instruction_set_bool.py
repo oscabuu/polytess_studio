@@ -18,6 +18,13 @@ from polytess.core.properties import (
       description="Stores true/false into a variable", keywords=("assign", "flag"))
 class SetBool(Instruction):
 
+    FIELD_HELP = {
+        "target": "Graph or global variable that receives the boolean "
+                  "value.",
+        "value": "The true/false value to store (default true); can "
+                 "also be read from another variable.",
+    }
+
     def __init__(self, target=None, value: bool = True):
         super().__init__()
         self.target = target if target is not None else PropertySetBool()

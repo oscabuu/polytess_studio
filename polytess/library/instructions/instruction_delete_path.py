@@ -20,6 +20,15 @@ from polytess.core.properties import (
       keywords=("remove", "rm", "rmtree"))
 class DeletePath(Instruction):
 
+    FIELD_HELP = {
+        "path": "File or folder to delete; relative paths resolve against "
+                "the working directory. Folders are removed with their "
+                "entire contents.",
+        "missing_ok": "If enabled (default), a non-existing path is silently "
+                      "ignored; if disabled, the step fails with a "
+                      "file-not-found error.",
+    }
+
     def __init__(self, path: str = "", missing_ok: bool = True):
         super().__init__()
         self.path = PropertyGetPath(path)

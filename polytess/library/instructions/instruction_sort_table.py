@@ -14,6 +14,17 @@ from polytess.core.properties import PropertySetTable
       description="Sorts the rows of a table variable by a column "
                   "(numeric when possible)")
 class SortTable(Instruction):
+
+    FIELD_HELP = {
+        "table": "Table variable whose rows are sorted in place; the "
+                 "node fails if the table does not exist.",
+        "column": "Column to sort by; values are compared numerically "
+                  "when possible, otherwise as text (numbers sort "
+                  "before text).",
+        "ascending": "When enabled (default), rows are sorted smallest "
+                     "first; disable for descending order.",
+    }
+
     LEGACY_ALIASES = {"table_name": "table"}
 
     def __init__(self, table_name: str = "", column: str = "", ascending: bool = True):

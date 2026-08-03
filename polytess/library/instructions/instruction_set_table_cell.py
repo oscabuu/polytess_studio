@@ -17,6 +17,22 @@ from polytess.core.properties import (PropertyGetAny, PropertyGetNumber,
                   "index or by matching a key column (e.g. Name=job42)",
       keywords=("update", "state", "cell", "row"))
 class SetTableCell(Instruction):
+
+    FIELD_HELP = {
+        "table": "Table variable to modify; the node fails if the "
+                 "table does not exist.",
+        "row_index": "0-based index of the row to change; only used "
+                     "when no match column is set.",
+        "match_column": "Column used to find the row by value instead "
+                        "of by index (e.g. Name); empty = use the row "
+                        "index.",
+        "match_value": "Value that the match column must equal; the "
+                       "node fails when no row matches.",
+        "column": "Name of the column whose cell is written.",
+        "value": "The value written into the selected cell; can be a "
+                 "constant or read from a variable.",
+    }
+
     LEGACY_ALIASES = {"table_name": "table"}
 
     def __init__(self, table_name: str = "", column: str = "", value=None):

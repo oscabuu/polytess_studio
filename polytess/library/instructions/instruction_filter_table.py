@@ -51,6 +51,25 @@ class FilterTable(Instruction):
     FIELD_CHOICES = {"operation": _OPS}
     LEGACY_ALIASES = {"table_name": "table"}
 
+    FIELD_HELP = {
+        "table": "Table variable whose rows are filtered; the step fails if "
+                 "the table does not exist.",
+        "column": "Column the comparison reads; the special column '#' "
+                  "compares against the row index (0-based) for row-range "
+                  "filtering.",
+        "operation": "Comparison operator: '=' / '!=' match text or number "
+                     "equality, '<' '<=' '>' '>=' compare numerically "
+                     "(non-numbers never match), 'contains' / 'starts-with' "
+                     "/ 'ends-with' test the cell text.",
+        "value": "Reference value to compare each cell against (supports "
+                 "variable sources); numbers are compared numerically where "
+                 "the operator requires it.",
+        "target_table": "Table variable that receives the matching rows; "
+                        "the result is written into the chosen graph/global "
+                        "table. Left empty, the source table variable is "
+                        "overwritten in place.",
+    }
+
     def __init__(self, table_name: str = "", column: str = "", operation: str = "=",
                  value: str = "", target_table: str = ""):
         super().__init__()

@@ -20,6 +20,17 @@ from polytess.core.properties import PropertyGetString, PropertySetList
 class FindFiles(Instruction):
     LEGACY_ALIASES = {"list_name": "target_list"}
 
+    FIELD_HELP = {
+        "pattern": "Glob pattern to search for, e.g. 'results/**/*.odb' "
+                   "('**' scans recursively); relative patterns resolve "
+                   "against the working directory. Default '*' matches "
+                   "everything in the working directory.",
+        "target_list": "List variable that receives the sorted matches; it "
+                       "is cleared first, then each found path is written "
+                       "into the chosen graph/global list. Without a target "
+                       "list the step only logs a warning.",
+    }
+
     def __init__(self, pattern: str = "*", list_name: str = "files"):
         super().__init__()
         self.pattern = PropertyGetString(pattern)

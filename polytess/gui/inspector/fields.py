@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox,
 
 from polytess.core.conditions import BranchList, ConditionList
 from polytess.core.instructions import InstructionList
-from polytess.core.metadata import get_meta, humanize
+from polytess.core.metadata import get_field_help, get_meta, humanize
 from polytess.core.properties import PropertyGet, PropertySet
 from polytess.gui.icons import icon
 from polytess.gui.theme import INDENT
@@ -95,13 +95,16 @@ class PropertyFieldRow(QWidget):
     """Label + source dropdown + indented sub-fields."""
 
     def __init__(self, label: str, prop, on_changed: Callable[[], None],
-                 graph=None, depth: int = 0, parent=None, undo=None):
+                 graph=None, depth: int = 0, parent=None, undo=None,
+                 help_text: str = ""):
         super().__init__(parent)
         self._prop = prop
         self._on_changed = on_changed
         self._graph = graph
         self._depth = depth
         self._undo = undo
+        if help_text:
+            self.setToolTip(help_text)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -109,7 +112,10 @@ class PropertyFieldRow(QWidget):
 
         row = QHBoxLayout()
         row.setSpacing(4)
-        row.addWidget(make_label(label, depth))
+        label_widget = make_label(label, depth)
+        if help_text:
+            label_widget.setToolTip(help_text)
+        row.addWidget(label_widget)
 
         self.button = DropdownButton()
         self.button.setLayoutDirection(Qt.LeftToRight)
@@ -264,8 +270,10 @@ def build_fields_widget(obj, on_changed: Callable[[], None], graph=None,
     grid.setVerticalSpacing(3)
     grid_row = 0
 
+    helps = get_field_help(type(obj))
     for attr, value in entries:
         label_text = humanize(attr).title()
+        help_text = helps.get(attr, "")
         if attr == "name" and getattr(type(obj), "ref_kind", None):
             label_text = "Variable"      # the reference row is labelled 'Variable'
         if isinstance(value, (PropertyGet, PropertySet)):
@@ -276,30 +284,41 @@ def build_fields_widget(obj, on_changed: Callable[[], None], graph=None,
             grid.setVerticalSpacing(3)
             grid_row = 0
             layout.addWidget(PropertyFieldRow(label_text, value, on_changed,
-                                              graph, depth=depth, undo=undo))
+                                              graph, depth=depth, undo=undo,
+                                              help_text=help_text))
         elif isinstance(value, InstructionList):
             lst = PolymorphicListWidget(label_text, Instruction, value.instructions,
                                         graph=graph, favorites_key="instructions",
                                         undo=undo)
             lst.changed.connect(on_changed)
+            if help_text:
+                lst.setToolTip(help_text)
             layout.addWidget(lst)
         elif isinstance(value, ConditionList):
             lst = PolymorphicListWidget(label_text, Condition, value.conditions,
                                         graph=graph, favorites_key="conditions",
                                         undo=undo)
             lst.changed.connect(on_changed)
+            if help_text:
+                lst.setToolTip(help_text)
             layout.addWidget(lst)
         elif isinstance(value, BranchList):
             lst = PolymorphicListWidget(label_text, Branch, value.branches,
                                         graph=graph, favorites_key="branches",
                                         direct_add_cls=Branch, undo=undo)
             lst.changed.connect(on_changed)
+            if help_text:
+                lst.setToolTip(help_text)
             layout.addWidget(lst)
         else:
             editor = _scalar_editor(obj, attr, value, on_changed, graph, undo)
             if editor is None:
                 continue
-            grid.addWidget(make_label(label_text, depth), grid_row, 0)
+            label_widget = make_label(label_text, depth)
+            if help_text:
+                label_widget.setToolTip(help_text)
+                editor.setToolTip(help_text)
+            grid.addWidget(label_widget, grid_row, 0)
             grid.addWidget(editor, grid_row, 1)
             grid_row += 1
 

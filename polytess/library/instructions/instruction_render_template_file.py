@@ -70,6 +70,26 @@ class RenderTemplateFile(Instruction):
     FIELD_CHOICES = {"open_delimiter": ["{", "#", "{{", "<", "%"],
                      "close_delimiter": ["}", "#", "}}", ">", "%"]}
 
+    FIELD_HELP = {
+        "template": "Source template file whose placeholders are "
+                    "replaced; relative paths resolve against the "
+                    "working directory.",
+        "destination": "Output file for the rendered text; relative "
+                       "paths resolve against the working directory. "
+                       "Missing parent folders are created.",
+        "open_delimiter": "Marker that starts a placeholder: '{' "
+                          "(default, supports format specs), '#' legacy "
+                          "training templates, '{{' legacy decks, or "
+                          "'<' / '%' custom styles.",
+        "close_delimiter": "Marker that ends a placeholder; pair it with "
+                           "the open delimiter, e.g. '}' for {name}, "
+                           "'#' for #name#, '}}' for {{name}}.",
+        "fail_on_unresolved": "When enabled, the node fails if any "
+                              "placeholder is left unresolved after "
+                              "rendering; otherwise unknown names stay "
+                              "in the output so typos remain visible.",
+    }
+
     def __init__(self, template: str = "", destination: str = "",
                  open_delimiter: str = "{", close_delimiter: str = "}"):
         super().__init__()

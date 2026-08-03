@@ -17,6 +17,15 @@ from polytess.core.properties import PropertyGetList
 class LoopList(Instruction):
     LEGACY_ALIASES = {"list_name": "list"}
 
+    FIELD_HELP = {
+        "list": "List variable to iterate; the nested actions run once per "
+                "element. A missing list only logs a warning and skips the "
+                "loop.",
+        "actions": "Instructions executed for each element; inside them the "
+                   "current element is available as 'Loop Target' / "
+                   "{target}.",
+    }
+
     def __init__(self, list_name: str | list = ""):
         super().__init__()
         self.list = PropertyGetList(list_name)

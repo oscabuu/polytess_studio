@@ -13,6 +13,11 @@ from polytess.core.metadata import meta
       description="Always evaluates to false")
 class AlwaysFalse(Condition):
 
+    FIELD_HELP = {
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     @property
     def summary(self) -> str:
         return "always false"

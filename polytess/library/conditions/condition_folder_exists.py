@@ -15,6 +15,14 @@ from polytess.core.properties import PropertyGetPath
       description="True if the path points to an existing directory")
 class FolderExists(Condition):
 
+    FIELD_HELP = {
+        "path": "Folder to check; relative paths resolve against the "
+                "working directory. True only for an existing directory, "
+                "not a file.",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     def __init__(self, path: str = ""):
         super().__init__()
         self.path = PropertyGetPath(path)

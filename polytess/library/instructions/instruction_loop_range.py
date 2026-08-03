@@ -20,6 +20,17 @@ from polytess.core.properties import (
       keywords=("for", "counter", "iterate"))
 class LoopRange(Instruction):
 
+    FIELD_HELP = {
+        "start": "First counter value i of the loop (default 0).",
+        "stop": "Exclusive end of the loop — iteration continues while "
+                "i < stop (or i > stop for negative steps); default 10.",
+        "step": "Increment added to i after each iteration (default 1); "
+                "negative values count downwards, 0 aborts with a warning.",
+        "actions": "Instructions executed for each counter value; inside "
+                   "them i is available as 'Loop Target' / {target} (whole "
+                   "numbers are passed as integers).",
+    }
+
     def __init__(self, start: float = 0.0, stop: float = 10.0, step: float = 1.0):
         super().__init__()
         self.start = PropertyGetNumber(start)

@@ -24,6 +24,18 @@ _NUM_OPS = {
 class CompareNumber(Condition):
     FIELD_CHOICES = {"comparison": list(_NUM_OPS)}
 
+    FIELD_HELP = {
+        "a": "Left-hand number of the comparison; can come from a "
+             "variable source.",
+        "comparison": "Operator applied as A <op> B: \"=\" equal, \"!=\" "
+                      "not equal, \"<\" less, \"<=\" less or equal, \">\" "
+                      "greater, \">=\" greater or equal.",
+        "b": "Right-hand number of the comparison; can come from a "
+             "variable source.",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     def __init__(self, a: float = 0.0, comparison: str = "=", b: float = 0.0):
         super().__init__()
         self.a = PropertyGetNumber(a)

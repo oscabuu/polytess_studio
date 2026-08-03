@@ -14,6 +14,8 @@ from polytess.core.metadata import meta
       keywords=("loop", "goto", "again"))
 class RestartList(Instruction):
 
+    FIELD_HELP = {}
+
     async def run(self, ctx):
         if self._parent is not None:
             self.jump(-self._parent.running_index)

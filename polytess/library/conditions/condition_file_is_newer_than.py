@@ -16,6 +16,16 @@ from polytess.core.properties import PropertyGetPath
       description="True if file A was modified after file B (rebuild checks)")
 class FileIsNewerThan(Condition):
 
+    FIELD_HELP = {
+        "file_a": "File whose modification time is tested; relative paths "
+                  "resolve against the working directory. If it does not "
+                  "exist, the condition is false.",
+        "file_b": "Reference file to compare against; if it does not exist "
+                  "(but A does), the condition is true.",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     def __init__(self, file_a: str = "", file_b: str = ""):
         super().__init__()
         self.file_a = PropertyGetPath(file_a)

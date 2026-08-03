@@ -14,6 +14,15 @@ from polytess.core.properties import PropertyGetBool, PropertyGetNumber, Propert
       description="Checks a true/false value", keywords=("flag", "is"))
 class CompareBool(Condition):
 
+    FIELD_HELP = {
+        "value": "The true/false value to test; typically read from a "
+                 "variable source.",
+        "compare_to": "Expected value; the condition is true when both "
+                      "values are equal.",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     def __init__(self, value: bool = True, compare_to: bool = True):
         super().__init__()
         self.value = PropertyGetBool(value)

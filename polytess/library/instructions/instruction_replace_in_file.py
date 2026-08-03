@@ -18,6 +18,15 @@ from polytess.core.properties import (
       keywords=("sed", "substitute", "modify", "input"))
 class ReplaceInFile(Instruction):
 
+    FIELD_HELP = {
+        "path": "Text file to modify in place (UTF-8); relative paths "
+                "resolve against the working directory.",
+        "search": "Literal text to look for (no regex); every "
+                  "occurrence in the file is replaced.",
+        "replace": "Replacement text written for each occurrence; the "
+                   "number of replacements is reported in the log.",
+    }
+
     def __init__(self, path: str = "", search: str = "", replace: str = ""):
         super().__init__()
         self.path = PropertyGetPath(path)

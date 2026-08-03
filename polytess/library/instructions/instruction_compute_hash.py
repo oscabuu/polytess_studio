@@ -19,6 +19,20 @@ from polytess.core.properties import PropertyGetBool, PropertyGetString, Propert
       keywords=("md5", "id", "unique", "job"))
 class ComputeHash(Instruction):
 
+    FIELD_HELP = {
+        "source": "Text to hash (supports variable sources); its MD5 digest "
+                  "is truncated to the requested length.",
+        "length": "Number of hex characters kept from the MD5 digest "
+                  "(default 10, minimum 1) — shorter IDs are easier to read "
+                  "but less unique.",
+        "add_timestamp_salt": "If enabled (default), the current time in "
+                              "milliseconds is appended to the text before "
+                              "hashing, so every run yields a fresh, unique "
+                              "ID even for identical input.",
+        "target": "String variable that receives the resulting hash; the "
+                  "value is written into the chosen graph/global variable.",
+    }
+
     def __init__(self, source: str = "", length: int = 10):
         super().__init__()
         self.source = PropertyGetString(source)

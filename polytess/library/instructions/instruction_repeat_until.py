@@ -21,6 +21,21 @@ from polytess.core.properties import PropertyGetBool, PropertyGetNumber
       keywords=("retry", "poll", "loop", "while", "until", "attempts"))
 class RepeatUntil(Instruction):
 
+    FIELD_HELP = {
+        "actions": "Nested instructions executed once per attempt; the "
+                   "1-based attempt number is available as the Loop "
+                   "Target. A failing action counts as a failed attempt.",
+        "conditions": "Checked (all must hold, AND) after each attempt; "
+                      "the loop stops as soon as they are satisfied.",
+        "max_attempts": "Maximum number of attempts before giving up; "
+                        "0 = retry without limit (default 5).",
+        "delay_s": "Pause in seconds between attempts (default 1); "
+                   "0 = retry immediately.",
+        "fail_on_max": "When enabled (default), reaching the attempt "
+                       "limit raises an error; otherwise only a warning "
+                       "is logged and the workflow continues.",
+    }
+
     def __init__(self, max_attempts: int = 5, delay_s: float = 1.0):
         super().__init__()
         self.actions = InstructionList()

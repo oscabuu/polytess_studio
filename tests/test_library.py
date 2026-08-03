@@ -217,3 +217,43 @@ async def test_library_serialization_roundtrip(tmp_path):
     clone_c = from_data(to_data(cond))
     ctx = make_ctx(tmp_path)
     assert clone_c.check(ctx) is True
+
+
+def test_field_help_mechanism():
+    """FIELD_HELP dicts merge along the MRO and reach get_field_help."""
+    from polytess.core.metadata import get_field_help
+    helps = get_field_help(CreateFolder)
+    assert "path" in helps and "working directory" in helps["path"]
+
+    class _Derived(CreateFolder):
+        FIELD_HELP = {"extra": "Extra field."}
+
+    merged = get_field_help(_Derived)
+    assert "path" in merged and merged["extra"] == "Extra field."
+
+
+def test_every_library_block_field_has_help():
+    """Every public parameter of every shipped Instruction/Condition/Event
+    carries a FIELD_HELP tooltip text."""
+    from polytess.core.conditions import Condition
+    from polytess.core.events import Event
+    from polytess.core.instructions import Instruction
+    from polytess.core.metadata import get_field_help, iter_subclasses
+
+    missing: list[str] = []
+    for base in (Instruction, Condition, Event):
+        for cls in iter_subclasses(base, include_hidden=True):
+            if not cls.__module__.startswith("polytess.library"):
+                continue
+            try:
+                instance = cls()
+            except Exception:
+                continue
+            helps = get_field_help(cls)
+            for attr in vars(instance):
+                if attr.startswith("_") or attr in ("is_enabled", "breakpoint"):
+                    continue
+                if not str(helps.get(attr, "")).strip():
+                    missing.append(f"{cls.__name__}.{attr}")
+    assert not missing, \
+        f"{len(missing)} fields without FIELD_HELP: " + ", ".join(missing[:40])

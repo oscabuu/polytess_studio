@@ -23,6 +23,16 @@ from polytess.core.properties import (PropertyGetString, PropertySetTable,
 class AddTableRow(Instruction):
     LEGACY_ALIASES = {"table_name": "table"}
 
+    FIELD_HELP = {
+        "table": "Table variable that receives the new row. The table is "
+                 "created automatically if it does not exist yet; the run "
+                 "fails if no table variable is selected.",
+        "values": "Row content as 'col=value' pairs separated by ';'. "
+                  "Values support {variable} placeholders; numbers are "
+                  "converted automatically. Pairs without '=' are ignored, "
+                  "and with no valid pair the row is skipped with a warning.",
+    }
+
     def __init__(self, table_name: str = "", values: str = ""):
         super().__init__()
         self.table = PropertySetTable(table_name)

@@ -15,6 +15,17 @@ from polytess.core.metadata import meta
 class OnTimer(Event):
     persistent = True
 
+    FIELD_HELP = {
+        "interval": "Seconds between two firings (default 5.0, minimum "
+                    "0.05). The tick counter (0, 1, 2, ...) becomes the "
+                    "Loop Target of the triggered flow.",
+        "repetitions": "How many times the timer fires in total; 0 "
+                       "(default) means unlimited.",
+        "fire_immediately": "If enabled, the first firing happens right at "
+                            "workflow start instead of after the first "
+                            "interval.",
+    }
+
     def __init__(self, interval: float = 5.0, repetitions: int = 0, fire_immediately: bool = False):
         super().__init__()
         self.interval = float(interval)

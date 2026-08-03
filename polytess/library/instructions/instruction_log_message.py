@@ -18,6 +18,14 @@ from polytess.core.properties import PropertyGetString
 class LogMessage(Instruction):
     FIELD_CHOICES = {"level": ["debug", "info", "warning", "error"]}
 
+    FIELD_HELP = {
+        "level": "Severity of the log entry: 'debug' for diagnostics, "
+                 "'info' (default) for normal output, 'warning' and "
+                 "'error' for highlighted problems.",
+        "message": "Text written to the log; supports variable sources, so "
+                   "current values can be embedded.",
+    }
+
     def __init__(self, message: str = "", level: str = "info"):
         super().__init__()
         self.level = level

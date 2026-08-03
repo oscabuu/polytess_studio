@@ -4,6 +4,14 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.6.0 — 2026-08-03
+- Every parameter of every built-in Instruction, Condition, Event and
+  property source now has a tooltip in the inspector explaining what
+  the value provides and how it is used (229 texts). New mechanism:
+  a class-level `FIELD_HELP` dict (merged along the inheritance chain,
+  like `FIELD_CHOICES`); the right-click Help popup lists the texts
+  too, and custom blocks can declare their own `FIELD_HELP`.
+
 ## 1.5.0 — 2026-08-03
 - Table variables in the Blackboard now render as a real inline table —
   column headers on top, the rows' values below, cells editable in

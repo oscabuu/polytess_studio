@@ -18,6 +18,12 @@ from polytess.core.properties import (
       description="Stores a number into a variable", keywords=("assign", "value"))
 class SetNumber(Instruction):
 
+    FIELD_HELP = {
+        "target": "Graph or global variable that receives the number.",
+        "value": "The numeric value to store (default 0); can also be "
+                 "read from another variable.",
+    }
+
     def __init__(self, target=None, value: float = 0.0):
         super().__init__()
         self.target = target if target is not None else PropertySetNumber()

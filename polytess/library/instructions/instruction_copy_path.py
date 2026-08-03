@@ -20,6 +20,18 @@ from polytess.core.properties import (
       keywords=("cp", "duplicate", "backup"))
 class CopyPath(Instruction):
 
+    FIELD_HELP = {
+        "source": "File or folder to copy; relative paths resolve against "
+                  "the working directory. Folders are copied recursively, "
+                  "files keep their metadata (copy2).",
+        "destination": "Target path for the copy; relative paths resolve "
+                       "against the working directory. Missing parent "
+                       "folders are created for file copies.",
+        "overwrite": "If enabled (default), an existing destination is "
+                     "replaced (folders are removed first); if disabled, "
+                     "the step fails when the destination already exists.",
+    }
+
     def __init__(self, source: str = "", destination: str = "", overwrite: bool = True):
         super().__init__()
         self.source = PropertyGetPath(source)

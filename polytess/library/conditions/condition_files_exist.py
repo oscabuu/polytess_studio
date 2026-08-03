@@ -17,6 +17,17 @@ from polytess.core.properties import PropertyGetList
       keywords=("all", "any", "batch", "results"))
 class FilesExist(Condition):
     FIELD_CHOICES = {"mode": ["all", "any"]}
+
+    FIELD_HELP = {
+        "list": "List variable holding the paths to check; relative paths "
+                "resolve against the working directory. An empty or "
+                "missing list makes the condition false.",
+        "mode": "\"all\" is true only when every path exists; \"any\" is "
+                "true as soon as at least one path exists.",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     LEGACY_ALIASES = {"list_name": "list"}
 
     def __init__(self, list_name: str | list = "", mode: str = "all"):

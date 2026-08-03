@@ -18,6 +18,12 @@ from polytess.core.properties import (
       description="Stores a string into a variable", keywords=("assign", "text"))
 class SetString(Instruction):
 
+    FIELD_HELP = {
+        "target": "Graph or global variable that receives the text.",
+        "value": "The string to store; can also be read from another "
+                 "variable.",
+    }
+
     def __init__(self, target=None, value: str = ""):
         super().__init__()
         self.target = target if target is not None else PropertySetString()

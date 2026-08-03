@@ -18,6 +18,13 @@ from polytess.core.properties import (
       description="Stores a file/directory path into a variable")
 class SetPath(Instruction):
 
+    FIELD_HELP = {
+        "target": "Graph or global variable that receives the path.",
+        "value": "The file or directory path to store; kept as entered "
+                 "(resolution against the working directory happens "
+                 "where the path is used).",
+    }
+
     def __init__(self, target=None, value: str = ""):
         super().__init__()
         self.target = target if target is not None else PropertySetPath()

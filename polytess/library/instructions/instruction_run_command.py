@@ -39,6 +39,29 @@ async def _stream(stream, log, level: str, collect: list[str]) -> None:
       keywords=("execute", "shell", "solver", "batch", "subprocess", "simpack", "abaqus"))
 class RunCommand(Instruction):
 
+    FIELD_HELP = {
+        "command": "Program plus arguments in shell-like syntax; empty "
+                   "commands are skipped with a warning. With a command "
+                   "server configured in Settings the command runs "
+                   "there via ssh.",
+        "workdir": "Working directory for the process; empty = the "
+                   "workflow's working directory.",
+        "extra_env": "Additional environment variables, one NAME=value "
+                     "per line; they are added on top of the inherited "
+                     "environment.",
+        "timeout": "Maximum runtime in seconds; 0 = no timeout. On "
+                   "expiry the process is killed and the node fails.",
+        "check_exit_code": "When enabled (default), a non-zero exit "
+                           "code fails the node; otherwise it is only "
+                           "logged.",
+        "force_local": "Run on this machine even when a command server "
+                       "is configured in Settings.",
+        "exit_code_to": "Optional variable that receives the process "
+                        "exit code as a number.",
+        "output_to": "Optional variable that receives the captured "
+                     "stdout text (stderr goes to the log only).",
+    }
+
     def __init__(self, command: str = "", workdir: str = "", timeout: float = 0.0,
                  check_exit_code: bool = True):
         super().__init__()

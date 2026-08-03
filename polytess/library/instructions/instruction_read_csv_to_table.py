@@ -20,6 +20,19 @@ from polytess.core.properties import PropertyGetPath, PropertySetTable
       keywords=("csv", "import", "config", "doe", "matrix"))
 class ReadCsvToTable(Instruction):
     FIELD_CHOICES = {"separator": ["auto", ";", ",", "tab"]}
+
+    FIELD_HELP = {
+        "path": "CSV file to read; relative paths resolve against the "
+                "working directory.",
+        "separator": "Column separator: 'auto' detects it from the file "
+                     "content, or force ';', ',' or a tab character.",
+        "convert_numbers": "When enabled (default), cell texts that look "
+                           "like numbers or booleans are converted to "
+                           "their typed values instead of staying strings.",
+        "table": "Table variable that receives the parsed rows; an "
+                 "existing table of the same name is replaced.",
+    }
+
     LEGACY_ALIASES = {"table_name": "table"}
 
     def __init__(self, path: str = "", table_name: str = "", separator: str = "auto"):

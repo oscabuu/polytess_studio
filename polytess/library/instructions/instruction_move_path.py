@@ -19,6 +19,14 @@ from polytess.core.properties import (
       description="Moves or renames a file or folder", keywords=("mv", "rename"))
 class MovePath(Instruction):
 
+    FIELD_HELP = {
+        "source": "File or folder to move; relative paths resolve against "
+                  "the working directory. The source must exist.",
+        "destination": "New path (a rename when only the name changes); "
+                       "relative paths resolve against the working "
+                       "directory. Missing parent folders are created.",
+    }
+
     def __init__(self, source: str = "", destination: str = ""):
         super().__init__()
         self.source = PropertyGetPath(source)

@@ -19,6 +19,12 @@ from polytess.core.properties import (
       keywords=("mkdir", "directory", "makedirs"))
 class CreateFolder(Instruction):
 
+    FIELD_HELP = {
+        "path": "Directory to create (parents included); relative paths "
+                "resolve against the working directory. Already existing "
+                "folders are left untouched.",
+    }
+
     def __init__(self, path: str = ""):
         super().__init__()
         self.path = PropertyGetPath(path)

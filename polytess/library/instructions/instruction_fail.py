@@ -14,6 +14,12 @@ from polytess.core.properties import PropertyGetAny, PropertyGetNumber, Property
       description="Raises an error — marks the node as failed and stops the list")
 class Fail(Instruction):
 
+    FIELD_HELP = {
+        "message": "Error text raised when this step runs (default "
+                   "'Failed'); it marks the node as failed and stops the "
+                   "instruction list.",
+    }
+
     def __init__(self, message: str = "Failed"):
         super().__init__()
         self.message = PropertyGetString(message)

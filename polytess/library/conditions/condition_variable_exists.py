@@ -14,6 +14,17 @@ from polytess.core.metadata import meta
 class VariableExists(Condition):
     FIELD_CHOICES = {"scope": ["graph", "global"]}
 
+    FIELD_HELP = {
+        "name": "Name of the variable to look up; the condition is true "
+                "when a variable with this name is declared in the chosen "
+                "scope.",
+        "scope": "Where to look: \"graph\" searches the current graph's "
+                 "variables, \"global\" searches the workflow-wide "
+                 "globals.",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     def __init__(self, name: str = "", scope: str = "graph"):
         super().__init__()
         self.scope = scope

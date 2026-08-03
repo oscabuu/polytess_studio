@@ -21,6 +21,18 @@ from polytess.core.properties import PropertyGetBool, PropertyGetPath, PropertyG
       keywords=("clear", "purge", "job", "output", "except"))
 class CleanFolder(Instruction):
 
+    FIELD_HELP = {
+        "folder": "Folder whose contents are deleted; relative paths resolve "
+                  "against the working directory. If the folder does not "
+                  "exist the step silently does nothing.",
+        "keep_pattern": "';'-separated glob patterns (e.g. '*.inp;*.log'); "
+                        "entries matching any pattern are kept, everything "
+                        "else is removed. Default keeps '*.inp'.",
+        "delete_subfolders": "If enabled (default), non-matching subfolders "
+                             "are removed with their entire contents; if "
+                             "disabled, subfolders are left untouched.",
+    }
+
     def __init__(self, folder: str = "", keep_pattern: str = "*.inp"):
         super().__init__()
         self.folder = PropertyGetPath(folder)

@@ -15,6 +15,11 @@ from polytess.core.properties import PropertyGetAny, PropertyGetNumber, Property
       keywords=("wait", "time", "seconds", "cooldown", "timeout", "yield", "sleep"))
 class WaitSeconds(Instruction):
 
+    FIELD_HELP = {
+        "seconds": "How long to pause the flow, in seconds (default 1.0). "
+                   "The wait can be cancelled when the workflow stops.",
+    }
+
     def __init__(self, seconds: float = 1.0):
         super().__init__()
         self.seconds = PropertyGetNumber(seconds)

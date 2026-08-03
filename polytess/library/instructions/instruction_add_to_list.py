@@ -15,6 +15,13 @@ from polytess.core.properties import PropertyGetAny, PropertySetList
 class AddToList(Instruction):
     LEGACY_ALIASES = {"list_name": "list"}
 
+    FIELD_HELP = {
+        "list": "List variable the value is appended to; the element is "
+                "pushed onto the end of the chosen graph/global list.",
+        "value": "Value to append — a literal or any variable source; it is "
+                 "added unchanged as a new list element.",
+    }
+
     def __init__(self, list_name: str = "", value=None):
         super().__init__()
         self.list = PropertySetList(list_name)

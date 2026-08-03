@@ -15,6 +15,11 @@ from polytess.core.properties import PropertySetList
 class ClearList(Instruction):
     LEGACY_ALIASES = {"list_name": "list"}
 
+    FIELD_HELP = {
+        "list": "List variable to empty; all elements of the chosen "
+                "graph/global list are removed, the variable itself stays.",
+    }
+
     def __init__(self, list_name: str = ""):
         super().__init__()
         self.list = PropertySetList(list_name)

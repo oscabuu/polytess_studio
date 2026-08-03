@@ -16,6 +16,19 @@ class CompareString(Condition):
     FIELD_CHOICES = {"comparison": ["equals", "different", "contains",
                                     "starts-with", "ends-with"]}
 
+    FIELD_HELP = {
+        "a": "Left-hand string of the comparison; can come from a "
+             "variable source.",
+        "comparison": "How A is tested against B: \"equals\" exact match, "
+                      "\"different\" not equal, \"contains\" B occurs in "
+                      "A, \"starts-with\" A begins with B, \"ends-with\" "
+                      "A ends with B. Case-sensitive.",
+        "b": "Right-hand string of the comparison; can come from a "
+             "variable source.",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     def __init__(self, a: str = "", comparison: str = "equals", b: str = ""):
         super().__init__()
         self.a = PropertyGetString(a)

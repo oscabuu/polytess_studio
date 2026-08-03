@@ -239,6 +239,26 @@ def test_blackboard_table_variable_renders_inline_grid(app):
     assert len(graph.variables.get("loads")["rows"]) == 3
 
 
+def test_inspector_fields_carry_field_help_tooltips(app):
+    """FIELD_HELP texts land as tooltips on labels and editors."""
+    from PySide6.QtWidgets import QLabel
+    from polytess.gui.inspector.fields import build_fields_widget
+    from polytess.library.instructions.instruction_create_folder import \
+        CreateFolder
+    from polytess.library.instructions.instruction_run_command import \
+        RunCommand
+
+    widget = build_fields_widget(CreateFolder("x"), lambda: None)
+    labels = [l for l in widget.findChildren(QLabel) if l.text() == "Path"]
+    assert labels and "Directory to create" in labels[0].toolTip()
+
+    # scalar fields (bool/str) get the tooltip on label AND editor
+    widget = build_fields_widget(RunCommand("echo 1"), lambda: None)
+    labels = {l.text(): l for l in widget.findChildren(QLabel)}
+    assert "Check Exit Code" in labels
+    assert labels["Check Exit Code"].toolTip() != ""
+
+
 def test_inline_table_edit_roundtrip(app):
     from polytess.gui.widgets import InlineTableEdit
 

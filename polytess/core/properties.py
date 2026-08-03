@@ -69,6 +69,10 @@ class SetSource(PolymorphicItem):
 class GetConstantString(PropertySource):
     value_type = "string"
 
+    FIELD_HELP = {
+        "value": "The constant text used as-is.",
+    }
+
     def __init__(self, value: str = ""):
         super().__init__()
         self.value = value
@@ -85,6 +89,10 @@ class GetConstantString(PropertySource):
       description="A constant number", keywords=("value", "float", "integer"))
 class GetConstantNumber(PropertySource):
     value_type = "number"
+
+    FIELD_HELP = {
+        "value": "The constant numeric value (stored as float).",
+    }
 
     def __init__(self, value: float = 0.0):
         super().__init__()
@@ -103,6 +111,10 @@ class GetConstantNumber(PropertySource):
 class GetConstantBool(PropertySource):
     value_type = "bool"
 
+    FIELD_HELP = {
+        "value": "The constant true/false value.",
+    }
+
     def __init__(self, value: bool = True):
         super().__init__()
         self.value = bool(value)
@@ -120,6 +132,11 @@ class GetConstantBool(PropertySource):
       keywords=("file", "folder", "directory"))
 class GetConstantPath(PropertySource):
     value_type = "path"
+
+    FIELD_HELP = {
+        "value": "The file or directory path. ~ and $VARS are expanded; a "
+                 "relative path resolves against the working directory.",
+    }
 
     def __init__(self, value: str = ""):
         super().__init__()
@@ -140,6 +157,11 @@ class GetConstantPath(PropertySource):
 class GetConstantDate(PropertySource):
     value_type = "date"
 
+    FIELD_HELP = {
+        "value": "The fixed date/time as text — 'YYYY-MM-DD HH:MM:SS' "
+                 "(ISO-8601 and DD.MM.YYYY are also accepted).",
+    }
+
     def __init__(self, value: str = ""):
         super().__init__()
         self.value = value
@@ -156,6 +178,12 @@ class GetConstantDate(PropertySource):
       description="A fixed (x, y, z) vector", keywords=("position", "xyz"))
 class GetConstantVector3(PropertySource):
     value_type = "vector3"
+
+    FIELD_HELP = {
+        "x": "The X component of the vector.",
+        "y": "The Y component of the vector.",
+        "z": "The Z component of the vector.",
+    }
 
     def __init__(self, x: float = 0.0, y: float = 0.0, z: float = 0.0):
         super().__init__()
@@ -176,6 +204,15 @@ class GetConstantVector3(PropertySource):
       keywords=("pose", "placement"))
 class GetConstantTransform(PropertySource):
     value_type = "transform"
+
+    FIELD_HELP = {
+        "pos_x": "The X component of the position.",
+        "pos_y": "The Y component of the position.",
+        "pos_z": "The Z component of the position.",
+        "rot_x": "The rotation around the X axis.",
+        "rot_y": "The rotation around the Y axis.",
+        "rot_z": "The rotation around the Z axis.",
+    }
 
     def __init__(self):
         super().__init__()
@@ -220,6 +257,11 @@ class GetGraphVariable(PropertySource):
     value_type = "any"
     ref_kind = "variable"
 
+    FIELD_HELP = {
+        "name": "Name of the graph variable to read; None if it does "
+                "not exist.",
+    }
+
     def __init__(self, name: str = ""):
         super().__init__()
         self.name = name
@@ -238,6 +280,11 @@ class GetGraphVariable(PropertySource):
 class GetGlobalVariable(PropertySource):
     value_type = "any"
     ref_kind = "variable"
+
+    FIELD_HELP = {
+        "name": "Name of the application-wide global variable to read; "
+                "None if it does not exist.",
+    }
 
     def __init__(self, name: str = ""):
         super().__init__()
@@ -270,6 +317,11 @@ class GetTarget(PropertySource):
 class GetConstantList(PropertySource):
     value_type = "list"
 
+    FIELD_HELP = {
+        "items": "The list entries. Text entries that look like numbers "
+                 "or true/false are converted to those types.",
+    }
+
     def __init__(self, items: list | None = None):
         super().__init__()
         self.items = list(items) if items else []
@@ -292,6 +344,11 @@ class GetGraphList(PropertySource):
     value_type = "list"
     ref_kind = "list"
 
+    FIELD_HELP = {
+        "name": "Name of the graph list variable to read; yields a copy "
+                "of its items, or None if it does not exist.",
+    }
+
     def __init__(self, name: str = ""):
         super().__init__()
         self.name = name
@@ -312,6 +369,11 @@ class GetGraphList(PropertySource):
 class GetGlobalList(PropertySource):
     value_type = "list"
     ref_kind = "list"
+
+    FIELD_HELP = {
+        "name": "Name of the global list variable to read; yields a copy "
+                "of its items, or None if it does not exist.",
+    }
 
     def __init__(self, name: str = ""):
         super().__init__()
@@ -334,6 +396,15 @@ class GetGlobalList(PropertySource):
       keywords=("list", "parse", "separator", "template", "nodes"))
 class GetSplitString(PropertySource):
     value_type = "list"
+
+    FIELD_HELP = {
+        "template": "The text to split. {name} placeholders are replaced "
+                    "by graph/global variables first, {target} by the loop "
+                    "target and {workdir} by the working directory.",
+        "separator": "The delimiter to split at (default ','). With ',' "
+                     "semicolons are treated as commas too; parts are "
+                     "trimmed and empty parts dropped.",
+    }
 
     def __init__(self, template: str = "", separator: str = ","):
         super().__init__()
@@ -359,6 +430,11 @@ class GetGraphTable(PropertySource):
     value_type = "table"
     ref_kind = "table"
     scope_id = "graph"
+
+    FIELD_HELP = {
+        "name": "Name of the table variable to read (graph or global, "
+                "depending on the source); None if it does not exist.",
+    }
 
     def __init__(self, name: str = ""):
         super().__init__()
@@ -388,6 +464,16 @@ class GetGlobalTable(GetGraphTable):
 class GetListElement(PropertySource):
     value_type = "any"
     FIELD_CHOICES = {"scope": ["graph", "global"], "pick": ["first", "last", "index", "random"]}
+
+    FIELD_HELP = {
+        "scope": "Where the list lives: 'graph' (current graph) or "
+                 "'global' (application-wide).",
+        "list_name": "Name of the list variable to pick from; None if it "
+                     "is missing or empty.",
+        "pick": "Which element to return: 'first', 'last', 'random', or "
+                "'index' to use the Index field.",
+        "index": "0-based element index, used only when Pick is 'index'.",
+    }
 
     def __init__(self, list_name: str = "", pick: str = "first", index: int = 0,
                  scope: str = "graph"):
@@ -425,6 +511,13 @@ class GetListCount(PropertySource):
     value_type = "number"
     FIELD_CHOICES = {"scope": ["graph", "global"]}
 
+    FIELD_HELP = {
+        "scope": "Where the list lives: 'graph' (current graph) or "
+                 "'global' (application-wide).",
+        "list_name": "Name of the list variable to count; 0 if it does "
+                     "not exist.",
+    }
+
     def __init__(self, list_name: str = "", scope: str = "graph"):
         super().__init__()
         self.scope = scope
@@ -452,6 +545,12 @@ class GetListCount(PropertySource):
 class GetStringFormat(PropertySource):
     value_type = "string"
 
+    FIELD_HELP = {
+        "template": "The text template. {name} placeholders are replaced "
+                    "by graph/global variables, {target} by the loop "
+                    "target and {workdir} by the working directory.",
+    }
+
     def __init__(self, template: str = ""):
         super().__init__()
         self.template = template
@@ -471,6 +570,14 @@ class GetStringFormat(PropertySource):
 class GetPathFormat(PropertySource):
     value_type = "path"
 
+    FIELD_HELP = {
+        "template": "The path template. {name} placeholders are replaced "
+                    "by graph/global variables, {target} by the loop "
+                    "target and {workdir} by the working directory; a "
+                    "relative result resolves against the working "
+                    "directory.",
+    }
+
     def __init__(self, template: str = ""):
         super().__init__()
         self.template = template
@@ -489,6 +596,11 @@ class GetPathFormat(PropertySource):
 class GetDateTime(PropertySource):
     value_type = "string"
 
+    FIELD_HELP = {
+        "format": "strftime pattern applied to the current date/time, "
+                  "e.g. %Y-%m-%d_%H-%M-%S.",
+    }
+
     def __init__(self, format: str = "%Y-%m-%d_%H-%M-%S"):
         super().__init__()
         self.format = format
@@ -505,6 +617,12 @@ class GetDateTime(PropertySource):
       icon="globe", color="teal", description="Read an OS environment variable")
 class GetEnvironmentVariable(PropertySource):
     value_type = "string"
+
+    FIELD_HELP = {
+        "name": "Name of the OS environment variable to read.",
+        "default": "Fallback text returned when the environment variable "
+                   "is not set.",
+    }
 
     def __init__(self, name: str = "", default: str = ""):
         super().__init__()
@@ -523,6 +641,11 @@ class GetEnvironmentVariable(PropertySource):
       color="green", description="A uniform random number in [min, max]")
 class GetRandomNumber(PropertySource):
     value_type = "number"
+
+    FIELD_HELP = {
+        "minimum": "Lower bound of the uniform random range (inclusive).",
+        "maximum": "Upper bound of the uniform random range (inclusive).",
+    }
 
     def __init__(self, minimum: float = 0.0, maximum: float = 1.0):
         super().__init__()
@@ -556,6 +679,19 @@ class GetWorkdir(PropertySource):
 class GetTableCell(PropertySource):
     value_type = "any"
     FIELD_CHOICES = {"scope": ["graph", "global"]}
+
+    FIELD_HELP = {
+        "scope": "Where the table lives: 'graph' (current graph) or "
+                 "'global' (application-wide).",
+        "table_name": "Name of the table variable to read from.",
+        "row_index": "0-based row index; ignored when Match Column is "
+                     "set.",
+        "match_column": "Optional: column searched for Match Value; the "
+                        "first matching row is used instead of Row Index.",
+        "match_value": "Value compared (as text) against Match Column to "
+                       "find the row.",
+        "column": "Name of the column whose cell value is returned.",
+    }
 
     def __init__(self, table_name: str = "", row_index: int = 0, column: str = "",
                  match_column: str = "", match_value: str = "", scope: str = "graph"):
@@ -591,6 +727,13 @@ class GetTableCell(PropertySource):
 class GetTableRowCount(PropertySource):
     value_type = "number"
     FIELD_CHOICES = {"scope": ["graph", "global"]}
+
+    FIELD_HELP = {
+        "scope": "Where the table lives: 'graph' (current graph) or "
+                 "'global' (application-wide).",
+        "table_name": "Name of the table variable whose rows are "
+                      "counted; 0 if it does not exist.",
+    }
 
     def __init__(self, table_name: str = "", scope: str = "graph"):
         super().__init__()
@@ -655,6 +798,10 @@ class SetGraphVariable(SetSource):
     value_type = "any"
     ref_kind = "variable"
 
+    FIELD_HELP = {
+        "name": "Name of the graph variable to write the value into.",
+    }
+
     def __init__(self, name: str = ""):
         super().__init__()
         self.name = name
@@ -679,6 +826,11 @@ class SetGlobalVariable(SetSource):
     value_type = "any"
     ref_kind = "variable"
 
+    FIELD_HELP = {
+        "name": "Name of the application-wide global variable to write "
+                "the value into.",
+    }
+
     def __init__(self, name: str = ""):
         super().__init__()
         self.name = name
@@ -700,6 +852,17 @@ class SetListElement(SetSource):
     value_type = "any"
     FIELD_CHOICES = {"scope": ["graph", "global"],
                      "mode": ["push", "insert-first", "index"]}
+
+    FIELD_HELP = {
+        "scope": "Where the list lives: 'graph' (current graph) or "
+                 "'global' (application-wide).",
+        "list_name": "Name of the list variable to write into (created "
+                     "if missing).",
+        "mode": "How to store the value: 'push' appends, 'insert-first' "
+                "prepends, 'index' overwrites at Index.",
+        "index": "0-based element index for mode 'index'; out-of-range "
+                 "indices append instead.",
+    }
 
     def __init__(self, list_name: str = "", mode: str = "push", index: int = 0,
                  scope: str = "graph"):
@@ -747,6 +910,12 @@ class SetListElement(SetSource):
 class SetGraphList(SetSource):
     value_type = "list"
     ref_kind = "list"
+
+    FIELD_HELP = {
+        "name": "Name of the list variable to write (graph or global, "
+                "depending on the source); created if missing, replaced "
+                "by the assigned items.",
+    }
 
     def __init__(self, name: str = ""):
         super().__init__()
@@ -818,6 +987,11 @@ class SetGraphTable(SetSource):
     value_type = "table"
     ref_kind = "table"
     scope_id = "graph"
+
+    FIELD_HELP = {
+        "name": "Name of the table variable to write (graph or global, "
+                "depending on the source); created if missing.",
+    }
 
     def __init__(self, name: str = ""):
         super().__init__()

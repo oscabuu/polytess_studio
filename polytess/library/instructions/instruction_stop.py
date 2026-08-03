@@ -13,5 +13,7 @@ from polytess.core.metadata import meta
       description="Stops the current action list", keywords=("cancel", "abort", "exit"))
 class Stop(Instruction):
 
+    FIELD_HELP = {}
+
     async def run(self, ctx):
         self.stop_list()

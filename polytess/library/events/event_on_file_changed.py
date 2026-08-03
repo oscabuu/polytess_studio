@@ -17,6 +17,15 @@ from polytess.core.metadata import meta
 class OnFileChanged(Event):
     persistent = True
 
+    FIELD_HELP = {
+        "path": "File to watch; relative paths resolve against the "
+                "working directory. Fires whenever the modification time "
+                "changes (also on create/delete); the path becomes the "
+                "Loop Target of the triggered flow.",
+        "poll_interval": "Seconds between modification-time checks "
+                         "(default 1.0, minimum 0.1).",
+    }
+
     def __init__(self, path: str = "", poll_interval: float = 1.0):
         super().__init__()
         self.path = path

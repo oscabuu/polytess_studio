@@ -24,6 +24,16 @@ SENDMAIL = "/usr/sbin/sendmail"
       keywords=("mail", "notify", "sendmail", "report"))
 class SendEmail(Instruction):
 
+    FIELD_HELP = {
+        "to": "Recipient address; empty = the node is skipped with a "
+              "warning.",
+        "subject": "Subject line of the email.",
+        "body": "Plain-text message body.",
+        "strict": "When enabled, a missing sendmail binary or a send "
+                  "failure raises an error; otherwise only a warning "
+                  "is logged (default).",
+    }
+
     def __init__(self, to: str = "", subject: str = "", body: str = ""):
         super().__init__()
         self.to = PropertyGetString(to)

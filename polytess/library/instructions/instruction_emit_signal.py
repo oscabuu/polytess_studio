@@ -16,6 +16,14 @@ from polytess.core.signals import signals
       keywords=("event", "broadcast", "dispatch"))
 class EmitSignal(Instruction):
 
+    FIELD_HELP = {
+        "signal": "Name of the signal to broadcast; every 'On Signal' "
+                  "trigger listening to this name reacts to it.",
+        "payload": "Optional value sent along with the signal — a literal "
+                   "or any variable source; receivers can read it as the "
+                   "signal's data.",
+    }
+
     def __init__(self, signal: str = "", payload=None):
         super().__init__()
         self.signal = PropertyGetString(signal)

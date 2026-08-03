@@ -17,6 +17,14 @@ from polytess.core.properties import (
       description="Reads a text file into a variable")
 class ReadTextFile(Instruction):
 
+    FIELD_HELP = {
+        "path": "Text file to read (UTF-8); relative paths resolve "
+                "against the working directory. Fails if the file does "
+                "not exist.",
+        "target": "Graph or global string variable that receives the "
+                  "complete file content.",
+    }
+
     def __init__(self, path: str = "", target=None):
         super().__init__()
         self.path = PropertyGetPath(path)

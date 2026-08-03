@@ -21,6 +21,17 @@ from polytess.core.properties import (
 class NumberOperation(Instruction):
     FIELD_CHOICES = {"operation": ["+", "-", "*", "/", "%", "**", "min", "max"]}
 
+    FIELD_HELP = {
+        "target": "Graph or global variable that receives the computed "
+                  "result (target = a op b).",
+        "a": "First operand (left-hand side) of the operation.",
+        "operation": "How a and b are combined: + add, - subtract, "
+                     "* multiply, / divide, % modulo, ** power, min/max "
+                     "pick the smaller/larger value. Division and modulo "
+                     "by zero yield 0 instead of failing.",
+        "b": "Second operand (right-hand side) of the operation.",
+    }
+
     def __init__(self, target=None, a: float = 0.0, operation: str = "+", b: float = 0.0):
         super().__init__()
         self.target = target if target is not None else PropertySetNumber()

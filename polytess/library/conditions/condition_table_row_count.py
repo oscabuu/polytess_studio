@@ -25,6 +25,18 @@ _OPS = {
       color="pink", description="Compares the number of rows in a table variable")
 class TableRowCount(Condition):
     FIELD_CHOICES = {"comparison": list(_OPS)}
+
+    FIELD_HELP = {
+        "table": "Table variable whose row count is tested; a missing "
+                 "table counts as 0 rows.",
+        "comparison": "Operator applied as rows <op> value: \"=\" equal, "
+                      "\"!=\" not equal, \"<\" less, \"<=\" less or "
+                      "equal, \">\" greater, \">=\" greater or equal.",
+        "count": "Number the row count is compared against (default 0).",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     LEGACY_ALIASES = {"table_name": "table"}
 
     def __init__(self, table_name: str = "", comparison: str = "=", count: float = 0.0):

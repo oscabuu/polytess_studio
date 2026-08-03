@@ -15,6 +15,11 @@ from polytess.core.properties import GetGraphVariable, PropertyGetAny
 class LogVariable(Instruction):
     LEGACY_ALIASES = {"name": "value"}
 
+    FIELD_HELP = {
+        "value": "Graph or global variable to inspect; its name and current "
+                 "value are written to the log at info level.",
+    }
+
     def __init__(self, name: str = ""):
         super().__init__()
         self.value = PropertyGetAny(GetGraphVariable(name))

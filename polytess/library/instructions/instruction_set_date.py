@@ -27,6 +27,25 @@ from polytess.core.properties import (PropertyGetDate, PropertyGetNumber,
 class SetDate(Instruction):
     FIELD_CHOICES = {"mode": ["now", "now + offset", "specific"]}
 
+    FIELD_HELP = {
+        "target": "Graph or global variable that receives the formatted "
+                  "date/time string.",
+        "mode": "What to store: 'now' = the current time, 'now + "
+                "offset' = current time shifted by the day/hour/minute/"
+                "second fields, 'specific' = the date given below.",
+        "days": "Day offset added to the current time (mode 'now + "
+                "offset'); negative values go into the past.",
+        "hours": "Hour offset added to the current time (mode 'now + "
+                 "offset'); negative values go into the past.",
+        "minutes": "Minute offset added to the current time (mode 'now "
+                   "+ offset'); negative values go into the past.",
+        "seconds": "Second offset added to the current time (mode 'now "
+                   "+ offset'); negative values go into the past.",
+        "specific": "The date to store (mode 'specific'); accepts "
+                    "'YYYY-MM-DD HH:MM:SS', ISO-8601 or DD.MM.YYYY. "
+                    "Invalid dates fail the node.",
+    }
+
     def __init__(self, name: str = "", mode: str = "now"):
         super().__init__()
         self.target = PropertySetAny(SetGraphVariable(name))

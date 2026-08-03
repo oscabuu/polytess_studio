@@ -19,6 +19,20 @@ from polytess.core.properties import PropertyGetList, PropertySetString
 class FormatValueList(Instruction):
     LEGACY_ALIASES = {"list_name": "list"}
 
+    FIELD_HELP = {
+        "list": "List variable whose elements are joined into the text "
+                "block; the step fails if the list does not exist. Whole "
+                "floats are printed without decimals.",
+        "items_per_line": "How many list elements are placed on each output "
+                          "line (default 8, minimum 1) — e.g. 8 values per "
+                          "line for Abaqus node lists.",
+        "separator": "Text inserted between the elements of a line "
+                     "(default ', ').",
+        "target": "String variable that receives the formatted text block; "
+                  "the result is written into the chosen graph/global "
+                  "variable.",
+    }
+
     def __init__(self, list_name: str | list = "", items_per_line: int = 8,
                  separator: str = ", "):
         super().__init__()

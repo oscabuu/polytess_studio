@@ -22,6 +22,18 @@ from polytess.core.metadata import meta
 class OnFileAppeared(Event):
     persistent = True
 
+    FIELD_HELP = {
+        "pattern": "Glob pattern to watch (e.g. results/*.csv); relative "
+                   "patterns resolve against the working directory. Fires "
+                   "once per newly appearing file; the file path becomes "
+                   "the Loop Target of the triggered flow.",
+        "poll_interval": "Seconds between directory scans (default 2.0, "
+                         "minimum 0.1).",
+        "ignore_existing": "If enabled (default), files already matching "
+                           "at start are skipped; if disabled, they fire "
+                           "on the first scan too.",
+    }
+
     def __init__(self, pattern: str = "*", poll_interval: float = 2.0,
                  ignore_existing: bool = True):
         super().__init__()

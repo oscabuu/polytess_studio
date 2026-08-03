@@ -23,6 +23,18 @@ _NUM_OPS = {
       description="Compares the number of elements in a list")
 class ListCountCompare(Condition):
     FIELD_CHOICES = {"comparison": list(_NUM_OPS)}
+
+    FIELD_HELP = {
+        "list": "List variable whose element count is tested; a missing "
+                "list counts as 0 elements.",
+        "comparison": "Operator applied as count <op> value: \"=\" equal, "
+                      "\"!=\" not equal, \"<\" less, \"<=\" less or "
+                      "equal, \">\" greater, \">=\" greater or equal.",
+        "count": "Number the list length is compared against (default 0).",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     LEGACY_ALIASES = {"list_name": "list"}
 
     def __init__(self, list_name: str | list = "", comparison: str = ">",

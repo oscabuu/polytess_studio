@@ -19,6 +19,20 @@ from polytess.core.properties import (PropertyGetBool, PropertyGetList,
                   "fan-in after submitting a batch of jobs",
       keywords=("poll", "barrier", "all", "jobs", "batch"))
 class WaitForFiles(Instruction):
+
+    FIELD_HELP = {
+        "list": "List variable holding the paths to wait for; relative "
+                "paths resolve against the working directory. The node "
+                "finishes once every listed file exists.",
+        "poll_interval_s": "Seconds between existence checks (minimum "
+                           "0.05 s, default 60 s).",
+        "timeout_hours": "Maximum waiting time in hours (default 24); "
+                         "0 waits forever without a deadline.",
+        "fail_on_timeout": "If enabled (default), the node raises an error "
+                           "when the timeout expires; if disabled, only a "
+                           "warning is logged and the flow continues.",
+    }
+
     LEGACY_ALIASES = {"list_name": "list"}
 
     def __init__(self, list_name: str | list = "", poll_interval_s: float = 60.0,

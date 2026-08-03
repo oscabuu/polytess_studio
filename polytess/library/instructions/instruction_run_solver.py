@@ -27,6 +27,22 @@ class RunSolver(Instruction):
 
     FIELD_CHOICES = {"solver": ["fem", "mks"]}
 
+    FIELD_HELP = {
+        "solver": "Which solver profile from Settings -> Solvers to "
+                  "run: 'fem' (e.g. Abaqus) or 'mks' (e.g. Simpack).",
+        "arguments": "Appended to the solver command line (after the "
+                     "configured or overridden base command).",
+        "command_override": "Replaces the command configured in "
+                            "Settings; empty = use the solver profile "
+                            "from Settings.",
+        "timeout_hours": "Maximum runtime in hours; 0 = no timeout.",
+        "exit_code_to": "Optional variable that receives the solver "
+                        "exit code as a number.",
+        "output_to": "Optional variable that receives the captured "
+                     "solver output text. A non-zero exit code fails "
+                     "the node.",
+    }
+
     def __init__(self, solver: str = "fem", arguments: str = ""):
         super().__init__()
         self.solver = solver

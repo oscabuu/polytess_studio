@@ -18,6 +18,16 @@ from polytess.core.properties import PropertyGetPath, PropertyGetTable
       keywords=("csv", "export", "save"))
 class WriteTableToCsv(Instruction):
     FIELD_CHOICES = {"separator": [";", ",", "tab"]}
+
+    FIELD_HELP = {
+        "table": "Table variable to export; the node fails if the table "
+                 "does not exist.",
+        "path": "Destination CSV file; relative paths resolve against the "
+                "working directory.",
+        "separator": "Column delimiter written between cells: \";\" "
+                     "(default), \",\", or \"tab\" for a tab character.",
+    }
+
     LEGACY_ALIASES = {"table_name": "table"}
 
     def __init__(self, table_name: str = "", path: str = "", separator: str = ";"):

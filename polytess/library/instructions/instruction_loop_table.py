@@ -20,6 +20,21 @@ from polytess.core.properties import PropertyGetTable
 class LoopTable(Instruction):
     LEGACY_ALIASES = {"table_name": "table"}
 
+    FIELD_HELP = {
+        "table": "Table variable to iterate; the nested actions run once "
+                 "per row. A missing table only logs a warning and skips "
+                 "the loop.",
+        "expose_columns": "If enabled (default), every column value of the "
+                          "current row is written into a graph variable of "
+                          "the same name, usable as {column} in templates.",
+        "row_index_to": "Name of the graph variable that receives the "
+                        "current row index (0-based, default 'row_index'); "
+                        "empty = no index variable is written. Only used "
+                        "when 'expose columns' is enabled.",
+        "actions": "Instructions executed for each row; inside them the row "
+                   "dict is available as 'Loop Target' / {target}.",
+    }
+
     def __init__(self, table_name: str = ""):
         super().__init__()
         self.table = PropertyGetTable(table_name)

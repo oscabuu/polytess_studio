@@ -203,6 +203,7 @@ class ItemRow(QWidget):
                                        self.item.breakpoint, "Toggle Breakpoint")
 
     def _show_help(self) -> None:
+        from polytess.core.metadata import get_field_help, humanize
         m = get_meta(type(self.item))
         text = f"<b>{m.title}</b>"
         if m.category:
@@ -211,6 +212,11 @@ class ItemRow(QWidget):
             text += f"<br><br>{m.description}"
         for pname, pdesc in m.parameters:
             text += f"<br>• <b>{pname}</b>: {pdesc}"
+        listed = {pname.lower() for pname, _ in m.parameters}
+        for attr, help_text in get_field_help(type(self.item)).items():
+            pname = humanize(attr).title()
+            if pname.lower() not in listed:
+                text += f"<br>• <b>{pname}</b>: {help_text}"
         QMessageBox.information(self, "Help", text)
 
     # ---- painting ---------------------------------------------------------------------- #

@@ -19,6 +19,18 @@ from polytess.core.properties import PropertyGetBool, PropertyGetPath, PropertyG
       keywords=("grep", "log", "error", "search"))
 class FileContainsText(Condition):
 
+    FIELD_HELP = {
+        "path": "Text file to search; relative paths resolve against the "
+                "working directory. A missing file makes the condition "
+                "false.",
+        "text": "Text to look for anywhere in the file; the condition is "
+                "true when it is found.",
+        "ignore_case": "If enabled (default), the search ignores upper/"
+                       "lower case; if disabled, the match is exact.",
+        "sign": "Polarity of the check: enabled means \"If\" (result used "
+                "as is), disabled means \"Not\" (result inverted).",
+    }
+
     def __init__(self, path: str = "", text: str = ""):
         super().__init__()
         self.path = PropertyGetPath(path)
