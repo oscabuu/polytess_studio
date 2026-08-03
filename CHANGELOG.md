@@ -4,6 +4,16 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.7.0 — 2026-08-03
+- Both assistants now receive the complete shape of every building
+  block: per class the title, category and description, plus every
+  field with its kind, choices and the new tooltip help text — the
+  code assistant also generates FIELD_HELP for new custom blocks.
+- The Flow Assistant follows a growing best-practices file
+  (`~/.polytess/flow_best_practices.md`, seeded on first use): the
+  user can edit it, and the assistant appends reusable lessons it
+  proposes in a ```bestpractice block automatically.
+
 ## 1.6.0 — 2026-08-03
 - Every parameter of every built-in Instruction, Condition, Event and
   property source now has a tooltip in the inspector explaining what

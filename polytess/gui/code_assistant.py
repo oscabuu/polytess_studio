@@ -67,6 +67,9 @@ the editor hot-reloads the class and it appears in the Add menus instantly.
   * plain bool/int/float/str                            -> checkbox/spin/line.
   * FIELD_CHOICES = {"mode": ["a", "b"]}                -> dropdown for a
     plain str field.
+- FIELD_HELP = {"field": "what it provides and how it is used"} (class
+  attribute) -> inspector tooltip per field; ALWAYS add an entry for
+  every public field of a new block.
   * InstructionList() / ConditionList()                 -> nested reorderable
     action/condition lists (like Loop List's body).
 - Context (ctx) API: ctx.info/warning/error/debug(msg) write to the log;
@@ -104,6 +107,10 @@ from polytess.core.properties import PropertyGetString
 @meta(title="My Step", category="Custom/My Step", icon="terminal", color="teal",
       description="What this instruction does", keywords=("custom",))
 class MyStep(Instruction):
+
+    FIELD_HELP = {
+        "text": "Text that is written to the log when the step runs.",
+    }
 
     def __init__(self):
         super().__init__()
@@ -161,33 +168,69 @@ class MyTrigger(Event):
 
 
 def build_registry_summary() -> str:
-    """One line per registered type so the assistant knows what exists."""
+    """Full shape of every registered type — title, category, description,
+    every field with its kind, tooltip help and choices — so the assistant
+    knows exactly what exists and how each block is parameterized."""
     from polytess.core.conditions import Condition
     from polytess.core.events import Event
     from polytess.core.instructions import Instruction
-    from polytess.core.metadata import get_meta, iter_subclasses
+    from polytess.core.metadata import (get_field_help, get_meta,
+                                        iter_subclasses)
     from polytess.core.properties import PropertySource, SetSource
     from polytess.core.values import value_types
+    from polytess.graph.flow_builder import _field_kind
 
-    def lines(base) -> list[str]:
+    def block_lines(base) -> list[str]:
         out = []
-        for cls in sorted(iter_subclasses(base), key=lambda c: get_meta(c).category):
+        for cls in sorted(iter_subclasses(base),
+                          key=lambda c: get_meta(c).category):
             m = get_meta(cls)
-            description = (m.description or "").split(". ")[0][:120]
-            out.append(f"- {m.title} ({cls.__name__}, {m.category}): {description}")
+            description = (m.description or "").strip()
+            out.append(f"- {cls.__name__} [{m.title}] ({m.category})"
+                       f"{': ' + description if description else ''}")
+            try:
+                instance = cls()
+            except Exception:
+                continue
+            helps = get_field_help(cls)
+            choices = getattr(cls, "FIELD_CHOICES", {}) or {}
+            for attr, value in vars(instance).items():
+                if attr.startswith("_"):
+                    continue
+                line = f"    {attr}: {_field_kind(value)}"
+                if attr in choices:
+                    line += f" ({'|'.join(choices[attr])})"
+                help_text = helps.get(attr, "").strip()
+                if help_text:
+                    line += f" — {help_text}"
+                out.append(line)
         return out
 
-    parts = ["## Existing building blocks (already registered — do not duplicate)"]
+    def source_lines(base) -> list[str]:
+        out = []
+        for cls in sorted(iter_subclasses(base),
+                          key=lambda c: get_meta(c).category):
+            m = get_meta(cls)
+            description = (m.description or "").split(". ")[0][:120]
+            out.append(f"- {cls.__name__} [{m.title}] "
+                       f"(value_type={cls.value_type}): {description}")
+        return out
+
+    parts = ["## Existing building blocks (already registered — do not "
+             "duplicate). Format: Class [Title] (Category): description, "
+             "then one line per field: name: kind (choices) — help"]
     parts.append("### Instructions")
-    parts += lines(Instruction)
+    parts += block_lines(Instruction)
     parts.append("### Conditions")
-    parts += lines(Condition)
+    parts += block_lines(Condition)
     parts.append("### Events")
-    parts += lines(Event)
-    parts.append("### Property get-sources")
-    parts += lines(PropertySource)
-    parts.append("### Property set-sources")
-    parts += lines(SetSource)
+    parts += block_lines(Event)
+    parts.append("### Property get-sources (exchangeable value providers "
+                 "for PropertyGet* fields)")
+    parts += source_lines(PropertySource)
+    parts.append("### Property set-sources (write targets for "
+                 "PropertySet* fields)")
+    parts += source_lines(SetSource)
     parts.append("### Value types: " + ", ".join(sorted(value_types())))
     return "\n".join(parts)
 

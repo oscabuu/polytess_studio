@@ -114,28 +114,34 @@ def _field_kind(value) -> str:
 def build_flow_registry_summary() -> str:
     """Every registered block with its fields — the flow agent's knowledge
     of what exists and how to parameterize it."""
+    from polytess.core.metadata import get_field_help
     sections = (("Instructions", Instruction), ("Conditions", Condition),
                 ("Events (for trigger nodes)", Event))
-    parts = ["## Available building blocks (registry) — type, fields, purpose"]
+    parts = ["## Available building blocks (registry) — class, purpose, "
+             "then one line per field: name: kind (choices) — meaning"]
     for label, base in sections:
         parts.append(f"### {label}")
         for cls in sorted(iter_subclasses(base),
                           key=lambda c: get_meta(c).category):
             m = get_meta(cls)
+            description = (m.description or "").split(". ")[0][:100]
+            parts.append(f"- {cls.__name__} [{m.title}] — {description}")
             try:
                 instance = cls()
-                fields = ", ".join(
-                    f"{k}:{_field_kind(v)}"
-                    for k, v in vars(instance).items()
-                    if not k.startswith("_"))
             except Exception:
-                fields = "?"
-            choices = getattr(cls, "FIELD_CHOICES", None)
-            choice_note = (" choices: " + "; ".join(
-                f"{k}={'|'.join(v)}" for k, v in choices.items())) if choices else ""
-            description = (m.description or "").split(". ")[0][:100]
-            parts.append(f"- {cls.__name__} [{m.title}] ({fields}){choice_note}"
-                         f" — {description}")
+                continue
+            helps = get_field_help(cls)
+            choices = getattr(cls, "FIELD_CHOICES", {}) or {}
+            for attr, value in vars(instance).items():
+                if attr.startswith("_"):
+                    continue
+                line = f"    {attr}: {_field_kind(value)}"
+                if attr in choices:
+                    line += f" ({'|'.join(choices[attr])})"
+                help_text = helps.get(attr, "").strip()
+                if help_text:
+                    line += f" — {help_text}"
+                parts.append(line)
     return "\n".join(parts)
 
 

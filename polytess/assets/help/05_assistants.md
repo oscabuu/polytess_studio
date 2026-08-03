@@ -34,6 +34,16 @@ file. The pencil button inserts it at the cursor; the apply button
 replaces the whole editor content with it (Ctrl+Z undoes). Saving
 hot-reloads the class into the menus instantly.
 
+## What the assistants know
+
+Both assistants receive the full shape of every installed building
+block — title, category, description, and every parameter with its
+type, tooltip text and choices. The flow assistant additionally reads
+`~/.polytess/flow_best_practices.md`, a growing best-practices file:
+edit it yourself, or let the assistant extend it — when a conversation
+teaches a reusable lesson it appends the lesson automatically (watch
+the status bar).
+
 ## Attachments
 
 The **+** button next to either input attaches text files (input decks,

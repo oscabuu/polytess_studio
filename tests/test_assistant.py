@@ -158,6 +158,44 @@ def test_flow_assistant_enter_sends_shift_enter_newline():
     assert sent == [True]
 
 
+def test_registry_summary_includes_field_shapes():
+    """The code assistant's registry carries the full block shape:
+    fields with kinds, choices and FIELD_HELP tooltips."""
+    summary = build_registry_summary()
+    assert "CreateFolder [Create Folder]" in summary
+    assert "path: path — Directory to create" in summary
+    assert "Property get-sources" in summary
+    # flow registry too
+    from polytess.graph.flow_builder import build_flow_registry_summary
+    flow_summary = build_flow_registry_summary()
+    assert "path: path — Directory to create" in flow_summary
+
+
+def test_best_practices_file_seed_load_append(tmp_path, monkeypatch):
+    import polytess.core.userdir as userdir
+    monkeypatch.setattr(userdir, "user_dir", lambda: str(tmp_path))
+    from polytess.gui.flow_assistant import (append_best_practice,
+                                             best_practices_path,
+                                             build_flow_system_prompt,
+                                             extract_bestpractice_block,
+                                             load_best_practices)
+
+    path = best_practices_path()          # seeds from the shipped asset
+    assert path == str(tmp_path / "flow_best_practices.md")
+    content = load_best_practices()
+    assert "# Flow best practices" in content
+
+    lesson = extract_bestpractice_block(
+        "Text\n```bestpractice\n- Always gate solver runs.\n```\n")
+    assert lesson == "- Always gate solver runs."
+    assert append_best_practice(lesson)
+    assert "Always gate solver runs." in load_best_practices()
+
+    prompt = build_flow_system_prompt()
+    assert "Best practices (growing" in prompt
+    assert "Always gate solver runs." in prompt
+
+
 def test_flow_assistant_sees_open_flow():
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtWidgets import QApplication

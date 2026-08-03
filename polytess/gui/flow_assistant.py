@@ -15,7 +15,9 @@ real registry and opens the built graph as a new document tab.
 from __future__ import annotations
 
 import json
+import os
 import re
+import shutil
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel,
@@ -99,13 +101,67 @@ mention this.
 - ALWAYS answer in English, even when the user writes in German.
 - Prefer existing blocks over inventing new ones; run console commands
   with RunCommand only when no dedicated block fits.
-- Keep flows lean: one actions node per logical phase, conditions nodes
-  for checks/gates, triggers only for genuinely event-driven starts.
+- Follow the best practices below; they grow over time. When this
+  conversation teaches a genuinely reusable, non-obvious lesson about
+  building flows (not project specifics), you may propose it for the
+  best-practices file by adding ONE ```bestpractice block containing
+  1-3 markdown bullet lines — it is appended automatically.
 '''
 
 
+def best_practices_path() -> str:
+    """``~/.polytess/flow_best_practices.md`` — seeded from the shipped
+    asset on first use; the user (and the assistant) can grow it."""
+    from polytess.core.userdir import user_dir
+    path = os.path.join(user_dir(), "flow_best_practices.md")
+    if not os.path.isfile(path):
+        seed = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "assets", "flow_best_practices.md")
+        try:
+            shutil.copyfile(seed, path)
+        except OSError:
+            return ""
+    return path
+
+
+def load_best_practices() -> str:
+    path = best_practices_path()
+    if not path:
+        return ""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read()
+    except OSError:
+        return ""
+
+
+def append_best_practice(text: str) -> bool:
+    """Append a proposed lesson to the best-practices file."""
+    path = best_practices_path()
+    text = text.strip()
+    if not path or not text:
+        return False
+    try:
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write("\n" + text + "\n")
+        return True
+    except OSError:
+        return False
+
+
+def extract_bestpractice_block(text: str) -> str:
+    blocks = re.findall(r"```bestpractice\s*\n(.*?)```", text, re.DOTALL)
+    return blocks[-1].strip() if blocks else ""
+
+
 def build_flow_system_prompt() -> str:
-    return _FLOW_GUIDE + "\n" + build_flow_registry_summary()
+    parts = [_FLOW_GUIDE]
+    practices = load_best_practices()
+    if practices:
+        parts.append("## Best practices (growing, user-maintained)\n"
+                     + practices)
+    parts.append(build_flow_registry_summary())
+    return "\n".join(parts)
 
 
 def extract_json_block(text: str) -> dict | None:
@@ -351,6 +407,11 @@ class FlowAssistantPanel(QWidget):
     def _evaluate_answer(self, text: str) -> None:
         """Dry-build the proposed flow so the status line tells the truth
         (the agent's own registry check is advisory only)."""
+        lesson = extract_bestpractice_block(text)
+        if lesson and append_best_practice(lesson):
+            self.status_message.emit(
+                "Flow Assistant: best-practices file extended "
+                f"({best_practices_path()}).")
         self._last_flow = extract_json_block(text)
         self._last_prompt = extract_text_block(text)
         if self._last_flow is None:
