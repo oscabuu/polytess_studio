@@ -9,6 +9,14 @@ in a ```bestpractice block it is appended here automatically.
 - One actions node per logical phase (setup, solve, post-process) —
   don't scatter single instructions across many tiny nodes, and don't
   pile the whole process into one node either.
+- Split long flows into sections: one bool graph variable per boundary
+  (section_1_completed, section_2_completed, …, default false), a
+  SetBool as the section's last instruction, and an OnVariableChanged
+  trigger on that bool starting the next section. Each section stays
+  independently testable and restartable.
+- When a step has no fitting building block, say so and hand the gap
+  to the code assistant — never bend an existing block past its
+  purpose or bury the gap in RunCommand chains.
 - Conditions nodes are gates: success/fail ports route the flow. Use
   them after every phase whose outcome later phases depend on.
 - Branch nodes replace chains of conditions nodes when more than two

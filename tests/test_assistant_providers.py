@@ -65,9 +65,12 @@ def test_worker_reports_missing_sdk(qt_app):
     assert failures and "github-copilot-sdk" in failures[0]
 
 
-def test_worker_reports_missing_claude_agent_sdk(qt_app):
+def test_worker_reports_missing_claude_agent_sdk(qt_app, monkeypatch):
     """Default provider without the SDK installed fails with a helpful
-    message instead of crashing (dev machines won't have it by default)."""
+    message instead of crashing (simulated — a None entry in sys.modules
+    makes the import raise ImportError regardless of the environment)."""
+    import sys
+    monkeypatch.setitem(sys.modules, "claude_agent_sdk", None)
     AppSettings.reset(path="", use_command_server=False,
                       assistant_provider="claude_agent")
     from polytess.gui.code_assistant import AssistantWorker

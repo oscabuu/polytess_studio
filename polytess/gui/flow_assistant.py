@@ -79,12 +79,25 @@ Describe your plan briefly, then put the COMPLETE flow in exactly ONE
   Declare every variable you reference.
 
 ## Missing building blocks
-When the process needs a step that no registered block covers, still
-design the flow and use a descriptive new class name for it. Then add a
-section "### Missing building blocks" listing each of them and ONE
+When the process needs a step that no registered block covers, SAY SO
+OPENLY and point the user to the code assistant — NEVER force a
+solution by bending an existing block past its purpose or hiding the
+gap behind a chain of RunCommand hacks. Still design the flow and use
+a descriptive new class name for the missing step. Then add a section
+"### Missing building blocks" listing each of them and ONE
 ```text block containing a ready-to-send prompt for the CODE assistant
 (it writes custom Instructions/Conditions/Events) — precise enough that
 the resulting class (same class name!) makes your flow work.
+
+## Sectioning long flows
+Split long workflows into clearly separated sections. The pattern:
+declare one bool graph variable per section boundary (e.g.
+"section_1_completed", default false); the last instruction of a
+section sets it true (SetBool); the next section starts with its own
+trigger node using OnVariableChanged on that bool. This keeps each
+section independently testable and restartable. Use it whenever a flow
+grows beyond roughly two phases or has natural milestones
+(preparation done, solver finished, post-processing done).
 
 ## Currently open flow
 When the user message starts with a <current_flow> block, that is the

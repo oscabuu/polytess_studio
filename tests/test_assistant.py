@@ -195,6 +195,12 @@ def test_best_practices_file_seed_load_append(tmp_path, monkeypatch):
     assert "Best practices (growing" in prompt
     assert "Always gate solver runs." in prompt
 
+    # standing behavioral rules: admit gaps + section long flows
+    assert "SAY SO" in prompt and "code assistant" in prompt
+    assert "Sectioning long flows" in prompt
+    assert "OnVariableChanged" in prompt
+    assert "section_1_completed" in prompt
+
 
 def test_flow_assistant_sees_open_flow():
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
