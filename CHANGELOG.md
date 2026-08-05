@@ -4,6 +4,11 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.8.1 — 2026-08-05
+- Right-click on a variable-group header now offers **Rename Group…**
+  (moves every member, keeps the collapse state) and **Delete Group**
+  (dissolves the group — all variables move out first and survive).
+
 ## 1.8.0 — 2026-08-05
 - Variables can be organized into **groups** in the Blackboard:
   collapsible group header rows, right-click → Move to Group (existing

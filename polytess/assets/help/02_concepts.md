@@ -33,8 +33,10 @@ The searchable catalog opens with **Ctrl+Space** or *Add Instruction…*.
   (values, lists and tables).
 - Variables can be organized into **groups** (right-click → Move to
   Group, or drag a variable onto a group row; click a group header to
-  collapse it). Groups are pure display metadata — moving a variable
-  never touches references. **Renaming** a variable rewrites all its
+  collapse it; right-click a group header to rename or delete the
+  group — deleting only dissolves it, the variables move out first).
+  Groups are pure display metadata — moving a variable never touches
+  references. **Renaming** a variable rewrites all its
   references in the current flow (sources, name fields and `{name}`
   templates), so renames don't break nodes either.
 - Every field of a block is a **property slot**: click the ▼ to switch

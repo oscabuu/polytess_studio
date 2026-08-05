@@ -257,6 +257,17 @@ class _VariablesTable(QWidget):
 
     def _context_menu(self, pos) -> None:
         row = self.table.rowAt(pos.y())
+        header_item = self.table.item(row, 0) if row >= 0 else None
+        group = header_item.data(self._GROUP_ROLE) \
+            if header_item is not None else None
+        if group is not None:
+            menu = QMenu(self)
+            menu.addAction(icon("edit", "text-light"), "Rename Group…",
+                           lambda: self._rename_group(group))
+            menu.addAction(icon("trash", "text-light"), "Delete Group",
+                           lambda: self._delete_group(group))
+            menu.exec(self.table.viewport().mapToGlobal(pos))
+            return
         name = self._row_name(row) if row >= 0 else None
         if not name:
             return
@@ -328,6 +339,38 @@ class _VariablesTable(QWidget):
         group, ok = QInputDialog.getText(self, "New Group", "Group name:")
         if ok and group.strip():
             self._set_group(name, group.strip())
+
+    def _members_of(self, group: str) -> list:
+        if self.variables is None:
+            return []
+        return [v for v in self.variables
+                if getattr(v, "group", "") == group]
+
+    def _rename_group(self, group: str) -> None:
+        from PySide6.QtWidgets import QInputDialog
+        new_name, ok = QInputDialog.getText(self, "Rename Group",
+                                            "Group name:", text=group)
+        new_name = new_name.strip()
+        if ok and new_name and new_name != group:
+            self._apply_group_rename(group, new_name)
+
+    def _apply_group_rename(self, group: str, new_name: str) -> None:
+        for var in self._members_of(group):
+            var.group = new_name
+        if group in self._collapsed:
+            self._collapsed.discard(group)
+            self._collapsed.add(new_name)
+        self.refresh()
+        self.changed.emit()
+
+    def _delete_group(self, group: str) -> None:
+        """Dissolve the group: every member moves out (variables are
+        never deleted with the group)."""
+        for var in self._members_of(group):
+            var.group = ""
+        self._collapsed.discard(group)
+        self.refresh()
+        self.changed.emit()
 
     def _on_cell_clicked(self, row: int, _column: int) -> None:
         item = self.table.item(row, 0)

@@ -349,6 +349,23 @@ def test_blackboard_variable_groups(app):
     assert not find_references(graph, "deck")
     assert find_references(graph, "deck_id")
 
+    # group rename moves every member (and keeps the collapse state key)
+    table_widget._set_group("deck_id", "Inputs")
+    table_widget._set_group("speed", "Inputs")
+    table_widget._collapsed.add("Inputs")
+    table_widget._apply_group_rename("Inputs", "Model Inputs")
+    assert graph.variables.variable("deck_id").group == "Model Inputs"
+    assert graph.variables.variable("speed").group == "Model Inputs"
+    assert "Model Inputs" in table_widget._collapsed
+
+    # delete dissolves the group: members move out, variables survive
+    table_widget._delete_group("Model Inputs")
+    assert graph.variables.variable("deck_id").group == ""
+    assert graph.variables.variable("speed").group == ""
+    assert graph.variables.exists("deck_id") and graph.variables.exists("speed")
+    assert "Model Inputs" not in table_widget._collapsed
+    assert not table_widget._group_names()
+
 
 def test_blackboard_search_sort_filter(app):
     from polytess.gui.blackboard import BlackboardPanel
