@@ -208,7 +208,14 @@ def transcript_to_html(transcript: list[tuple[str, str]]) -> str:
 
 
 class ChatView(QTextBrowser):
-    """Read-only conversation display with bubble styling."""
+    """Read-only conversation display with bubble styling.
+
+    While an answer streams in, the view follows the end of the text;
+    scrolling up detaches it (so earlier parts can be read), scrolling
+    back to the bottom re-attaches it. The sticky state is tracked
+    explicitly because ``setHtml`` resets the scrollbar to 0 and lays
+    out asynchronously — reading the scrollbar position on the next
+    render would permanently "lose" the bottom."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -217,10 +224,32 @@ class ChatView(QTextBrowser):
             f"QTextBrowser {{ background: {COLORS['bg-darkest']};"
             f" border: 1px solid {COLORS['border-element']};"
             f" padding: 4px; }}")
+        self._stick_to_bottom = True
+        self._updating = False
+        bar = self.verticalScrollBar()
+        bar.valueChanged.connect(self._on_scrolled)
+        bar.rangeChanged.connect(self._on_range_changed)
+
+    def _on_scrolled(self, value: int) -> None:
+        if not self._updating:
+            bar = self.verticalScrollBar()
+            self._stick_to_bottom = value >= bar.maximum() - 40
+
+    def _on_range_changed(self, _minimum: int, _maximum: int) -> None:
+        # Late document layout grows the range after setHtml — re-pin.
+        if self._stick_to_bottom:
+            was_updating = self._updating   # may fire nested inside setHtml
+            self._updating = True
+            bar = self.verticalScrollBar()
+            bar.setValue(bar.maximum())
+            self._updating = was_updating
 
     def set_transcript(self, transcript: list[tuple[str, str]]) -> None:
-        scrollbar = self.verticalScrollBar()
-        stick_to_bottom = scrollbar.value() >= scrollbar.maximum() - 40
-        self.setHtml(transcript_to_html(transcript))
-        if stick_to_bottom:
-            scrollbar.setValue(scrollbar.maximum())
+        self._updating = True
+        try:
+            self.setHtml(transcript_to_html(transcript))
+            if self._stick_to_bottom:
+                bar = self.verticalScrollBar()
+                bar.setValue(bar.maximum())
+        finally:
+            self._updating = False

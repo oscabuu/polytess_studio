@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.7.4 — 2026-08-05
+- Assistant chat views now follow the end of the text while an answer
+  streams in (previously the view drifted to the top on re-renders).
+  Scrolling up detaches the view so earlier parts can be read;
+  scrolling back to the bottom re-attaches it.
+
 ## 1.7.3 — 2026-08-05
 - Custom-block contract: `title` properties must never call
   `.get(ctx)`/`.get(None)` on fields — titles render without an active

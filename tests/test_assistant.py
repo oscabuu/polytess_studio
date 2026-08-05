@@ -116,6 +116,45 @@ def test_chat_panel_streaming_flow(tmp_path):
     assert panel.send_button.isEnabled()
 
 
+def test_chat_view_follows_streaming_text():
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+    from polytess.gui.chat_view import ChatView
+
+    view = ChatView()
+    view.resize(400, 220)
+    view.show()
+    app.processEvents()
+    bar = view.verticalScrollBar()
+
+    # streaming renders keep the view pinned to the end of the text
+    for n in range(20, 121, 20):
+        view.set_transcript([
+            ("user", "q"),
+            ("assistant", "\n".join(f"line {i}" for i in range(n)))])
+        app.processEvents()
+    assert bar.value() >= bar.maximum() - 40
+
+    # scrolling up detaches: the next render leaves the position alone
+    bar.setValue(0)
+    app.processEvents()
+    view.set_transcript([("user", "q"),
+                         ("assistant", "\n".join(f"line {i}"
+                                                 for i in range(130)))])
+    app.processEvents()
+    assert bar.value() < bar.maximum() - 40
+
+    # scrolling back to the bottom re-attaches
+    bar.setValue(bar.maximum())
+    app.processEvents()
+    view.set_transcript([("user", "q"),
+                         ("assistant", "\n".join(f"line {i}"
+                                                 for i in range(140)))])
+    app.processEvents()
+    assert bar.value() >= bar.maximum() - 40
+
+
 def _enter_event(shift: bool = False):
     from PySide6.QtCore import QEvent, Qt
     from PySide6.QtGui import QKeyEvent
