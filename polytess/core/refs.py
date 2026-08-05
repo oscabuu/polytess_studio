@@ -198,3 +198,118 @@ def find_references(graph, name: str, scope: str = "any") -> list[Reference]:
     for node in graph.nodes:
         walker.scan_node(node)
     return walker.refs
+
+
+class _RenameWalker:
+    """Same traversal as _Walker, but rewrites references in place."""
+
+    def __init__(self, old: str, new: str, scope: str):
+        self.old = old
+        self.new = new
+        self.scope = scope
+        self.count = 0
+        # template token pairs mirror _Walker._tokens
+        self._token_pairs = [
+            ("{" + old + "}", "{" + new + "}"),
+            ("{" + old + ":", "{" + new + ":"),
+            ("#" + old + "#", "#" + new + "#"),
+            ("{{" + old + "}}", "{{" + new + "}}"),
+        ]
+
+    def _scope_matches(self, ref_scope: str) -> bool:
+        return self.scope == "any" or ref_scope in ("?", self.scope)
+
+    def _rewrite_template(self, text: str):
+        """(new_text, changed) with every placeholder token renamed."""
+        changed = False
+        for old_token, new_token in self._token_pairs:
+            if old_token in text:
+                text = text.replace(old_token, new_token)
+                changed = True
+        return text, changed
+
+    def rewrite_object(self, obj, seen: set) -> None:
+        if obj is None or id(obj) in seen:
+            return
+        seen.add(id(obj))
+
+        if isinstance(obj, (PropertyGet, PropertySet)):
+            source = obj.source
+            if source is None:
+                return
+            for attr in _NAME_ATTRS:
+                if getattr(source, attr, None) == self.old \
+                        and self._scope_matches(_source_scope(source)):
+                    setattr(source, attr, self.new)
+                    self.count += 1
+            for attr, value in list(vars(source).items()):
+                if attr.startswith("_"):
+                    continue
+                if isinstance(value, str) and attr not in _NAME_ATTRS:
+                    new_text, changed = self._rewrite_template(value)
+                    if changed:
+                        setattr(source, attr, new_text)
+                        self.count += 1
+                elif isinstance(value, (PropertyGet, PropertySet)):
+                    self.rewrite_object(value, seen)
+            return
+
+        if isinstance(obj, InstructionList):
+            for child in obj.instructions:
+                self.rewrite_object(child, seen)
+            return
+        if isinstance(obj, ConditionList):
+            for child in obj.conditions:
+                self.rewrite_object(child, seen)
+            return
+        if isinstance(obj, BranchList):
+            for child in obj.branches:
+                self.rewrite_object(child, seen)
+            return
+
+        if isinstance(obj, PolymorphicItem) or hasattr(obj, "__dict__"):
+            item_scope = getattr(obj, "scope", None)
+            ref_scope = item_scope if item_scope in ("graph", "global") else "?"
+            for attr, value in list(vars(obj).items()):
+                if attr.startswith("_"):
+                    continue
+                if isinstance(value, str) and value == self.old \
+                        and attr in _NAME_ATTRS:
+                    if self._scope_matches(ref_scope):
+                        setattr(obj, attr, self.new)
+                        self.count += 1
+                elif isinstance(value, str):
+                    new_text, changed = self._rewrite_template(value)
+                    if changed:
+                        setattr(obj, attr, new_text)
+                        self.count += 1
+                elif isinstance(value, (PropertyGet, PropertySet,
+                                        InstructionList, ConditionList,
+                                        BranchList, Branch, PolymorphicItem)):
+                    self.rewrite_object(value, seen)
+
+    def rewrite_node(self, node) -> None:
+        seen: set = set()
+        for attr, value in list(vars(node).items()):
+            if attr.startswith("_") or attr in ("guid", "custom_name"):
+                continue
+            if isinstance(value, (InstructionList, ConditionList, BranchList,
+                                  PolymorphicItem)):
+                self.rewrite_object(value, seen)
+            elif isinstance(value, str):
+                new_text, changed = self._rewrite_template(value)
+                if changed:
+                    setattr(node, attr, new_text)
+                    self.count += 1
+
+
+def rename_references(graph, old: str, new: str, scope: str = "any") -> int:
+    """Rewrite every reference to variable/list/table *old* in *graph* to
+    *new* — name attributes of property sources and instructions plus
+    ``{old}``-style template placeholders. Returns the number of rewritten
+    references. Renaming a variable together with this keeps all nodes
+    working (references go by name; see NameVariables.rename)."""
+    walker = _RenameWalker(old, new, scope)
+    for node in graph.nodes:
+        walker.rewrite_node(node)
+    return walker.count

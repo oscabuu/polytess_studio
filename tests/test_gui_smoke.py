@@ -289,6 +289,67 @@ def test_table_summary_edit_roundtrip(app):
     assert widget.summary.text()           # compact one-line summary
 
 
+def test_blackboard_variable_groups(app):
+    """Variables can be grouped (collapsible header rows); moving a
+    variable between groups is metadata-only, and renames rewrite the
+    references in the current graph."""
+    from PySide6.QtCore import Qt
+    from polytess.core.refs import find_references
+    from polytess.graph.flow_builder import build_flow
+    from polytess.gui.blackboard import BlackboardPanel
+
+    graph = build_flow({
+        "name": "groups",
+        "variables": [{"name": "deck", "type": "string", "value": "MR_001"},
+                      {"name": "speed", "type": "number", "value": 1}],
+        "nodes": [{"id": "a", "kind": "actions", "instructions": [
+            {"type": "LogMessage",
+             "params": {"message": {"template": "Deck {deck}"}}}]}],
+        "edges": [{"from": "start", "to": "a"}],
+    }).graph
+    panel = BlackboardPanel()
+    panel.set_graph(graph)
+    table_widget = panel.graph_vars
+
+    # move 'deck' into a group -> a bold header row appears
+    table_widget._set_group("deck", "Inputs")
+    assert graph.variables.variable("deck").group == "Inputs"
+    headers = [table_widget.table.item(r, 0).text()
+               for r in range(table_widget.table.rowCount())
+               if table_widget.table.item(r, 0) is not None
+               and table_widget.table.item(r, 0).data(
+                   table_widget._GROUP_ROLE) is not None]
+    assert headers and "Inputs" in headers[0]
+
+    # references are untouched by grouping
+    assert find_references(graph, "deck")
+
+    # collapse hides the member row
+    def variable_rows():
+        return [r for r in range(table_widget.table.rowCount())
+                if table_widget.table.item(r, 0) is not None
+                and table_widget.table.item(r, 0).data(Qt.UserRole)]
+    rows_before = len(variable_rows())
+    header_row = next(r for r in range(table_widget.table.rowCount())
+                      if table_widget.table.item(r, 0).data(
+                          table_widget._GROUP_ROLE) is not None)
+    table_widget._on_cell_clicked(header_row, 0)
+    assert len(variable_rows()) == rows_before - 1
+
+    # moving out again works and keeps references
+    table_widget._set_group("deck", "")
+    assert graph.variables.variable("deck").group == ""
+    assert find_references(graph, "deck")
+
+    # renaming via the blackboard rewrites graph references
+    table_widget._updating = True
+    graph.variables.rename("deck", "deck_id")
+    table_widget._updating = False
+    table_widget._rename_references("deck", "deck_id")
+    assert not find_references(graph, "deck")
+    assert find_references(graph, "deck_id")
+
+
 def test_blackboard_search_sort_filter(app):
     from polytess.gui.blackboard import BlackboardPanel
     graph = Graph("t")

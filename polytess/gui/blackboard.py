@@ -50,12 +50,17 @@ def _variable_mime(name: str) -> QMimeData:
 
 class _DragTable(QTableWidget):
     """Variable rows drag their name into inspector reference fields
-    (pull a variable from the blackboard into a slot)."""
+    (pull a variable from the blackboard into a slot). Dropping a
+    variable row back onto the table moves it into the group of the
+    target row (``on_drop_to_group`` callback set by the owner)."""
 
     def __init__(self, rows: int, columns: int, parent=None):
         super().__init__(rows, columns, parent)
         self.setDragEnabled(True)
-        self.setDragDropMode(QAbstractItemView.DragOnly)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QAbstractItemView.DragDrop)
+        self.on_drop_to_group = None      # callable(name, group) | None
+        self.group_of_row = None          # callable(row) -> str | None
         from PySide6.QtCore import QSize
         from polytess.gui.theme import ICON_SIZE, ROW_HEIGHT
         self.setIconSize(QSize(ICON_SIZE, ICON_SIZE))
@@ -67,6 +72,32 @@ class _DragTable(QTableWidget):
             if name is not None and name.data(Qt.UserRole):
                 return _variable_mime(name.data(Qt.UserRole))
         return super().mimeData(items)
+
+    def dragEnterEvent(self, event):     # noqa: N802 (Qt API)
+        if self.on_drop_to_group is not None \
+                and event.mimeData().hasFormat(VARIABLE_MIME):
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):      # noqa: N802 (Qt API)
+        if self.on_drop_to_group is not None \
+                and event.mimeData().hasFormat(VARIABLE_MIME):
+            event.acceptProposedAction()
+        else:
+            super().dragMoveEvent(event)
+
+    def dropEvent(self, event):          # noqa: N802 (Qt API)
+        if self.on_drop_to_group is None \
+                or not event.mimeData().hasFormat(VARIABLE_MIME):
+            super().dropEvent(event)
+            return
+        name = bytes(event.mimeData().data(VARIABLE_MIME)).decode("utf-8")
+        row = self.rowAt(int(event.position().y()))
+        group = self.group_of_row(row) if self.group_of_row else None
+        if group is not None:
+            self.on_drop_to_group(name, group)
+            event.acceptProposedAction()
 
 
 class _DragTree(QTreeWidget):
@@ -170,14 +201,26 @@ class _FilterHeader(QHBoxLayout):
 
 
 class _VariablesTable(QWidget):
-    """Name/type/value table bound to a NameVariables collection."""
+    """Name/type/value table bound to a NameVariables collection.
+
+    Variables can be organized into named groups (collapsible header
+    rows). Group membership is pure metadata on the variable — moving a
+    variable never touches references. Renames rewrite all references
+    in the current graph (``rename_references``), so they don't break
+    nodes either."""
 
     changed = Signal()
     find_refs = Signal(str)     # variable name
 
-    def __init__(self, parent=None):
+    _GROUP_ROLE = Qt.UserRole + 1     # group name on a group-header row
+
+    def __init__(self, parent=None, scope: str = "graph",
+                 graph_provider=None):
         super().__init__(parent)
         self.variables: NameVariables | None = None
+        self._scope = scope
+        self._graph_provider = graph_provider
+        self._collapsed: set[str] = set()
         self._updating = False
         self._sort_column: int | None = None
         self._sort_asc = True
@@ -205,8 +248,11 @@ class _VariablesTable(QWidget):
         self.table.verticalHeader().setVisible(False)
         self.table.itemChanged.connect(self._on_item_changed)
         self.table.cellDoubleClicked.connect(self._on_cell_double_clicked)
+        self.table.cellClicked.connect(self._on_cell_clicked)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._context_menu)
+        self.table.on_drop_to_group = self._set_group
+        self.table.group_of_row = self._group_of_row
         layout.addWidget(self.table, 1)
 
     def _context_menu(self, pos) -> None:
@@ -217,7 +263,82 @@ class _VariablesTable(QWidget):
         menu = QMenu(self)
         menu.addAction(icon("search", "text-light"), f"Find References of '{name}'…",
                        lambda: self.find_refs.emit(name))
+        group_menu = menu.addMenu(icon("folder", "text-light"),
+                                  "Move to Group")
+        var = self.variables.variable(name) if self.variables else None
+        current = var.group if var is not None else ""
+        no_group = group_menu.addAction("(no group)")
+        no_group.setEnabled(current != "")
+        no_group.triggered.connect(
+            lambda checked=False, n=name: self._set_group(n, ""))
+        existing = self._group_names()
+        if existing:
+            group_menu.addSeparator()
+        for group in existing:
+            action = group_menu.addAction(group)
+            action.setEnabled(group != current)
+            action.triggered.connect(
+                lambda checked=False, n=name, g=group: self._set_group(n, g))
+        group_menu.addSeparator()
+        group_menu.addAction("New group…",
+                             lambda n=name: self._move_to_new_group(n))
         menu.exec(self.table.viewport().mapToGlobal(pos))
+
+    # ---- groups ---------------------------------------------------------------- #
+
+    def _group_names(self) -> list[str]:
+        if self.variables is None:
+            return []
+        seen: dict[str, None] = {}
+        for var in self.variables:
+            if getattr(var, "group", ""):
+                seen[var.group] = None
+        return sorted(seen)
+
+    def _group_of_row(self, row: int) -> str | None:
+        """Group a drop on *row* targets: the header row's own group, a
+        member row's group ('' for ungrouped rows); None = no valid row."""
+        if row < 0:
+            return ""                    # empty area below -> ungrouped
+        item = self.table.item(row, 0)
+        if item is None:
+            return None
+        header_group = item.data(self._GROUP_ROLE)
+        if header_group is not None:
+            return header_group
+        name = item.data(Qt.UserRole)
+        if name and self.variables is not None:
+            var = self.variables.variable(name)
+            return getattr(var, "group", "") if var is not None else None
+        return None
+
+    def _set_group(self, name: str, group: str) -> None:
+        if self.variables is None:
+            return
+        var = self.variables.variable(name)
+        if var is None or getattr(var, "group", "") == group:
+            return
+        var.group = group
+        self._collapsed.discard(group)   # show where it landed
+        self.refresh()
+        self.changed.emit()
+
+    def _move_to_new_group(self, name: str) -> None:
+        from PySide6.QtWidgets import QInputDialog
+        group, ok = QInputDialog.getText(self, "New Group", "Group name:")
+        if ok and group.strip():
+            self._set_group(name, group.strip())
+
+    def _on_cell_clicked(self, row: int, _column: int) -> None:
+        item = self.table.item(row, 0)
+        group = item.data(self._GROUP_ROLE) if item is not None else None
+        if group is None:
+            return
+        if group in self._collapsed:
+            self._collapsed.discard(group)
+        else:
+            self._collapsed.add(group)
+        self.refresh()
 
     # ---- binding -------------------------------------------------------------- #
 
@@ -279,47 +400,76 @@ class _VariablesTable(QWidget):
     def refresh(self) -> None:
         self._updating = True
         self.table.setRowCount(0)
-        for var in self._visible_variables():
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-            name_item = QTableWidgetItem(var.name)
-            name_item.setIcon(type_icon(var.type_id))
-            name_item.setData(Qt.UserRole, var.name)
-            self.table.setItem(row, 0, name_item)
-            type_item = QTableWidgetItem(var.type_id)
-            type_item.setFlags(type_item.flags() & ~Qt.ItemIsEditable)
-            self.table.setItem(row, 1, type_item)
-            if var.type_id == "path":
-                placeholder = QTableWidgetItem("")
-                placeholder.setFlags(placeholder.flags() & ~Qt.ItemIsEditable)
-                self.table.setItem(row, 2, placeholder)
-                editor = PathEdit(str(var.value.get()))
-                editor.textChanged.connect(
-                    lambda text, name=var.name: self._set_value(name, text))
-                self.table.setCellWidget(row, 2, editor)
-            elif var.type_id == "table":
-                from polytess.gui.widgets import TableSummaryEdit
-                placeholder = QTableWidgetItem("")
-                placeholder.setFlags(placeholder.flags() & ~Qt.ItemIsEditable)
-                self.table.setItem(row, 2, placeholder)
-                editor = TableSummaryEdit(var.value.get(),
-                                          f"Table: {var.name}")
-                editor.changed.connect(
-                    lambda table, name=var.name: self._set_value(name, table))
-                self.table.setCellWidget(row, 2, editor)
-            elif var.type_id == "vector3":
-                from polytess.core.values import format_vector3
-                self.table.setItem(
-                    row, 2, QTableWidgetItem(format_vector3(var.value.get())))
-            elif var.type_id == "transform":
-                from polytess.core.values import format_vector3
-                value = var.value.get()
-                self.table.setItem(row, 2, QTableWidgetItem(
-                    f"{format_vector3(value['pos'])} | "
-                    f"{format_vector3(value['rot'])}"))
-            else:
-                self.table.setItem(row, 2, QTableWidgetItem(str(var.value.get())))
+        visible = self._visible_variables()
+        ungrouped = [v for v in visible if not getattr(v, "group", "")]
+        grouped: dict[str, list] = {}
+        for var in visible:
+            group = getattr(var, "group", "")
+            if group:
+                grouped.setdefault(group, []).append(var)
+        for var in ungrouped:
+            self._append_variable_row(var)
+        for group in sorted(grouped):
+            self._append_group_header(group, len(grouped[group]))
+            if group not in self._collapsed:
+                for var in grouped[group]:
+                    self._append_variable_row(var)
         self._updating = False
+
+    def _append_group_header(self, group: str, count: int) -> None:
+        row = self.table.rowCount()
+        self.table.insertRow(row)
+        arrow = "▸" if group in self._collapsed else "▾"
+        header = QTableWidgetItem(f"{arrow} {group}  ({count})")
+        font = header.font()
+        font.setBold(True)
+        header.setFont(font)
+        header.setFlags((header.flags() | Qt.ItemIsEnabled)
+                        & ~Qt.ItemIsEditable & ~Qt.ItemIsDragEnabled)
+        header.setData(self._GROUP_ROLE, group)
+        self.table.setItem(row, 0, header)
+        self.table.setSpan(row, 0, 1, 3)
+
+    def _append_variable_row(self, var) -> None:
+        row = self.table.rowCount()
+        self.table.insertRow(row)
+        name_item = QTableWidgetItem(var.name)
+        name_item.setIcon(type_icon(var.type_id))
+        name_item.setData(Qt.UserRole, var.name)
+        self.table.setItem(row, 0, name_item)
+        type_item = QTableWidgetItem(var.type_id)
+        type_item.setFlags(type_item.flags() & ~Qt.ItemIsEditable)
+        self.table.setItem(row, 1, type_item)
+        if var.type_id == "path":
+            placeholder = QTableWidgetItem("")
+            placeholder.setFlags(placeholder.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 2, placeholder)
+            editor = PathEdit(str(var.value.get()))
+            editor.textChanged.connect(
+                lambda text, name=var.name: self._set_value(name, text))
+            self.table.setCellWidget(row, 2, editor)
+        elif var.type_id == "table":
+            from polytess.gui.widgets import TableSummaryEdit
+            placeholder = QTableWidgetItem("")
+            placeholder.setFlags(placeholder.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 2, placeholder)
+            editor = TableSummaryEdit(var.value.get(),
+                                      f"Table: {var.name}")
+            editor.changed.connect(
+                lambda table, name=var.name: self._set_value(name, table))
+            self.table.setCellWidget(row, 2, editor)
+        elif var.type_id == "vector3":
+            from polytess.core.values import format_vector3
+            self.table.setItem(
+                row, 2, QTableWidgetItem(format_vector3(var.value.get())))
+        elif var.type_id == "transform":
+            from polytess.core.values import format_vector3
+            value = var.value.get()
+            self.table.setItem(row, 2, QTableWidgetItem(
+                f"{format_vector3(value['pos'])} | "
+                f"{format_vector3(value['rot'])}"))
+        else:
+            self.table.setItem(row, 2, QTableWidgetItem(str(var.value.get())))
 
     def _row_name(self, row: int) -> str | None:
         item = self.table.item(row, 0)
@@ -350,14 +500,29 @@ class _VariablesTable(QWidget):
         if name is None:
             return
         if column == 0:
+            new_name = item.text().strip()
             self._updating = True
-            self.variables.rename(name, item.text().strip())
+            self.variables.rename(name, new_name)
             self._updating = False
+            if new_name and new_name != name \
+                    and self.variables.exists(new_name):
+                self._rename_references(name, new_name)
             self.refresh()
             self.changed.emit()
         elif column == 2:
             self._set_value(name, item.text())
             self.refresh()
+
+    def _rename_references(self, old: str, new: str) -> None:
+        """Rewrite references in the current graph so the rename does not
+        break any node (sources, plain name fields, {old} templates)."""
+        graph = self._graph_provider() if self._graph_provider else None
+        if graph is None:
+            return
+        from polytess.core.refs import rename_references
+        count = rename_references(graph, old, new, self._scope)
+        if count:
+            self.changed.emit()
 
     def _on_cell_double_clicked(self, row: int, column: int) -> None:
         """Table variables open the spreadsheet editor on the value cell."""
@@ -683,7 +848,9 @@ class BlackboardPanel(QWidget):
         tabs = QTabWidget()
         layout.addWidget(tabs)
 
-        self.graph_vars = _VariablesTable()
+        self._graph = None
+        self.graph_vars = _VariablesTable(
+            scope="graph", graph_provider=lambda: self._graph)
         self.graph_lists = _ListsPanel()
         graph_page = QWidget()
         graph_layout = QVBoxLayout(graph_page)
@@ -692,7 +859,8 @@ class BlackboardPanel(QWidget):
         graph_layout.addWidget(self.graph_lists, 2)
         tabs.addTab(graph_page, "Graph")
 
-        self.global_vars = _VariablesTable()
+        self.global_vars = _VariablesTable(
+            scope="global", graph_provider=lambda: self._graph)
         self.global_lists = _ListsPanel()
         global_page = QWidget()
         global_layout = QVBoxLayout(global_page)
@@ -716,5 +884,6 @@ class BlackboardPanel(QWidget):
                 lambda name, s=scope: self.find_references.emit(name, s))
 
     def set_graph(self, graph) -> None:
+        self._graph = graph
         self.graph_vars.set_collection(graph.variables if graph else None)
         self.graph_lists.set_collection(graph.lists if graph else None)

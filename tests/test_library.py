@@ -280,3 +280,58 @@ def test_titles_never_read_values_without_ctx():
                     setattr(instance, attr,
                             type(value)(GetGraphVariable("some_var")))
             str(instance.title)          # must not raise without a ctx
+
+
+def test_rename_references_rewrites_sources_templates_and_fields():
+    """rename_references() keeps every reference working after a rename:
+    property sources, {name} templates and plain name fields."""
+    from polytess.core.refs import find_references, rename_references
+    from polytess.graph.flow_builder import build_flow
+
+    graph = build_flow({
+        "name": "rename-test",
+        "variables": [{"name": "deck", "type": "string", "value": "MR_001"}],
+        "nodes": [
+            {"id": "a", "kind": "actions", "instructions": [
+                {"type": "LogMessage",
+                 "params": {"message": {"template": "Deck {deck} ready"}}},
+                {"type": "SetString",
+                 "params": {"target": "deck", "value": {"var": "deck"}}},
+            ]},
+        ],
+        "edges": [{"from": "start", "to": "a"}],
+    }).graph
+
+    before = find_references(graph, "deck")
+    assert len(before) >= 3          # template + set-target + get-source
+
+    count = rename_references(graph, "deck", "deck_name")
+    assert count >= 3
+    assert not find_references(graph, "deck")
+    after = find_references(graph, "deck_name")
+    assert len(after) == len(before)
+
+    # the flow still works end to end under the new name
+    graph.variables.rename("deck", "deck_name")
+    ctx = Context(graph=graph, logger=lambda level, message: None)
+    log = list(next(iter(graph.nodes_of_type(ActionsNode))).instructions)[0]
+    assert log.message.get(ctx) == "Deck MR_001 ready"
+
+
+def test_variable_group_persists_and_defaults_empty(tmp_path):
+    from polytess.core.serialization import from_data, to_data
+    from polytess.core.variables import NameVariable, NameVariables
+
+    variables = NameVariables()
+    variables.declare("a", "string", "x")
+    variables.variable("a").group = "Inputs"
+    variables.declare("b", "number", 1)
+
+    clone = from_data(to_data(variables))
+    assert clone.variable("a").group == "Inputs"
+    assert clone.variable("b").group == ""
+
+    # old files without the key load with the default
+    legacy = to_data(NameVariable("c"))
+    legacy.pop("group")
+    assert from_data(legacy).group == ""

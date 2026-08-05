@@ -4,6 +4,20 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.8.0 — 2026-08-05
+- Variables can be organized into **groups** in the Blackboard:
+  collapsible group header rows, right-click → Move to Group (existing
+  group, new group, or none), and drag & drop of a variable onto a
+  group row. Group membership is pure display metadata on the variable
+  — references always go by name, so moving between groups can never
+  break a node.
+- **Renaming a variable now rewrites all references** in the current
+  flow (property sources, plain name fields and `{name}` template
+  placeholders — new `rename_references` in core.refs), so renames
+  don't break nodes either. This covers the rename-safety goal without
+  an id-based reference scheme, which text templates could never
+  support anyway.
+
 ## 1.7.6 — 2026-08-05
 - Inspector tooltips moved onto the parameter NAMES: labels of block
   parameters are now bold and carry the FIELD_HELP text; value editors

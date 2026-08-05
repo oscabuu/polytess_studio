@@ -31,6 +31,12 @@ The searchable catalog opens with **Ctrl+Space** or *Add Instruction…*.
 - **Graph variables** belong to one flow; **global variables** are
   shared across flows in one run. Both live in the Variables dock
   (values, lists and tables).
+- Variables can be organized into **groups** (right-click → Move to
+  Group, or drag a variable onto a group row; click a group header to
+  collapse it). Groups are pure display metadata — moving a variable
+  never touches references. **Renaming** a variable rewrites all its
+  references in the current flow (sources, name fields and `{name}`
+  templates), so renames don't break nodes either.
 - Every field of a block is a **property slot**: click the ▼ to switch
   its source — constant value, graph/global variable, formatted
   template (`MR_{deck}.inp`), split string, table cell, and more.

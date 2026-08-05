@@ -23,12 +23,19 @@ from polytess.core.values import Value, ValueNull, create_value, value_from_pyth
 
 @meta(title="Name Variable", icon="variable", color="purple", hidden=True)
 class NameVariable(PolymorphicItem):
-    """A named, typed value slot."""
+    """A named, typed value slot.
 
-    def __init__(self, name: str = "", value: Value | None = None):
+    ``group`` is pure display metadata for the Blackboard (variables can
+    be organized into named groups there) — references always go by
+    ``name``, so moving a variable between groups can never break
+    anything."""
+
+    def __init__(self, name: str = "", value: Value | None = None,
+                 group: str = ""):
         super().__init__()
         self.name = name
         self.value: Value = value if value is not None else ValueNull()
+        self.group = group
 
     @property
     def type_id(self) -> str:
