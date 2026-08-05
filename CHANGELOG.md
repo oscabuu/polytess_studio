@@ -4,6 +4,13 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.7.5 — 2026-08-05
+- Table variables in the Blackboard are back to ONE compact row: a
+  summary ("2 columns × 5 rows") plus an edit icon that opens the
+  spreadsheet editor (MATLAB-style: column headers on top, each
+  column's values below). The inline mini-grid from 1.5.0 made the
+  variables list unwieldy and is gone.
+
 ## 1.7.4 — 2026-08-05
 - Assistant chat views now follow the end of the text while an answer
   streams in (previously the view drifted to the top on re-renders).
