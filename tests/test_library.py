@@ -257,3 +257,26 @@ def test_every_library_block_field_has_help():
                     missing.append(f"{cls.__name__}.{attr}")
     assert not missing, \
         f"{len(missing)} fields without FIELD_HELP: " + ", ".join(missing[:40])
+
+
+def test_titles_never_read_values_without_ctx():
+    """`title` renders with no active run (ctx=None) — it must not crash
+    even when every PropertyGet* field is bound to a variable source."""
+    from polytess.core.events import Event
+    from polytess.core.instructions import Instruction
+    from polytess.core.metadata import iter_subclasses
+    from polytess.core.properties import GetGraphVariable, PropertyGet
+
+    for base in (Instruction, Event):
+        for cls in iter_subclasses(base, include_hidden=True):
+            if not cls.__module__.startswith("polytess.library"):
+                continue
+            try:
+                instance = cls()
+            except Exception:
+                continue
+            for attr, value in vars(instance).items():
+                if isinstance(value, PropertyGet):
+                    setattr(instance, attr,
+                            type(value)(GetGraphVariable("some_var")))
+            str(instance.title)          # must not raise without a ctx

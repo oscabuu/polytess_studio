@@ -27,6 +27,10 @@ variable needed, and changes apply immediately without a restart.
 ## Rules of thumb
 
 - Raise an exception to fail the node — never swallow errors silently.
+- In a `title` property never call `.get(ctx)`/`.get(None)` on a
+  field — titles render without an active run and crash on
+  variable-bound fields. Use `str(self.field)` instead; `.get(ctx)`
+  belongs only inside `run()`.
 - Long work: `await asyncio.to_thread(...)`; console commands:
   `run_console(ctx, …)` (honors the command server) or
   `run_solver(ctx, "fem"|"mks", …)` (honors the solver profiles).

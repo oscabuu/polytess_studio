@@ -92,7 +92,12 @@ the editor hot-reloads the class and it appears in the Add menus instantly.
   Target of the triggered flow; `def stop(self)` disarms; class attribute
   `persistent = True` keeps the workflow alive listening.
 - Dynamic titles: `@property def title(self) -> str` (Instructions/Events)
-  — shown in the inspector list and node preview.
+  — shown in the inspector list and node preview. NEVER call .get(ctx)
+  or .get(None) on a PropertyGet* field inside title: title renders with
+  ctx=None while drawing (no active run) and crashes as soon as the
+  field is bound to a Graph/Global Variable source. Use
+  str(self.field) — it reads the source's .display and is always safe.
+  .get(ctx) belongs exclusively inside run().
 
 ## File templates (working skeletons)
 Instruction:

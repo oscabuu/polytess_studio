@@ -4,6 +4,14 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.7.3 — 2026-08-05
+- Custom-block contract: `title` properties must never call
+  `.get(ctx)`/`.get(None)` on fields — titles render without an active
+  run and crashed on variable-bound fields. The code assistant's
+  contract and the manual now state the rule (`str(self.field)` is the
+  safe form), and a regression test binds every library block's fields
+  to variables and renders all titles without a ctx.
+
 ## 1.7.2 — 2026-08-03
 - .gitignore: `externe_Instructions/` added to the local-only section
   (external client-specific instruction drafts and their test data
