@@ -237,9 +237,12 @@ def test_blackboard_table_variable_renders_compact_row(app):
     assert graph.variables.get("loads")["rows"][0]["load"] == 99
 
 
-def test_inspector_fields_carry_field_help_tooltips(app):
-    """FIELD_HELP texts land as tooltips on labels and editors."""
-    from PySide6.QtWidgets import QLabel
+def test_inspector_tooltips_sit_on_bold_parameter_names(app):
+    """FIELD_HELP lands as a tooltip on the (bold) parameter-name label
+    only — value editors carry none, and a source's sub-rows explain
+    the owning parameter, not the generic source mechanics."""
+    from PySide6.QtWidgets import QLabel, QLineEdit
+    from polytess.core.properties import GetGraphVariable
     from polytess.gui.inspector.fields import build_fields_widget
     from polytess.library.instructions.instruction_create_folder import \
         CreateFolder
@@ -249,12 +252,29 @@ def test_inspector_fields_carry_field_help_tooltips(app):
     widget = build_fields_widget(CreateFolder("x"), lambda: None)
     labels = [l for l in widget.findChildren(QLabel) if l.text() == "Path"]
     assert labels and "Directory to create" in labels[0].toolTip()
+    assert labels[0].font().bold()
+    # the nested constant-value row: label inherits the parameter help,
+    # is not bold, and the editor itself has no tooltip
+    value_labels = [l for l in widget.findChildren(QLabel)
+                    if l.text() == "Value"]
+    assert value_labels and "Directory to create" in value_labels[0].toolTip()
+    assert not value_labels[0].font().bold()
+    for editor in widget.findChildren(QLineEdit):
+        assert editor.toolTip() == ""
 
-    # scalar fields (bool/str) get the tooltip on label AND editor
+    # variable-bound: the "Variable" row explains the parameter too
+    block = CreateFolder()
+    block.path = type(block.path)(GetGraphVariable("deck_dir"))
+    widget = build_fields_widget(block, lambda: None)
+    var_labels = [l for l in widget.findChildren(QLabel)
+                  if l.text() == "Variable"]
+    assert var_labels and "Directory to create" in var_labels[0].toolTip()
+
+    # scalar fields: tooltip on the bold label only
     widget = build_fields_widget(RunCommand("echo 1"), lambda: None)
     labels = {l.text(): l for l in widget.findChildren(QLabel)}
-    assert "Check Exit Code" in labels
     assert labels["Check Exit Code"].toolTip() != ""
+    assert labels["Check Exit Code"].font().bold()
 
 
 def test_table_summary_edit_roundtrip(app):

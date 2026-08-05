@@ -37,12 +37,21 @@ LABEL_WIDTH = 110
 _SKIP_ATTRS = {"is_enabled", "breakpoint"}
 
 
-def make_label(text: str, depth: int = 0) -> QLabel:
-    """Plain field label; nesting indents the label only — editors stay
-    aligned in one column (single-column inspector layout)."""
+def make_label(text: str, depth: int = 0, help_text: str = "",
+               bold: bool = False) -> QLabel:
+    """Field label; nesting indents the label only — editors stay
+    aligned in one column. Block-parameter labels are bold and carry
+    the FIELD_HELP tooltip (the tooltip lives on the parameter NAME,
+    never on the value editor)."""
     label = QLabel(text)
     label.setFixedWidth(LABEL_WIDTH)
     label.setIndent(depth * INDENT)
+    if bold:
+        font = label.font()
+        font.setBold(True)
+        label.setFont(font)
+    if help_text:
+        label.setToolTip(help_text)
     return label
 
 
@@ -103,8 +112,7 @@ class PropertyFieldRow(QWidget):
         self._graph = graph
         self._depth = depth
         self._undo = undo
-        if help_text:
-            self.setToolTip(help_text)
+        self._help_text = help_text
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -112,10 +120,8 @@ class PropertyFieldRow(QWidget):
 
         row = QHBoxLayout()
         row.setSpacing(4)
-        label_widget = make_label(label, depth)
-        if help_text:
-            label_widget.setToolTip(help_text)
-        row.addWidget(label_widget)
+        row.addWidget(make_label(label, depth, help_text=help_text,
+                                 bold=True))
 
         self.button = DropdownButton()
         self.button.setLayoutDirection(Qt.LeftToRight)
@@ -143,7 +149,8 @@ class PropertyFieldRow(QWidget):
             if child.widget():
                 child.widget().deleteLater()
         sub = build_fields_widget(source, self._on_changed, graph=self._graph,
-                                  depth=self._depth + 1, undo=self._undo)
+                                  depth=self._depth + 1, undo=self._undo,
+                                  inherited_help=self._help_text)
         if sub is not None:
             sub_layout.addWidget(sub)
         self.sub_container.setVisible(sub is not None)
@@ -241,16 +248,23 @@ def _scalar_editor(obj, attr: str, value, on_changed: Callable[[], None],
 
 
 def build_fields_widget(obj, on_changed: Callable[[], None], graph=None,
-                        parent=None, depth: int = 0, undo=None) -> QWidget | None:
+                        parent=None, depth: int = 0, undo=None,
+                        inherited_help: str = "") -> QWidget | None:
     """Editor widget for all public fields of *obj*; None if it has none.
 
     *undo* is an ``UndoCallbacks`` (see inspector/commands.py) or None —
     threaded through to every nested field/list editor so edits become
     undoable; None falls back to applying changes directly (e.g. a
-    widget built in isolation in a test)."""
+    widget built in isolation in a test).
+
+    *inherited_help* is the owning parameter's FIELD_HELP when *obj* is
+    a property source: its sub-rows (Variable / Value / Template …)
+    then explain the actual parameter instead of the generic source
+    mechanics."""
     from polytess.gui.inspector.poly_list import PolymorphicListWidget
     from polytess.core.instructions import Instruction
     from polytess.core.conditions import Branch, Condition
+    from polytess.core.properties import PropertySource, SetSource
 
     entries = [(k, v) for k, v in vars(obj).items()
                if not k.startswith("_") and k not in _SKIP_ATTRS]
@@ -271,9 +285,15 @@ def build_fields_widget(obj, on_changed: Callable[[], None], graph=None,
     grid_row = 0
 
     helps = get_field_help(type(obj))
+    is_source = isinstance(obj, (PropertySource, SetSource))
     for attr, value in entries:
         label_text = humanize(attr).title()
-        help_text = helps.get(attr, "")
+        # Source sub-rows describe the owning parameter, not the source
+        # mechanics; block parameters use their own FIELD_HELP and are
+        # rendered bold (the tooltip sits on the parameter name).
+        help_text = (inherited_help or helps.get(attr, "")) if is_source \
+            else helps.get(attr, "")
+        bold = not is_source
         if attr == "name" and getattr(type(obj), "ref_kind", None):
             label_text = "Variable"      # the reference row is labelled 'Variable'
         if isinstance(value, (PropertyGet, PropertySet)):
@@ -314,11 +334,8 @@ def build_fields_widget(obj, on_changed: Callable[[], None], graph=None,
             editor = _scalar_editor(obj, attr, value, on_changed, graph, undo)
             if editor is None:
                 continue
-            label_widget = make_label(label_text, depth)
-            if help_text:
-                label_widget.setToolTip(help_text)
-                editor.setToolTip(help_text)
-            grid.addWidget(label_widget, grid_row, 0)
+            grid.addWidget(make_label(label_text, depth, help_text=help_text,
+                                      bold=bold), grid_row, 0)
             grid.addWidget(editor, grid_row, 1)
             grid_row += 1
 

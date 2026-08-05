@@ -4,6 +4,13 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.7.6 — 2026-08-05
+- Inspector tooltips moved onto the parameter NAMES: labels of block
+  parameters are now bold and carry the FIELD_HELP text; value editors
+  no longer show tooltips. Sub-rows of a bound source (Variable /
+  Value / Template) explain the actual parameter ("which file this is
+  and what it is for") instead of the generic source mechanics.
+
 ## 1.7.5 — 2026-08-05
 - Table variables in the Blackboard are back to ONE compact row: a
   summary ("2 columns × 5 rows") plus an edit icon that opens the
