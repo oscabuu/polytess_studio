@@ -51,3 +51,57 @@ def test_chapter_order_is_bfs():
     names = [n.name for n in _node_order(graph)]
     assert names.index("Start") < names.index("Prepare") < names.index("Ready?")
     assert len(names) == len(graph.nodes)
+
+
+def _story_text(graph) -> str:
+    """All rendered text of the document (font subsetting makes literal
+    search inside the PDF bytes unreliable — inspect the story instead)."""
+    from polytess.graph.flow_doc import (_build_story, _register_fonts,
+                                         _styles)
+    from reportlab.platypus import Table
+
+    _register_fonts()
+    parts = []
+    for flowable in _build_story(graph, _styles()):
+        text = getattr(flowable, "text", None)
+        if text:
+            parts.append(str(text))
+        if isinstance(flowable, Table):
+            for row in flowable._cellvalues:
+                for cell in row:
+                    parts.append(getattr(cell, "text", None) or str(cell))
+    return "\n".join(parts)
+
+
+def test_doc_regenerates_fresh_every_time(tmp_path):
+    """Exporting, changing the flow, exporting again produces a doc with
+    the NEW state — there is no caching anywhere."""
+    graph = _make_graph()
+    out = tmp_path / "doc.pdf"
+    generate_flow_doc(graph, str(out))
+    first_bytes = out.read_bytes()
+    assert "MARKER_AFTER_EDIT" not in _story_text(graph)
+
+    graph.variables.set("deck", "MARKER_AFTER_EDIT")
+    prepare = next(n for n in graph.nodes if n.name == "Prepare")
+    prepare.custom_name = "Prepare Renamed"
+    text = _story_text(graph)                   # regenerated content
+    assert "MARKER_AFTER_EDIT" in text
+    assert "Prepare Renamed" in text
+    generate_flow_doc(graph, str(out))          # same path, overwrite works
+    assert out.read_bytes() != first_bytes
+
+
+def test_doc_shows_canvas_and_variable_groups():
+    from polytess.graph.model import Group
+
+    graph = _make_graph()
+    prepare = next(n for n in graph.nodes if n.name == "Prepare")
+    graph.groups.append(Group("Preparation Phase",
+                              prepare.x - 40, prepare.y - 40, 320, 240))
+    graph.variables.variable("deck").group = "Model Inputs"
+    graph.variables.declare("speed", "number", 1)     # stays ungrouped
+
+    text = _story_text(graph)
+    assert "Preparation Phase" in text        # canvas group at the chapter
+    assert "Model Inputs" in text             # variable group in Blackboard

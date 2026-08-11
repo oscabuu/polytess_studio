@@ -328,10 +328,39 @@ def _param_table(rows: list[tuple[str, str]], width: float) -> Table:
     return table
 
 
+def _group_title_of(graph: Graph, node) -> str:
+    """Title of the canvas group whose frame contains *node* ('' if none;
+    the innermost = smallest matching frame wins for nested groups)."""
+    cx = node.x + getattr(node, "width", 220.0) / 2.0
+    cy = node.y + 20.0
+    best_title, best_area = "", None
+    for group in graph.groups:
+        if group.x <= cx <= group.x + group.width \
+                and group.y <= cy <= group.y + group.height:
+            area = group.width * group.height
+            if best_area is None or area < best_area:
+                best_title, best_area = group.title, area
+    return best_title
+
+
 def generate_flow_doc(graph: Graph, path: str, source_path: str = "") -> str:
     """Write the documentation PDF for *graph* to *path*; returns *path*."""
     _register_fonts()
     styles = _styles()
+    story = _build_story(graph, styles, source_path)
+    document = SimpleDocTemplate(
+        path, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
+        topMargin=16 * mm, bottomMargin=22 * mm,
+        title=f"{graph.name} — polytess flow documentation",
+        author="polytess Studio")
+    painter = _page_painter(graph)
+    document.build(story, onFirstPage=painter, onLaterPages=painter)
+    return path
+
+
+def _build_story(graph: Graph, styles, source_path: str = "") -> list:
+    """The full document content as reportlab flowables — separated from
+    the PDF build so tests can inspect the rendered text."""
     order_nodes = _node_order(graph)
     numbers = {n.guid: i + 1 for i, n in enumerate(order_nodes)}
     content_width = A4[0] - 36 * mm
@@ -365,6 +394,9 @@ def generate_flow_doc(graph: Graph, path: str, source_path: str = "") -> str:
         count = node.counter
         suffix = f" — {kind}" + (f", {count} item{'s' if count != 1 else ''}"
                                  if count else "")
+        group_title = _group_title_of(graph, node)
+        if group_title:
+            suffix += f"  ·  {group_title}"
         story.append(Paragraph(
             f'<a href="#node-{node.guid}" color="{SKY}">'
             f"{number:02d}&nbsp;&nbsp;{_esc(node.name)}</a>"
@@ -386,6 +418,9 @@ def generate_flow_doc(graph: Graph, path: str, source_path: str = "") -> str:
                                 spaceAfter=3))
         kind = _KIND_LABEL.get(type(node), type(node).__name__)
         flags = []
+        group_title = _group_title_of(graph, node)
+        if group_title:
+            flags.append(f"group “{group_title}”")
         if not node.enabled:
             flags.append("disabled")
         if node.breakpoint:
@@ -444,22 +479,28 @@ def generate_flow_doc(graph: Graph, path: str, source_path: str = "") -> str:
     story.append(Paragraph('<a name="blackboard"/>Blackboard', styles["h2"]))
     story.append(HRFlowable(width="100%", thickness=1.4, color=TEAL,
                             spaceAfter=6))
-    variable_rows = [(f"{v.name}  ({v.type_id})", _display_value(v.value))
-                     for v in graph.variables]
+    ungrouped = [v for v in graph.variables if not getattr(v, "group", "")]
+    grouped: dict[str, list] = {}
+    for variable in graph.variables:
+        group = getattr(variable, "group", "")
+        if group:
+            grouped.setdefault(group, []).append(variable)
+
+    def variable_rows(variables) -> list[tuple[str, str]]:
+        return [(f"{v.name}  ({v.type_id})", _display_value(v.value))
+                for v in variables]
+
     list_rows = [(f"{l.name}  (list of {l.type_id})",
                   ", ".join(str(i) for i in l.items[:6])
                   + ("…" if len(l.items) > 6 else ""))
                  for l in graph.lists]
-    if variable_rows or list_rows:
-        story.append(_param_table(variable_rows + list_rows, content_width))
-    else:
+    if ungrouped or list_rows:
+        story.append(_param_table(variable_rows(ungrouped) + list_rows,
+                                  content_width))
+    for group in sorted(grouped):
+        story.append(Paragraph(_esc(group), styles["itemhead"]))
+        story.append(_param_table(variable_rows(grouped[group]),
+                                  content_width))
+    if not (ungrouped or grouped or list_rows):
         story.append(Paragraph("No graph variables defined.", styles["body"]))
-
-    document = SimpleDocTemplate(
-        path, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
-        topMargin=16 * mm, bottomMargin=22 * mm,
-        title=f"{graph.name} — polytess flow documentation",
-        author="polytess Studio")
-    painter = _page_painter(graph)
-    document.build(story, onFirstPage=painter, onLaterPages=painter)
-    return path
+    return story

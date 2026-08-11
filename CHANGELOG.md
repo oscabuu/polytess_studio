@@ -4,6 +4,18 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.12.2 — 2026-08-11
+- Flow documentation now includes groups: each node chapter (and the
+  table of contents) names the canvas group whose frame contains the
+  node, and the Blackboard section lists variables grouped by their
+  variable groups (ungrouped ones plus lists first, then one block per
+  group).
+- Verified by test: the documentation is regenerated from the live
+  flow on every export — there is no caching; a change followed by a
+  re-export always lands in the PDF. (If a re-exported PDF looks
+  unchanged, it is the PDF viewer showing the still-open old file —
+  close and reopen it.)
+
 ## 1.12.1 — 2026-08-11
 - Fixed On Variable Changed triggers not firing when the change came
   from the flow's own start chain (the sectioning pattern): triggers
