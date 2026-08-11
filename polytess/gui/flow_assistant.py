@@ -209,12 +209,13 @@ class FlowAssistantPanel(QWidget):
     Graph; ``graph_provider`` (optional callable returning the currently
     open Graph or None) lets the assistant see the open flow."""
 
-    open_graph = Signal(object)              # Graph
+    open_graph = Signal(object, bool)        # Graph, modifies_open_flow
     status_message = Signal(str)
 
     def __init__(self, parent=None, graph_provider=None):
         super().__init__(parent)
         self._graph_provider = graph_provider
+        self._answer_from_context = False    # answer based on the open flow
         self._history: list[dict] = []
         self._transcript: list[tuple[str, str]] = []
         self._streaming_text = ""
@@ -327,6 +328,7 @@ class FlowAssistantPanel(QWidget):
         attachments = self.attach_bar.take()
         user_message, shown = question, question
         current = self._current_flow_context()
+        self._answer_from_context = bool(current)
         if current:
             user_message = current + "\n\n" + user_message
         if attachments:
@@ -476,7 +478,7 @@ class FlowAssistantPanel(QWidget):
                              + ", ".join(result.missing))
         else:
             self._set_status("Flow inserted.")
-        self.open_graph.emit(result.graph)
+        self.open_graph.emit(result.graph, self._answer_from_context)
 
     def _copy_prompt(self) -> None:
         if self._last_prompt:

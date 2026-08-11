@@ -4,6 +4,16 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.12.0 — 2026-08-11
+- When the Flow Assistant modifies the currently open flow, "Insert
+  flow" now creates a **branch** of it instead of an unrelated
+  document: same flow family, parent set to the source's
+  branch/revision, branch name `assistant` (numbered on collision).
+  With a saved parent the branch is written as
+  `name@assistant.flow.json` next to it (with history snapshot) and
+  opened — Compare with Parent / Promote to Parent apply as usual.
+  Flows built from scratch keep their own fresh lineage.
+
 ## 1.11.0 — 2026-08-11
 - Docks are closable again (the theme had hidden the title-bar close
   icon): every panel — Flow Assistant included — closes via its × and

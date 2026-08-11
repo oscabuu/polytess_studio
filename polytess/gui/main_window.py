@@ -608,9 +608,42 @@ class MainWindow(QMainWindow):
         dock.raise_()
         dock.widget().input.setFocus()
 
-    def _open_built_graph(self, graph) -> None:
-        """A flow built by the flow assistant becomes a new document tab."""
-        self._add_document(GraphDocument(graph))
+    def _open_built_graph(self, graph, modifies_open_flow: bool = False) -> None:
+        """A flow built by the flow assistant becomes a new document tab.
+
+        When the assistant modified the currently open flow, the result
+        is created as a BRANCH of that flow (same family, parent points
+        at the source's branch/revision) instead of an unrelated
+        document — saved next to the parent when the parent has a file."""
+        source = self.current_document() if modifies_open_flow else None
+        if source is None:
+            self._add_document(GraphDocument(graph))
+            return
+
+        from polytess.graph.lineage import branch_file_path, save_with_history
+        base = source.graph.lineage
+        name = "assistant"
+        if source.path:
+            counter = 1
+            while os.path.isfile(branch_file_path(source.path, name)):
+                counter += 1
+                name = f"assistant-{counter}"
+        graph.lineage.flow_id = base.flow_id
+        graph.lineage.branch = name
+        graph.lineage.revision = 0
+        graph.lineage.parent_branch = base.branch
+        graph.lineage.parent_revision = base.revision
+        if not graph.name or graph.name == "Workflow":
+            graph.name = source.graph.name
+
+        if source.path:
+            path = branch_file_path(source.path, name)
+            save_with_history(graph, path)
+            self.open_document(path)
+        else:
+            self._add_document(GraphDocument(graph))
+        self.statusBar().showMessage(
+            f"Flow Assistant: branch '{name}' created from {base.tag}", 5000)
 
     # ---- flow lifecycle -------------------------------------------------------- #
 

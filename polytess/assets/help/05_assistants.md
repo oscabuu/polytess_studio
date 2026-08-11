@@ -21,8 +21,11 @@ prompt for the code assistant (pencil button).
 
 The assistant also sees the **currently open flow** — ask it to extend
 or modify it ("add a syntax check after the folder setup") and it
-answers with the complete updated flow, which "Insert flow" opens as a
-new document next to the original.
+answers with the complete updated flow. "Insert flow" then creates a
+**branch** of the open flow (same family, parent = the source's
+branch/revision; saved as `name@assistant.flow.json` next to a saved
+parent) — the original stays untouched, and *Graph → Compare with
+Parent / Promote to Parent* work as with any branch.
 
 ## Code assistant (in the Code Editor)
 

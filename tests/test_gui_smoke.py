@@ -575,6 +575,66 @@ def test_flow_assistant_dock_tabbed_and_closable(app):
     window.close()
 
 
+def test_assistant_modification_creates_branch(app, tmp_path):
+    """Inserting an assistant answer that modified the open flow creates
+    a lineage branch of it — an unrelated build stays independent."""
+    import qasync
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    from polytess.graph.flow_builder import build_flow
+    from polytess.gui.main_window import GraphDocument, MainWindow
+
+    window = MainWindow()
+    source_graph = build_flow({
+        "name": "Source", "nodes": [
+            {"id": "a", "kind": "actions", "instructions": [
+                {"type": "LogMessage", "params": {"message": "hi"}}]}],
+        "edges": [{"from": "start", "to": "a"}],
+    }).graph
+    path = str(tmp_path / "source.flow.json")
+    source_graph.save(path)
+    doc = window.open_document(path)
+    base = doc.graph.lineage
+
+    modified = build_flow({
+        "name": "Source", "nodes": [
+            {"id": "a", "kind": "actions", "instructions": [
+                {"type": "LogMessage", "params": {"message": "hi"}},
+                {"type": "LogMessage", "params": {"message": "more"}}]}],
+        "edges": [{"from": "start", "to": "a"}],
+    }).graph
+    window._open_built_graph(modified, True)
+
+    branched = window.current_document()
+    lineage = branched.graph.lineage
+    assert lineage.flow_id == base.flow_id           # same family
+    assert lineage.branch == "assistant"
+    assert lineage.parent_branch == base.branch
+    assert (tmp_path / "source@assistant.flow.json").is_file()
+
+    # an unrelated (from-scratch) flow keeps its own fresh lineage
+    fresh = build_flow({"name": "Fresh", "nodes": [], "edges": []}).graph
+    window._open_built_graph(fresh, False)
+    assert window.current_document().graph.lineage.flow_id != base.flow_id
+    window.close()
+
+
+def test_flow_assistant_insert_reports_context_flag(app):
+    from polytess.gui.flow_assistant import FlowAssistantPanel
+
+    panel = FlowAssistantPanel()
+    received = []
+    panel.open_graph.connect(
+        lambda graph, from_context: received.append(from_context))
+    panel._last_flow = {"name": "X", "nodes": [], "edges": []}
+
+    panel._answer_from_context = False
+    panel._insert_flow()
+    panel._answer_from_context = True
+    panel._insert_flow()
+    assert received == [False, True]
+
+
 def test_main_window_open_and_run(app, tmp_path):
     import qasync
     loop = qasync.QEventLoop(app)
