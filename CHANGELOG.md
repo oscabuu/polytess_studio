@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.10.2 — 2026-08-11
+- Settings → Reports gains an **Email** field (`report_email`): the
+  default notification recipient, readable from any instruction via
+  AppSettings. Send Email uses it automatically whenever its "to"
+  field is left empty.
+
 ## 1.10.1 — 2026-08-11
 - Manual: worked example showing that Settings → Python → Include
   Paths work directly inside custom blocks — a plain `import` suffices,

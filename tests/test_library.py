@@ -335,3 +335,26 @@ def test_variable_group_persists_and_defaults_empty(tmp_path):
     legacy = to_data(NameVariable("c"))
     legacy.pop("group")
     assert from_data(legacy).group == ""
+
+
+async def test_send_email_falls_back_to_report_email(tmp_path, monkeypatch):
+    """Empty "to" uses the report_email setting; both empty -> skipped."""
+    import shutil as _shutil
+
+    from polytess.core.app_settings import AppSettings
+    from polytess.library.instructions.instruction_send_email import SendEmail
+
+    monkeypatch.setattr(_shutil, "which", lambda name: None)  # no sendmail
+    warnings = []
+    ctx = Context(graph=FakeGraph(), workdir=str(tmp_path),
+                  logger=lambda level, m: warnings.append((level, m)))
+
+    AppSettings.reset(path="", report_email="team@example.com")
+    await SendEmail("", "subject", "body").run(ctx)
+    assert any("team@example.com" in m for _l, m in warnings)
+
+    warnings.clear()
+    AppSettings.reset(path="", report_email="")
+    await SendEmail("", "subject", "body").run(ctx)
+    assert any("skipped" in m for _l, m in warnings)
+    AppSettings.reset(path="", use_command_server=False)

@@ -48,7 +48,10 @@ DEFAULTS: dict[str, Any] = {
     "github_host": "",
     "github_token": "",
     # corporate defaults for generated reports/plots (readable from any
-    # instruction via AppSettings.instance().get(...))
+    # instruction via AppSettings.instance().get(...)). report_email is
+    # the default notification recipient — Send Email falls back to it
+    # when its "to" field is empty.
+    "report_email": "",
     "report_font": "Arial",
     "report_font_size": 11,
     "report_color_primary": "#1f4e63",

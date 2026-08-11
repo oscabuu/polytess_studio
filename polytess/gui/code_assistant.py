@@ -84,7 +84,8 @@ the editor hot-reloads the class and it appears in the Add menus instantly.
 - App settings: `from polytess.core.app_settings import AppSettings` —
   `AppSettings.instance().get(key)`. For reports/plots use the corporate
   defaults: report_font, report_font_size, report_color_primary /
-  _secondary / _accent (hex strings).
+  _secondary / _accent (hex strings), report_email (default
+  notification recipient — Send Email falls back to it).
 - Condition: `def run(self, ctx) -> bool` (synchronous); optional
   `@property def summary(self) -> str`.
 - Event (trigger): `def start(self, fire, ctx)` arms it (call super().start

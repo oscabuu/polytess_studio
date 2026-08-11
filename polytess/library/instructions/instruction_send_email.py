@@ -25,8 +25,9 @@ SENDMAIL = "/usr/sbin/sendmail"
 class SendEmail(Instruction):
 
     FIELD_HELP = {
-        "to": "Recipient address; empty = the node is skipped with a "
-              "warning.",
+        "to": "Recipient address; empty = the default report email from "
+              "Settings → Reports is used (if that is empty too, the "
+              "node is skipped with a warning).",
         "subject": "Subject line of the email.",
         "body": "Plain-text message body.",
         "strict": "When enabled, a missing sendmail binary or a send "
@@ -48,7 +49,12 @@ class SendEmail(Instruction):
     async def run(self, ctx):
         recipient = self.to.get(ctx).strip()
         if not recipient:
-            ctx.warning("Send Email: no recipient set — skipped")
+            from polytess.core.app_settings import AppSettings
+            recipient = str(AppSettings.instance()
+                            .get("report_email") or "").strip()
+        if not recipient:
+            ctx.warning("Send Email: no recipient set (and no report "
+                        "email in Settings) — skipped")
             return
         sender = f"{getpass.getuser()}@{socket.gethostname()}"
         message = (f"From: {sender}\nTo: {recipient}\n"

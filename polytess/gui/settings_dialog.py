@@ -207,11 +207,16 @@ class SettingsDialog(QDialog):
         report_form.addRow("Secondary Color", self.color_secondary)
         self.color_accent = _ColorButton(str(settings.get("report_color_accent")))
         report_form.addRow("Accent Color", self.color_accent)
+        self.report_email = QLineEdit(str(settings.get("report_email")))
+        self.report_email.setPlaceholderText("reports@example.com")
+        report_form.addRow("Email", self.report_email)
         report_layout.addLayout(report_form)
         report_hint = QLabel(
             "Corporate defaults for generated reports, documents and plots. "
-            "Instructions read them via AppSettings (report_font, "
-            "report_font_size, report_color_primary/secondary/accent).")
+            "Instructions read them via AppSettings (report_email, "
+            "report_font, report_font_size, "
+            "report_color_primary/secondary/accent). Send Email uses the "
+            "email as default recipient when its \"to\" field is empty.")
         report_hint.setWordWrap(True)
         report_hint.setStyleSheet(f"color: {ACCENTS['text-light']};")
         report_layout.addWidget(report_hint)
@@ -276,6 +281,7 @@ class SettingsDialog(QDialog):
                      or DEFAULTS["copilot_model"])
         settings.set("github_host", self.github_host.text().strip())
         settings.set("github_token", self.github_token.text().strip())
+        settings.set("report_email", self.report_email.text().strip())
         settings.set("report_font", self.font_combo.currentText())
         settings.set("report_font_size", self.font_size.value())
         settings.set("report_color_primary", self.color_primary.color())
