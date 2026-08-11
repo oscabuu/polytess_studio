@@ -22,7 +22,38 @@ Python file, and the built-in code assistant writes most of it for you.
 
 Need to `import` your own local packages from a custom block? Add their
 folders under **Settings → Python → Include Paths** — no environment
-variable needed, and changes apply immediately without a restart.
+variable needed, changes apply immediately without a restart, and the
+paths do NOT have to be repeated anywhere in the instruction. A plain
+`import` just works, because the paths are on `sys.path` for the whole
+process before the custom library loads:
+
+```python
+# Settings → Python → Include Paths contains  /home/me/tools
+# and /home/me/tools/loadtools/__init__.py defines combine(...)
+from loadtools import combine          # plain import — nothing else needed
+
+from polytess.core.instructions import Instruction
+from polytess.core.metadata import meta
+from polytess.core.properties import PropertyGetPath
+
+
+@meta(title="Combine Loads", category="Custom/Combine Loads",
+      icon="transform", color="teal",
+      description="Combines load files via the local loadtools package")
+class CombineLoads(Instruction):
+
+    FIELD_HELP = {
+        "folder": "Folder whose load files are combined.",
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.folder = PropertyGetPath("")
+
+    async def run(self, ctx):
+        result = combine(ctx.resolve_path(self.folder.get(ctx)))
+        ctx.info(f"combined: {result}")
+```
 
 ## Rules of thumb
 

@@ -94,3 +94,50 @@ def test_code_editor_panel(tmp_path, monkeypatch):
     assert "SYNTAX ERROR" in panel.status.text()
     assert path.read_text() == "def nope(:\n"
     assert get_meta(resolve_type("MyStep")).description == "v2"  # old kept
+
+
+def test_include_path_import_works_inside_custom_block(tmp_path, monkeypatch):
+    """A package folder from Settings -> Python -> Include Paths is
+    importable in a custom-library block with a plain `import` — no
+    re-declaration inside the instruction needed."""
+    import asyncio
+    import sys
+
+    from polytess.core import Context, GlobalScope
+    from polytess.core.app_settings import AppSettings, \
+        sync_python_include_paths
+    from polytess.library.custom import load_custom_module
+
+    package_dir = tmp_path / "tools"
+    (package_dir / "loadtools").mkdir(parents=True)
+    (package_dir / "loadtools" / "__init__.py").write_text(
+        "def combine(folder):\n    return f'combined:{folder}'\n",
+        encoding="utf-8")
+
+    AppSettings.reset(path="", python_include_paths=[str(package_dir)])
+    sync_python_include_paths()
+    try:
+        block_file = tmp_path / "instruction_combine_loads_demo.py"
+        block_file.write_text(
+            "from loadtools import combine\n"
+            "from polytess.core.instructions import Instruction\n"
+            "from polytess.core.metadata import meta\n\n\n"
+            "@meta(title='Combine Loads Demo',"
+            " category='Custom/Combine Loads Demo')\n"
+            "class CombineLoadsDemo(Instruction):\n"
+            "    FIELD_HELP = {}\n\n"
+            "    async def run(self, ctx):\n"
+            "        ctx.info(combine('x'))\n", encoding="utf-8")
+        module = load_custom_module(str(block_file))
+
+        GlobalScope.reset()
+        messages = []
+        graph_stub = type("G", (), {"variables": None, "lists": None})()
+        ctx = Context(graph=graph_stub,
+                      logger=lambda level, m: messages.append(m))
+        asyncio.run(module.CombineLoadsDemo().run(ctx))
+        assert messages == ["combined:x"]
+    finally:
+        AppSettings.reset(path="", python_include_paths=[])
+        sync_python_include_paths()
+        sys.modules.pop("loadtools", None)

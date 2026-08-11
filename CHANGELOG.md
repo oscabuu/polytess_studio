@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.10.1 — 2026-08-11
+- Manual: worked example showing that Settings → Python → Include
+  Paths work directly inside custom blocks — a plain `import` suffices,
+  the paths never need to be repeated in the instruction (verified by
+  an end-to-end test).
+
 ## 1.10.0 — 2026-08-11
 - The Code Assistant (Claude provider) can now read and edit the
   custom library directly: its session runs inside the custom-library
