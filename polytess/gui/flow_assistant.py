@@ -102,6 +102,10 @@ trigger node using OnVariableChanged on that bool. This keeps each
 section independently testable and restartable. Use it whenever a flow
 grows beyond roughly two phases or has natural milestones
 (preparation done, solver finished, post-processing done).
+IMPORTANT: only the LAST section connects to "exit" — an Exit node
+ends the entire run immediately, so wiring an intermediate section to
+exit would kill the later sections' triggers. Intermediate sections
+simply end after their SetBool.
 
 ## Currently open flow
 When the user message starts with a <current_flow> block, that is the

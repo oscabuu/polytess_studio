@@ -4,6 +4,14 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.12.1 — 2026-08-11
+- Fixed On Variable Changed triggers not firing when the change came
+  from the flow's own start chain (the sectioning pattern): triggers
+  are now fully armed before any start node runs, so a chain of
+  non-yielding instructions can no longer finish before the trigger
+  listens. Flow Assistant guidance clarified: only the LAST section
+  connects to exit (an Exit node ends the whole run).
+
 ## 1.12.0 — 2026-08-11
 - When the Flow Assistant modifies the currently open flow, "Insert
   flow" now creates a **branch** of it instead of an unrelated

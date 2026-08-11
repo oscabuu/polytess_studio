@@ -168,10 +168,17 @@ class GraphProcessor:
         self._exit = asyncio.Event()
         ctx.runner = self
         try:
-            entries = [n for n in self.graph.nodes
-                       if isinstance(n, (StartNode, TriggerNode)) and n.enabled]
-            for node in entries:
-                self.spawn(self.process_node(node, ctx))
+            # Arm every trigger FIRST and completely (their process() only
+            # registers the event and returns) — otherwise a start chain
+            # of non-yielding instructions can change a variable before
+            # On Variable Changed is even listening, and the trigger
+            # silently never fires.
+            for node in self.graph.nodes:
+                if isinstance(node, TriggerNode) and node.enabled:
+                    await self.process_node(node, ctx)
+            for node in self.graph.nodes:
+                if isinstance(node, StartNode) and node.enabled:
+                    self.spawn(self.process_node(node, ctx))
 
             exit_wait = asyncio.ensure_future(self._exit.wait())
             try:

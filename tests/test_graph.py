@@ -196,6 +196,40 @@ async def test_on_variable_changed_fires_on_real_change():
     assert trace(graph) == ["changed"]
 
 
+async def test_trigger_armed_before_start_chain_runs():
+    """Regression: a start chain of non-yielding instructions used to
+    finish before triggers were armed — On Variable Changed silently
+    missed changes made by the flow itself (the sectioning pattern:
+    SetBool section_1_completed -> trigger starts section 2)."""
+    from polytess.core.properties import PropertySetBool, SetGraphVariable
+    from polytess.library.events.event_on_variable_changed import \
+        OnVariableChanged
+    from polytess.library.instructions.instruction_set_bool import SetBool
+
+    graph = build_graph()
+    graph.variables.declare("section_1_completed", "bool", False)
+    start = next(iter(graph.nodes_of_type(StartNode)))
+    section1 = graph.add_node(ActionsNode())
+    section1.instructions.instructions.append(
+        SetBool(PropertySetBool(SetGraphVariable("section_1_completed")),
+                True))
+    graph.connect(start, "out", section1, "in")
+
+    trigger = graph.add_node(TriggerNode())
+    trigger.event = OnVariableChanged("section_1_completed")
+    section2 = graph.add_node(ActionsNode())
+    section2.instructions.instructions.append(TestingPush("section 2 ran"))
+    graph.connect(trigger, "out", section2, "trigger-in")
+
+    processor = GraphProcessor(graph)
+    ctx = ctx_for(graph)
+    task = asyncio.ensure_future(processor.run(ctx))
+    await asyncio.sleep(0.1)
+    processor.stop()
+    await asyncio.wait_for(task, timeout=2.0)
+    assert trace(graph) == ["section 2 ran"]
+
+
 async def test_on_variable_changed_any_and_list():
     from polytess.core.properties import GetGraphList, GetTarget
     from polytess.library.events.event_on_variable_changed import OnVariableChanged
