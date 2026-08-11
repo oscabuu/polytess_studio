@@ -128,30 +128,40 @@ def test_chat_view_follows_streaming_text():
     app.processEvents()
     bar = view.verticalScrollBar()
 
-    # streaming renders keep the view pinned to the end of the text
-    for n in range(20, 121, 20):
+    def render(lines: int) -> None:
         view.set_transcript([
             ("user", "q"),
-            ("assistant", "\n".join(f"line {i}" for i in range(n)))])
+            ("assistant", "\n".join(f"line {i}" for i in range(lines)))])
         app.processEvents()
+
+    def user_scroll_to(value: int) -> None:
+        """Simulate the user dragging the scrollbar handle."""
+        bar.setValue(value)
+        bar.sliderMoved.emit(value)
+
+    # streaming renders keep the view pinned to the end of the text
+    for n in range(20, 121, 20):
+        render(n)
     assert bar.value() >= bar.maximum() - 40
 
-    # scrolling up detaches: the next render leaves the position alone
+    # programmatic setValue alone must NOT detach (that was the v1.7.4
+    # bug: async non-user valueChanged detached and froze the view)
     bar.setValue(0)
-    app.processEvents()
-    view.set_transcript([("user", "q"),
-                         ("assistant", "\n".join(f"line {i}"
-                                                 for i in range(130)))])
-    app.processEvents()
-    assert bar.value() < bar.maximum() - 40
+    render(125)
+    assert bar.value() >= bar.maximum() - 40
 
-    # scrolling back to the bottom re-attaches
-    bar.setValue(bar.maximum())
-    app.processEvents()
-    view.set_transcript([("user", "q"),
-                         ("assistant", "\n".join(f"line {i}"
-                                                 for i in range(140)))])
-    app.processEvents()
+    # a real user scroll detaches — and the reading position is
+    # RESTORED on every re-render instead of jumping to the top
+    middle = bar.maximum() // 2
+    user_scroll_to(middle)
+    render(130)
+    assert abs(bar.value() - middle) <= 40
+    render(135)
+    assert abs(bar.value() - middle) <= 40
+
+    # user scrolling back to the bottom re-attaches
+    user_scroll_to(bar.maximum())
+    render(140)
     assert bar.value() >= bar.maximum() - 40
 
 

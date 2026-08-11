@@ -18,6 +18,7 @@ from __future__ import annotations
 import html
 import re
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QTextBrowser
 
 from polytess.gui.theme import ACCENTS, COLORS
@@ -212,10 +213,14 @@ class ChatView(QTextBrowser):
 
     While an answer streams in, the view follows the end of the text;
     scrolling up detaches it (so earlier parts can be read), scrolling
-    back to the bottom re-attaches it. The sticky state is tracked
-    explicitly because ``setHtml`` resets the scrollbar to 0 and lays
-    out asynchronously — reading the scrollbar position on the next
-    render would permanently "lose" the bottom."""
+    back to the bottom re-attaches it.
+
+    Attach/detach reacts ONLY to real user input (wheel, dragging the
+    scrollbar handle, scroll-arrow/page clicks, keys) — never to
+    programmatic ``valueChanged``: ``setHtml`` resets the scrollbar and
+    lays out asynchronously, so value-based detection would randomly
+    lose the bottom mid-stream. While detached, the reading position is
+    restored after every re-render instead of being yanked to the top."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -225,31 +230,44 @@ class ChatView(QTextBrowser):
             f" border: 1px solid {COLORS['border-element']};"
             f" padding: 4px; }}")
         self._stick_to_bottom = True
-        self._updating = False
+        self._held_value = 0            # reading position while detached
         bar = self.verticalScrollBar()
-        bar.valueChanged.connect(self._on_scrolled)
-        bar.rangeChanged.connect(self._on_range_changed)
+        bar.rangeChanged.connect(lambda *_: self._apply_position())
+        bar.sliderMoved.connect(self._sync_stick_from_user)
+        # arrow/page/groove clicks: the value updates after the signal,
+        # so evaluate on the next event-loop pass
+        bar.actionTriggered.connect(
+            lambda _action: QTimer.singleShot(0, self._sync_stick))
 
-    def _on_scrolled(self, value: int) -> None:
-        if not self._updating:
-            bar = self.verticalScrollBar()
-            self._stick_to_bottom = value >= bar.maximum() - 40
+    # ---- user intent --------------------------------------------------------- #
 
-    def _on_range_changed(self, _minimum: int, _maximum: int) -> None:
-        # Late document layout grows the range after setHtml — re-pin.
+    def wheelEvent(self, event):         # noqa: N802 (Qt API)
+        super().wheelEvent(event)
+        self._sync_stick()
+
+    def keyPressEvent(self, event):      # noqa: N802 (Qt API)
+        super().keyPressEvent(event)
+        self._sync_stick()
+
+    def _sync_stick(self) -> None:
+        self._sync_stick_from_user(self.verticalScrollBar().value())
+
+    def _sync_stick_from_user(self, value: int) -> None:
+        bar = self.verticalScrollBar()
+        self._stick_to_bottom = value >= bar.maximum() - 40
+        self._held_value = value
+
+    # ---- rendering ----------------------------------------------------------- #
+
+    def _apply_position(self) -> None:
+        """Pin to the bottom, or restore the detached reading position
+        (also called on late layout growth via rangeChanged)."""
+        bar = self.verticalScrollBar()
         if self._stick_to_bottom:
-            was_updating = self._updating   # may fire nested inside setHtml
-            self._updating = True
-            bar = self.verticalScrollBar()
             bar.setValue(bar.maximum())
-            self._updating = was_updating
+        else:
+            bar.setValue(min(self._held_value, bar.maximum()))
 
     def set_transcript(self, transcript: list[tuple[str, str]]) -> None:
-        self._updating = True
-        try:
-            self.setHtml(transcript_to_html(transcript))
-            if self._stick_to_bottom:
-                bar = self.verticalScrollBar()
-                bar.setValue(bar.maximum())
-        finally:
-            self._updating = False
+        self.setHtml(transcript_to_html(transcript))
+        self._apply_position()

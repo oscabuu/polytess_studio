@@ -4,6 +4,14 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.8.2 — 2026-08-11
+- Fixed the assistant chat scroll regression from 1.7.4: while an
+  answer streamed in, the view could jump to the top and refuse to
+  scroll until the answer finished. Attach/detach now reacts only to
+  real user input (wheel, scrollbar drag, arrow/page clicks, keys) —
+  never to programmatic scroll changes — and while detached the
+  reading position is restored after every re-render.
+
 ## 1.8.1 — 2026-08-05
 - Right-click on a variable-group header now offers **Rename Group…**
   (moves every member, keeps the collapse state) and **Delete Group**
