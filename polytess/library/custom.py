@@ -21,9 +21,14 @@ _PREFIX = "polytess_custom"
 
 
 def custom_library_dir() -> str:
+    """Resolution order: POLYTESS_CUSTOM_LIBRARY env var, then the
+    ``custom_library_path`` setting, then ``~/.polytess/custom_library``."""
+    from polytess.core.app_settings import AppSettings
     from polytess.core.userdir import env, user_dir
-    folder = env("CUSTOM_LIBRARY") or os.path.join(user_dir(),
-                                                   "custom_library")
+    folder = env("CUSTOM_LIBRARY") \
+        or str(AppSettings.instance().get("custom_library_path") or "").strip() \
+        or os.path.join(user_dir(), "custom_library")
+    folder = os.path.expanduser(folder)
     os.makedirs(folder, exist_ok=True)
     return folder
 

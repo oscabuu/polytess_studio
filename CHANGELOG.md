@@ -4,6 +4,19 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.10.0 — 2026-08-11
+- The Code Assistant (Claude provider) can now read and edit the
+  custom library directly: its session runs inside the custom-library
+  folder with Read/Write/Edit/Glob/Grep and auto-accepted edits, and
+  polytess hot-reloads the whole library right after each answer. For
+  the file open in the editor it still answers with a code block
+  (insert/apply) to avoid conflicts with unsaved changes. The Flow
+  Assistant stays plain chat.
+- New setting **Settings → Python → Custom Library**: the folder for
+  custom blocks (empty = `~/.polytess/custom_library`; the
+  POLYTESS_CUSTOM_LIBRARY env var still wins). Code editor, loader and
+  assistant all follow it.
+
 ## 1.9.0 — 2026-08-11
 - The Flow Assistant now receives and preserves the COMPLETE flow:
   variable groups, node positions (x/y), canvas groups and sticky

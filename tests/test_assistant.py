@@ -116,6 +116,63 @@ def test_chat_panel_streaming_flow(tmp_path):
     assert panel.send_button.isEnabled()
 
 
+def test_custom_library_dir_honors_setting(tmp_path, monkeypatch):
+    from polytess.library.custom import custom_library_dir
+
+    monkeypatch.delenv("POLYTESS_CUSTOM_LIBRARY", raising=False)
+    target = tmp_path / "my_blocks"
+    AppSettings.reset(path="", custom_library_path=str(target))
+    assert custom_library_dir() == str(target)
+    assert target.is_dir()                       # created on demand
+
+    # env var wins over the setting
+    env_dir = tmp_path / "env_blocks"
+    monkeypatch.setenv("POLYTESS_CUSTOM_LIBRARY", str(env_dir))
+    assert custom_library_dir() == str(env_dir)
+
+
+def test_code_assistant_worker_gets_custom_library_workdir(tmp_path,
+                                                           monkeypatch):
+    """The code assistant runs its worker rooted in the custom library
+    (file tools); after an answer the library is hot-reloaded."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    QApplication.instance() or QApplication([])
+    monkeypatch.delenv("POLYTESS_CUSTOM_LIBRARY", raising=False)
+    library = tmp_path / "lib"
+    AppSettings.reset(path="", custom_library_path=str(library))
+
+    from polytess.gui.code_assistant import AssistantChatPanel
+    panel = AssistantChatPanel()
+    panel.input.setPlainText("write a block")
+    started = {}
+
+    import polytess.gui.code_assistant as module
+    from PySide6.QtCore import QThread
+
+    def fake_init(self, system_prompt, messages, parent=None, workdir=""):
+        QThread.__init__(self)
+        started["workdir"] = workdir
+
+    monkeypatch.setattr(module.AssistantWorker, "__init__", fake_init)
+    monkeypatch.setattr(module.AssistantWorker, "start", lambda self: None)
+    panel.send()
+    assert started.get("workdir") == str(library)
+
+    # a file the assistant wrote lands in the registry after _on_finished
+    (library / "instruction_assistant_made.py").write_text(
+        "from polytess.core.instructions import Instruction\n"
+        "from polytess.core.metadata import meta\n\n\n"
+        "@meta(title='Assistant Made', category='Custom/Assistant Made')\n"
+        "class AssistantMade(Instruction):\n"
+        "    FIELD_HELP = {}\n\n"
+        "    async def run(self, ctx):\n"
+        "        ctx.info('hi')\n", encoding="utf-8")
+    panel._on_finished("done, wrote instruction_assistant_made.py")
+    from polytess.core.metadata import resolve_type
+    assert resolve_type("AssistantMade") is not None
+
+
 def test_chat_view_follows_streaming_text():
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtWidgets import QApplication

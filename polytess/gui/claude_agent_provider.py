@@ -35,9 +35,14 @@ def build_transcript_prompt(messages: list[dict]) -> str:
 
 
 def stream_claude_agent(system_prompt: str, messages: list[dict], *,
-                        model: str, on_chunk=None,
+                        model: str, workdir: str = "", on_chunk=None,
                         is_cancelled=None) -> str:
     """Run one Claude Agent SDK request; returns the full response text.
+
+    With *workdir* set, the session gets file tools (Read/Write/Edit/
+    Glob/Grep) rooted in that directory with auto-accepted edits — used
+    by the code assistant for the custom library. Without it the
+    session is plain chat (no tools), as the flow assistant uses it.
 
     "Streaming" here is per-assistant-message, not per-token — the SDK
     does not expose token-level deltas on the documented query() path.
@@ -53,12 +58,21 @@ def stream_claude_agent(system_prompt: str, messages: list[dict], *,
             "The 'claude-agent-sdk' package is not installed — run: "
             "pip install claude-agent-sdk") from None
 
-    options = ClaudeAgentOptions(
-        system_prompt=system_prompt,
-        model=model or None,
-        allowed_tools=[],          # assistants never execute tools
-        permission_mode="default",
-    )
+    if workdir:
+        options = ClaudeAgentOptions(
+            system_prompt=system_prompt,
+            model=model or None,
+            cwd=workdir,
+            allowed_tools=["Read", "Write", "Edit", "Glob", "Grep"],
+            permission_mode="acceptEdits",
+        )
+    else:
+        options = ClaudeAgentOptions(
+            system_prompt=system_prompt,
+            model=model or None,
+            allowed_tools=[],      # plain chat — no tools
+            permission_mode="default",
+        )
 
     async def drive() -> str:
         parts: list[str] = []

@@ -34,6 +34,13 @@ file. The pencil button inserts it at the cursor; the apply button
 replaces the whole editor content with it (Ctrl+Z undoes). Saving
 hot-reloads the class into the menus instantly.
 
+The assistant can also **read and edit the custom library directly**
+(Claude provider): it works inside your custom-library folder and may
+create or fix block files itself — polytess hot-reloads the library
+right after each answer. The folder is configurable under
+**Settings → Python → Custom Library** (empty =
+`~/.polytess/custom_library`).
+
 ## What the assistants know
 
 Both assistants receive the full shape of every installed building

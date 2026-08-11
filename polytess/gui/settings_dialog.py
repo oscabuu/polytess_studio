@@ -233,6 +233,19 @@ class SettingsDialog(QDialog):
         python_hint.setWordWrap(True)
         python_hint.setStyleSheet(f"color: {ACCENTS['text-light']};")
         python_layout.addWidget(python_hint)
+        python_layout.addWidget(QLabel("<b>Custom Library</b>"))
+        from polytess.gui.widgets import PathEdit
+        self.custom_library_path = PathEdit(
+            str(settings.get("custom_library_path") or ""))
+        python_layout.addWidget(self.custom_library_path)
+        library_hint = QLabel(
+            "Folder holding your custom Instructions/Conditions/Events "
+            "(one class per .py file). Empty = ~/.polytess/custom_library. "
+            "The code editor and the code assistant work in this folder; "
+            "changing it takes effect after a restart.")
+        library_hint.setWordWrap(True)
+        library_hint.setStyleSheet(f"color: {ACCENTS['text-light']};")
+        python_layout.addWidget(library_hint)
         python_layout.addStretch(1)
         tabs.addTab(python_page, "Python")
 
@@ -270,6 +283,8 @@ class SettingsDialog(QDialog):
         settings.set("report_color_accent", self.color_accent.color())
         settings.set("python_include_paths",
                      [p.strip() for p in self.python_include_paths.values() if p.strip()])
+        settings.set("custom_library_path",
+                     self.custom_library_path.text().strip())
         settings.save()
         sync_python_include_paths()
         self.accept()

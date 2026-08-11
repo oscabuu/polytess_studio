@@ -57,6 +57,9 @@ DEFAULTS: dict[str, Any] = {
     # extra directories on sys.path — for custom_library modules (and any
     # in-studio Python execution) that import from your own local packages
     "python_include_paths": [],
+    # custom-library folder override (empty = ~/.polytess/custom_library;
+    # the POLYTESS_CUSTOM_LIBRARY env var wins over both)
+    "custom_library_path": "",
 }
 
 

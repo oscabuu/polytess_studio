@@ -162,6 +162,18 @@ class MyTrigger(Event):
         self.fire(None)
 ```
 
+## File access (custom library)
+Your working directory IS the user's custom-library folder and you have
+Read/Write/Edit/Glob/Grep there. You may create or modify custom-block
+files directly; polytess hot-reloads the whole custom library right
+after your answer, so direct edits take effect immediately.
+- For the file currently open in the editor (<current_file>), prefer
+  answering with a ```python block (the user inserts/applies it) —
+  editing it on disk behind the open editor invites conflicts. Say so
+  if you did edit it directly.
+- For OTHER files (new blocks, several files at once, small fixes),
+  editing directly is fine — summarize exactly which files you touched.
+
 ## Rules
 - ALWAYS answer in English, even when the user writes in German.
 - When creating or rewriting a file, put the COMPLETE file content in one
@@ -421,10 +433,12 @@ class AssistantWorker(QThread):
     finished_ok = Signal(str)     # full response text
     failed = Signal(str)
 
-    def __init__(self, system_prompt: str, messages: list[dict], parent=None):
+    def __init__(self, system_prompt: str, messages: list[dict], parent=None,
+                 workdir: str = ""):
         super().__init__(parent)
         self._system = system_prompt
         self._messages = messages
+        self._workdir = workdir      # non-empty: file tools rooted here
         self._cancelled = False
 
     def cancel(self) -> None:
@@ -446,6 +460,7 @@ class AssistantWorker(QThread):
             text = stream_claude_agent(
                 self._system, self._messages,
                 model=str(settings.get("assistant_model") or ""),
+                workdir=self._workdir,
                 on_chunk=self.chunk.emit,
                 is_cancelled=lambda: self._cancelled)
         except RuntimeError as exc:
@@ -627,7 +642,9 @@ class AssistantChatPanel(QWidget):
         if self._system_prompt is None:
             self._system_prompt = build_system_prompt()
 
-        self._worker = AssistantWorker(self._system_prompt, list(self._history))
+        from polytess.library.custom import custom_library_dir
+        self._worker = AssistantWorker(self._system_prompt, list(self._history),
+                                       workdir=custom_library_dir())
         self._worker.chunk.connect(self._on_chunk)
         self._worker.finished_ok.connect(self._on_finished)
         self._worker.failed.connect(self._on_failed)
@@ -675,7 +692,22 @@ class AssistantChatPanel(QWidget):
         self.insert_button.setEnabled(has_code)
         self.apply_button.setEnabled(has_code
                                      and self._editor_panel is not None)
+        self._reload_custom_library()
         self._set_status("Done.")
+
+    def _reload_custom_library(self) -> None:
+        """The assistant may have edited custom-library files directly —
+        hot-reload them so the Add menus reflect the changes at once."""
+        from polytess.library.custom import load_custom_library
+        try:
+            errors = load_custom_library()
+        except Exception:
+            return
+        for name, error in errors:
+            self._transcript.append(
+                ("error", f"custom library {name}: {error}"))
+        if errors:
+            self._render()
 
     def _on_failed(self, message: str) -> None:
         self._waiting_timer.stop()
