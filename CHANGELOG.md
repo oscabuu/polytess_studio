@@ -4,6 +4,16 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.9.0 — 2026-08-11
+- The Flow Assistant now receives and preserves the COMPLETE flow:
+  variable groups, node positions (x/y), canvas groups and sticky
+  notes are part of the simplified schema, exported with the open flow
+  and rebuilt on insert. Its instructions explicitly demand keeping
+  everything untouched that the user didn't ask to change, so
+  modification answers no longer destroy layout and organization.
+  Flows round-tripped with explicit positions keep them (the
+  auto-layout only runs for flows built from scratch).
+
 ## 1.8.2 — 2026-08-11
 - Fixed the assistant chat scroll regression from 1.7.4: while an
   answer streamed in, the view could jump to the top and refuse to

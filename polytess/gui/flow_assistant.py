@@ -43,8 +43,12 @@ Describe your plan briefly, then put the COMPLETE flow in exactly ONE
 {
   "name": "<workflow name>",
   "variables": [{"name": "deck", "type": "string|number|bool|path|date",
-                 "value": ...}],
+                 "value": ..., "group": "optional group name"}],
   "lists":     [{"name": "paths", "type": "path", "items": []}],
+  "groups": [{"title": "Section 1", "x": 0, "y": 0,
+              "width": 400, "height": 300, "color": "#3d7ad9"}],
+  "notes":  [{"title": "Note", "content": "text", "x": 0, "y": 0,
+              "width": 200, "height": 140}],
   "nodes": [
     {"id": "prep", "kind": "actions", "name": "Optional display name",
      "instructions": [{"type": "<ClassName>", "params": {...}}]},
@@ -109,6 +113,11 @@ your version as a new document. Param values shown as "<...>" are
 computed sources the schema cannot express — keep the affected fields
 out of your params so they retain those sources when rebuilt, and
 mention this.
+PRESERVE EVERYTHING you are not asked to change: keep every node's
+"x"/"y" position, every variable's "group", and the "groups" and
+"notes" arrays exactly as given — dropping them destroys the user's
+layout and organization. Nodes you ADD get x/y near their neighbors
+(or omit x/y only on brand-new nodes).
 
 ## Rules
 - ALWAYS answer in English, even when the user writes in German.

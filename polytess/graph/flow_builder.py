@@ -55,7 +55,7 @@ from polytess.core.properties import (GetConstantList, GetGlobalList,
                                     SetGlobalList, SetGlobalTable,
                                     SetGlobalVariable, SetGraphList,
                                     SetGraphTable, SetGraphVariable, SetNone)
-from polytess.graph.model import Graph
+from polytess.graph.model import Graph, Group, StickyNote
 from polytess.graph.nodes import (ActionsNode, BranchNode, ConditionsNode,
                                 ExitNode, StartNode, SubGraphNode, TriggerNode)
 
@@ -294,9 +294,10 @@ def build_flow(data: dict) -> BuildResult:
 
     for spec in data.get("variables") or []:
         try:
-            graph.variables.declare(str(spec["name"]),
-                                    str(spec.get("type", "string")),
-                                    spec.get("value"))
+            var = graph.variables.declare(str(spec["name"]),
+                                          str(spec.get("type", "string")),
+                                          spec.get("value"))
+            var.group = str(spec.get("group", "") or "")
         except Exception as exc:
             result.warnings.append(f"variable {spec!r}: {exc}")
     for spec in data.get("lists") or []:
@@ -308,6 +309,7 @@ def build_flow(data: dict) -> BuildResult:
             result.warnings.append(f"list {spec!r}: {exc}")
 
     by_id: dict[str, object] = {}
+    positioned: set[str] = set()
     for spec in data.get("nodes") or []:
         node_id = str(spec.get("id") or f"n{len(by_id)}")
         kind = str(spec.get("kind", "actions")).lower()
@@ -353,6 +355,12 @@ def build_flow(data: dict) -> BuildResult:
             continue
         if spec.get("name"):
             node.custom_name = str(spec["name"])
+        if "x" in spec and "y" in spec:
+            try:
+                node.x, node.y = float(spec["x"]), float(spec["y"])
+                positioned.add(node_id)
+            except (TypeError, ValueError):
+                result.warnings.append(f"{where}: bad x/y — ignored")
         graph.add_node(node)
         by_id[node_id] = node
 
@@ -362,6 +370,27 @@ def build_flow(data: dict) -> BuildResult:
     by_id.setdefault("start", start)
     by_id.setdefault("exit", exit_node)
     by_id.setdefault("end", exit_node)
+
+    for spec in data.get("groups") or []:
+        try:
+            graph.groups.append(Group(
+                title=str(spec.get("title", "Group")),
+                x=float(spec.get("x", 0)), y=float(spec.get("y", 0)),
+                width=float(spec.get("width", 400)),
+                height=float(spec.get("height", 300)),
+                color=str(spec.get("color", "#3d7ad9"))))
+        except (TypeError, ValueError) as exc:
+            result.warnings.append(f"group {spec!r}: {exc}")
+    for spec in data.get("notes") or []:
+        try:
+            graph.notes.append(StickyNote(
+                title=str(spec.get("title", "Note")),
+                content=str(spec.get("content", "")),
+                x=float(spec.get("x", 0)), y=float(spec.get("y", 0)),
+                width=float(spec.get("width", 200)),
+                height=float(spec.get("height", 140))))
+        except (TypeError, ValueError) as exc:
+            result.warnings.append(f"note {spec!r}: {exc}")
 
     for spec in data.get("edges") or []:
         src = by_id.get(str(spec.get("from", "")))
@@ -381,7 +410,23 @@ def build_flow(data: dict) -> BuildResult:
         if graph.connect(src, src_port, dst, dst_port) is None:
             result.warnings.append(f"edge {spec!r}: could not connect")
 
-    _layout(graph)
+    if not positioned:
+        _layout(graph)                   # fresh flow: automatic columns
+    else:
+        # explicit positions win (round-trip of an existing flow keeps
+        # the user's layout); park any NEW unpositioned node below
+        placed = {node for key, node in by_id.items() if key in positioned}
+        max_y = max((n.y for n in placed), default=0.0)
+        offset = 0
+        for node in graph.nodes:
+            if node in placed:
+                continue
+            if isinstance(node, (StartNode, ExitNode)) \
+                    and node not in by_id.values():
+                continue                 # implicit endpoints keep defaults
+            offset += 1
+            node.x = _X_START + offset * _X_STEP
+            node.y = max_y + _Y_STEP
     result.graph = graph
     return result
 
@@ -462,8 +507,11 @@ def flow_to_data(graph: Graph) -> dict:
     data: dict = {"name": graph.name, "variables": [], "lists": [],
                   "nodes": [], "edges": []}
     for var in graph.variables:
-        data["variables"].append({"name": var.name, "type": var.type_id,
-                                  "value": var.value.get()})
+        spec = {"name": var.name, "type": var.type_id,
+                "value": var.value.get()}
+        if getattr(var, "group", ""):
+            spec["group"] = var.group
+        data["variables"].append(spec)
     for lst in graph.lists:
         data["lists"].append({"name": lst.name, "type": lst.type_id,
                               "items": list(lst.items)})
@@ -485,15 +533,13 @@ def flow_to_data(graph: Graph) -> dict:
         if isinstance(node, StartNode):
             spec["kind"] = "start"
             blocks = [_export_block(i) for i in node.instructions]
-            if not blocks:
-                continue                     # implicit start, nothing to say
-            spec["instructions"] = blocks
+            if blocks:
+                spec["instructions"] = blocks
         elif isinstance(node, ExitNode):
             spec["kind"] = "exit"
             blocks = [_export_block(i) for i in node.instructions]
-            if not blocks:
-                continue                     # implicit exit
-            spec["instructions"] = blocks
+            if blocks:
+                spec["instructions"] = blocks
         elif isinstance(node, ActionsNode):
             spec["kind"] = "actions"
             spec["instructions"] = [_export_block(i)
@@ -522,7 +568,22 @@ def flow_to_data(graph: Graph) -> dict:
             continue
         if getattr(node, "custom_name", ""):
             spec["name"] = node.custom_name
+        spec["x"] = round(node.x, 1)
+        spec["y"] = round(node.y, 1)
         data["nodes"].append(spec)
+
+    if graph.groups:
+        data["groups"] = [
+            {"title": group.title, "x": round(group.x, 1),
+             "y": round(group.y, 1), "width": round(group.width, 1),
+             "height": round(group.height, 1), "color": group.color}
+            for group in graph.groups]
+    if graph.notes:
+        data["notes"] = [
+            {"title": note.title, "content": note.content,
+             "x": round(note.x, 1), "y": round(note.y, 1),
+             "width": round(note.width, 1), "height": round(note.height, 1)}
+            for note in graph.notes]
 
     for edge in graph.edges:
         src = ids.get(edge.src_node)

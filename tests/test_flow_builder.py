@@ -158,6 +158,49 @@ def test_flow_to_data_roundtrip():
         == "Deck MR_001"
 
 
+def test_flow_to_data_preserves_layout_groups_and_notes():
+    """The export carries variable groups, node positions, canvas groups
+    and sticky notes — a modify-roundtrip must not destroy them."""
+    from polytess.graph.model import Group, StickyNote
+
+    graph = build_flow(_flow()).graph
+    graph.variables.variable("deck").group = "Inputs"
+    actions = next(iter(graph.nodes_of_type(ActionsNode)))
+    actions.x, actions.y = 123.0, 456.0
+    graph.groups.append(Group("Phase 1", 10, 20, 500, 400, "#ff0000"))
+    graph.notes.append(StickyNote("Hint", "check the deck", 5, 6, 210, 150))
+
+    data = flow_to_data(graph)
+    deck = next(v for v in data["variables"] if v["name"] == "deck")
+    assert deck["group"] == "Inputs"
+    exported = next(n for n in data["nodes"] if n["kind"] == "actions")
+    assert exported["x"] == 123.0 and exported["y"] == 456.0
+    kinds = {n["kind"] for n in data["nodes"]}
+    assert "start" in kinds and "exit" in kinds       # endpoints keep x/y too
+    assert data["groups"][0]["title"] == "Phase 1"
+    assert data["notes"][0]["content"] == "check the deck"
+
+    rebuilt = build_flow(data)
+    assert rebuilt.ok, (rebuilt.errors, rebuilt.missing)
+    rgraph = rebuilt.graph
+    assert rgraph.variables.variable("deck").group == "Inputs"
+    ractions = next(iter(rgraph.nodes_of_type(ActionsNode)))
+    assert (ractions.x, ractions.y) == (123.0, 456.0)  # layout NOT rerun
+    assert rgraph.groups[0].title == "Phase 1"
+    assert rgraph.groups[0].color == "#ff0000"
+    assert rgraph.notes[0].content == "check the deck"
+
+    # a brand-new node without x/y gets parked instead of reflowing all
+    data["nodes"].append({"id": "extra", "kind": "actions",
+                          "instructions": []})
+    data["edges"].append({"from": "start", "to": "extra"})
+    rebuilt2 = build_flow(data)
+    ractions2 = next(n for n in rebuilt2.graph.nodes_of_type(ActionsNode)
+                     if not n.custom_name)
+    assert (next(n for n in rebuilt2.graph.nodes_of_type(ActionsNode)
+                 if n.custom_name).x, ) == (123.0, )
+
+
 def test_markdown_rendering():
     from polytess.gui.chat_view import markdown_to_html
     html = markdown_to_html(
