@@ -207,7 +207,6 @@ QCheckBox::indicator {{
     background: {c['bg-darker']};
 }}
 QCheckBox::indicator:checked {{ background: {c['border-active']}; }}
-QDockWidget {{ titlebar-close-icon: none; }}
 QDockWidget::title {{
     background: {c['bg-dark']};
     padding: 5px 8px;

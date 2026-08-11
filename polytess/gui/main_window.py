@@ -76,6 +76,13 @@ class MainWindow(QMainWindow):
         self.tabs.tabCloseRequested.connect(self._close_tab)
         self.setCentralWidget(self.tabs)
 
+        # docks may be closed, stacked as tabs (drag one onto another)
+        # and arranged side by side within one dock area
+        self.setDockOptions(QMainWindow.AnimatedDocks
+                            | QMainWindow.AllowTabbedDocks
+                            | QMainWindow.AllowNestedDocks)
+        self.setDockNestingEnabled(True)
+
         # docks
         self.inspector = InspectorPanel()
         self.inspector.node_changed.connect(self._on_node_edited)
@@ -239,12 +246,14 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.act_fit)
         view_menu.addAction(self.act_minimap)
         view_menu.addSeparator()
+        self._dock_toggle_separator = view_menu.addSeparator()
         for dock_name in ("inspector", "variables", "log"):
             dock = getattr(self, f"dock_{dock_name}", None)
             if dock is not None:
-                view_menu.addAction(dock.toggleViewAction())
-        view_menu.addSeparator()
+                view_menu.insertAction(self._dock_toggle_separator,
+                                       dock.toggleViewAction())
         view_menu.addAction(self.act_restore_layout)
+        self._view_menu = view_menu
 
         help_menu = self.menuBar().addMenu("&Help")
         help_menu.addAction(self.act_manual)
@@ -587,6 +596,14 @@ class MainWindow(QMainWindow):
                 lambda text: self.statusBar().showMessage(text, 5000))
             dock = self._add_dock("Flow Assistant", panel,
                                   Qt.RightDockWidgetArea, min_width=380)
+            # dock as a tab next to the Inspector (drag it out to
+            # rearrange; the X closes it, View menu reopens it)
+            inspector_dock = getattr(self, "dock_inspector", None)
+            if inspector_dock is not None:
+                self.tabifyDockWidget(inspector_dock, dock)
+            if getattr(self, "_view_menu", None) is not None:
+                self._view_menu.insertAction(self._dock_toggle_separator,
+                                             dock.toggleViewAction())
         dock.show()
         dock.raise_()
         dock.widget().input.setFocus()

@@ -543,6 +543,38 @@ def test_poly_list_widget_edit_ops(app):
     assert "Wait" in widget._rows[0].title_label.text()
 
 
+def test_flow_assistant_dock_tabbed_and_closable(app):
+    import qasync
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    from PySide6.QtWidgets import QDockWidget, QMainWindow
+    from polytess.gui.main_window import MainWindow
+
+    window = MainWindow()
+    window.show()
+    # docks can be tabbed and arranged side by side
+    assert window.dockOptions() & QMainWindow.AllowTabbedDocks
+    assert window.dockOptions() & QMainWindow.AllowNestedDocks
+    assert window.isDockNestingEnabled()
+
+    window._open_flow_assistant()
+    dock = window.dock_flow_assistant
+    # closable via the title-bar X …
+    assert dock.features() & QDockWidget.DockWidgetFeature.DockWidgetClosable
+    dock.close()
+    assert not dock.isVisible()
+    # … and re-openable via the View menu toggle
+    toggles = [a for a in window._view_menu.actions()
+               if a.text() == "Flow Assistant"]
+    assert toggles and toggles[0].isCheckable()
+    toggles[0].trigger()
+    assert dock.isVisible()
+    # docked as a tab next to the Inspector
+    assert dock in window.tabifiedDockWidgets(window.dock_inspector) \
+        or window.dock_inspector in window.tabifiedDockWidgets(dock)
+    window.close()
+
+
 def test_main_window_open_and_run(app, tmp_path):
     import qasync
     loop = qasync.QEventLoop(app)

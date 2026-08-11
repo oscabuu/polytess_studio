@@ -43,6 +43,15 @@ debug your first workflow. No programming needed.
 - **F7** steps one node forward, **F6** resumes, the Variables dock
   shows live values while paused.
 
+## Arrange your workspace
+
+All panels (Inspector, Variables, Log, Flow Assistant) are dockable:
+close them with the **×** in their title bar, reopen them via the
+**View** menu, drag one panel onto another to stack them as **tabs**
+(the Flow Assistant opens tabbed next to the Inspector by default), or
+drop it beside another panel to place them side by side. **View →
+Restore Default Layout** puts everything back.
+
 ## Where to go next
 
 - **File → New from Example…** opens ready-made flows to explore —

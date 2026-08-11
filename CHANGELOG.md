@@ -4,6 +4,16 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.11.0 — 2026-08-11
+- Docks are closable again (the theme had hidden the title-bar close
+  icon): every panel — Flow Assistant included — closes via its × and
+  reopens from the View menu (the Flow Assistant now has a toggle
+  there too).
+- Docks can be stacked as tabs and arranged side by side: drag one
+  panel onto another to tabify, or next to it to split (tabbed +
+  nested dock options, dock nesting enabled). The Flow Assistant
+  opens as a tab next to the Inspector by default.
+
 ## 1.10.2 — 2026-08-11
 - Settings → Reports gains an **Email** field (`report_email`): the
   default notification recipient, readable from any instruction via
