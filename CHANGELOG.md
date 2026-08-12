@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.12.4 — 2026-08-12
+- Bool values are edited with a True/False selection menu instead of
+  free text — in the Blackboard variables table, for elements of bool
+  lists, and in the New Variable dialog (its value field switches to
+  the menu when the type is bool).
+
 ## 1.12.3 — 2026-08-12
 - Flow documentation now resolves nested content fully: branches of a
   Branch node (and loop bodies, repeat-until checks — every nested

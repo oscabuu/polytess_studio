@@ -125,6 +125,7 @@ class _NewVariableDialog(QDialog):
     def __init__(self, parent=None, title: str = "New Variable",
                  with_value: bool = True):
         super().__init__(parent)
+        from polytess.gui.widgets import BoolCombo
         self.setWindowTitle(title)
         layout = QFormLayout(self)
         self.name_edit = QLineEdit()
@@ -135,13 +136,32 @@ class _NewVariableDialog(QDialog):
         self.type_combo.setCurrentText("string")
         layout.addRow("Type", self.type_combo)
         self.value_edit = QLineEdit()
+        self.value_bool = BoolCombo(False)      # bool: selection, not text
+        self.value_bool.hide()
         if with_value:
-            layout.addRow("Value", self.value_edit)
+            value_row = QWidget()
+            value_layout = QHBoxLayout(value_row)
+            value_layout.setContentsMargins(0, 0, 0, 0)
+            value_layout.addWidget(self.value_edit)
+            value_layout.addWidget(self.value_bool)
+            layout.addRow("Value", value_row)
+            self.type_combo.currentTextChanged.connect(self._on_type_changed)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addRow(buttons)
         self.name_edit.setFocus()
+
+    def _on_type_changed(self, type_id: str) -> None:
+        is_bool = type_id == "bool"
+        self.value_edit.setVisible(not is_bool)
+        self.value_bool.setVisible(is_bool)
+
+    def value(self):
+        """The entered start value (bool from the selection menu)."""
+        if self.type_combo.currentText() == "bool":
+            return self.value_bool.value()
+        return self.value_edit.text() or None
 
 
 class _FilterHeader(QHBoxLayout):
@@ -501,6 +521,15 @@ class _VariablesTable(QWidget):
             editor.changed.connect(
                 lambda table, name=var.name: self._set_value(name, table))
             self.table.setCellWidget(row, 2, editor)
+        elif var.type_id == "bool":
+            from polytess.gui.widgets import BoolCombo
+            placeholder = QTableWidgetItem("")
+            placeholder.setFlags(placeholder.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 2, placeholder)
+            editor = BoolCombo(bool(var.value.get()))
+            editor.changed.connect(
+                lambda value, name=var.name: self._set_value(name, value))
+            self.table.setCellWidget(row, 2, editor)
         elif var.type_id == "vector3":
             from polytess.core.values import format_vector3
             self.table.setItem(
@@ -592,7 +621,7 @@ class _VariablesTable(QWidget):
         if not name or self.variables.exists(name):
             return
         self.variables.declare(name, dialog.type_combo.currentText(),
-                               dialog.value_edit.text() or None)
+                               dialog.value())
         self.refresh()
         self.changed.emit()
 
@@ -745,6 +774,17 @@ class _ListsPanel(QWidget):
                         lambda text, name=lst.name, i=index:
                         self._set_element(name, i, text))
                     self.tree.setItemWidget(child, 1, editor)
+                elif lst.type_id == "bool":
+                    # bool elements: True/False selection, never free text
+                    from polytess.gui.widgets import BoolCombo
+                    child = QTreeWidgetItem([str(index), ""])
+                    child.setForeground(0, Qt.gray)
+                    top.addChild(child)
+                    combo = BoolCombo(bool(value))
+                    combo.changed.connect(
+                        lambda checked, name=lst.name, i=index:
+                        self._set_element(name, i, checked))
+                    self.tree.setItemWidget(child, 1, combo)
                 else:
                     child = QTreeWidgetItem([str(index), str(value)])
                     child.setForeground(0, Qt.gray)

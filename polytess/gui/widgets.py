@@ -9,9 +9,9 @@ from typing import Callable
 
 from PySide6.QtCore import QPointF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPolygonF
-from PySide6.QtWidgets import (QDialog, QFileDialog, QHBoxLayout, QLabel,
-                               QLineEdit, QMenu, QPushButton, QToolButton,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QComboBox, QDialog, QFileDialog, QHBoxLayout,
+                               QLabel, QLineEdit, QMenu, QPushButton,
+                               QToolButton, QVBoxLayout, QWidget)
 
 from polytess.gui.icons import icon
 from polytess.gui.theme import ACCENTS
@@ -120,6 +120,22 @@ class VariableRefField(QWidget):
                 lambda checked=False, n=name: self.edit.setText(n))
         menu.exec(self.mapToGlobal(self.rect().bottomRight()
                                    - QPointF(menu.sizeHint().width(), 0).toPoint()))
+
+
+class BoolCombo(QComboBox):
+    """True/False selection menu for bool values — never free text."""
+
+    changed = Signal(bool)
+
+    def __init__(self, value: bool = False, parent=None):
+        super().__init__(parent)
+        self.addItems(["True", "False"])
+        self.setCurrentIndex(0 if value else 1)
+        self.currentIndexChanged.connect(
+            lambda index: self.changed.emit(index == 0))
+
+    def value(self) -> bool:
+        return self.currentIndex() == 0
 
 
 class StringListEdit(QWidget):

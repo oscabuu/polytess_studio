@@ -367,6 +367,47 @@ def test_blackboard_variable_groups(app):
     assert not table_widget._group_names()
 
 
+def test_bool_variables_use_selection_menu(app):
+    """Bool values are edited via a True/False selection menu — in the
+    variables table, in bool lists and in the New Variable dialog."""
+    from PySide6.QtCore import Qt
+    from polytess.gui.blackboard import BlackboardPanel, _NewVariableDialog
+    from polytess.gui.widgets import BoolCombo
+
+    graph = Graph("t")
+    graph.variables.declare("flag", "bool", True)
+    graph.lists.declare("flags", "bool", [True, False])
+    panel = BlackboardPanel()
+    panel.set_graph(graph)
+
+    # variables table: combo instead of an editable "True" string
+    table = panel.graph_vars.table
+    row = graph.variables.names().index("flag")
+    editor = table.cellWidget(row, 2)
+    assert isinstance(editor, BoolCombo)
+    assert editor.value() is True
+    editor.setCurrentIndex(1)                  # pick "False"
+    assert graph.variables.get("flag") is False
+
+    # bool list elements: combo per element
+    tree = panel.graph_lists.tree
+    top = next(tree.topLevelItem(i) for i in range(tree.topLevelItemCount())
+               if tree.topLevelItem(i).data(0, Qt.UserRole) == "flags")
+    element = tree.itemWidget(top.child(1), 1)
+    assert isinstance(element, BoolCombo)
+    element.setCurrentIndex(0)                 # pick "True"
+    assert graph.lists.get("flags").items[1] is True
+
+    # dialog: value field swaps to the selection menu for bool
+    dialog = _NewVariableDialog()
+    assert dialog.value_edit.isVisibleTo(dialog)
+    dialog.type_combo.setCurrentText("bool")
+    assert not dialog.value_edit.isVisibleTo(dialog)
+    assert dialog.value_bool.isVisibleTo(dialog)
+    dialog.value_bool.setCurrentIndex(1)
+    assert dialog.value() is False
+
+
 def test_blackboard_search_sort_filter(app):
     from polytess.gui.blackboard import BlackboardPanel
     graph = Graph("t")
