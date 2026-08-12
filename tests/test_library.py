@@ -358,3 +358,33 @@ async def test_send_email_falls_back_to_report_email(tmp_path, monkeypatch):
     await SendEmail("", "subject", "body").run(ctx)
     assert any("skipped" in m for _l, m in warnings)
     AppSettings.reset(path="", use_command_server=False)
+
+
+def test_live_display_shows_values_instead_of_names(tmp_path):
+    """set_live_display resolves current variable values into .display /
+    titles; disabled (or unresolvable) falls back to the name form."""
+    from polytess.core.properties import (PropertyGetPath, live_display_enabled,
+                                          set_live_display)
+
+    graph = FakeGraph()
+    graph.variables.declare("result_dir", "path", "/proj/runs")
+    ctx = Context(graph=graph, logger=lambda l, m: None)
+
+    prop = PropertyGetPath(GetGraphVariable("result_dir"))
+    folder = CreateFolder()
+    folder.path = prop
+
+    assert str(prop) == "graph:result_dir"
+    try:
+        set_live_display(True, lambda: ctx)
+        assert live_display_enabled()
+        assert str(prop) == "/proj/runs"
+        assert "Create folder /proj/runs" == folder.title
+
+        # unknown variable falls back to the name form
+        broken = PropertyGetPath(GetGraphVariable("missing"))
+        assert str(broken) == "graph:missing"
+    finally:
+        set_live_display(False)
+    assert not live_display_enabled()
+    assert str(prop) == "graph:result_dir"

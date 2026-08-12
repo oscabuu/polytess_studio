@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.13.0 — 2026-08-12
+- **F4 — Show Current Values**: instruction previews (node body and
+  inspector) toggle between variable names (`graph:result_dir`) and
+  the variables' CURRENT values (`/proj/runs`). Templates resolve too;
+  anything unresolvable keeps its name form. Also in the View menu.
+
 ## 1.12.4 — 2026-08-12
 - Bool values are edited with a True/False selection menu instead of
   free text — in the Blackboard variables table, for elements of bool

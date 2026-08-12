@@ -1034,6 +1034,58 @@ class SetGlobalTable(SetGraphTable):
 # Property wrappers (the fields living inside instructions/conditions)
 # --------------------------------------------------------------------------- #
 
+# ---- live value display (F4 in the studio) --------------------------------- #
+# When enabled, PropertyGet/PropertySet .display resolves the CURRENT value
+# through a GUI-provided context factory instead of showing the variable
+# name — used by "Show Current Values" (F4). Falls back to the name form
+# whenever resolution fails (no context, unknown variable, ...).
+
+_LIVE_DISPLAY: dict = {"enabled": False, "ctx_factory": None}
+
+
+def set_live_display(enabled: bool, ctx_factory=None) -> None:
+    _LIVE_DISPLAY["enabled"] = bool(enabled)
+    _LIVE_DISPLAY["ctx_factory"] = ctx_factory if enabled else None
+
+
+def live_display_enabled() -> bool:
+    return bool(_LIVE_DISPLAY["enabled"])
+
+
+def _format_live(value) -> str | None:
+    if value is None or value == "":
+        return None                    # unresolvable -> name form fallback
+    if isinstance(value, bool):
+        return "True" if value else "False"
+    if isinstance(value, float):
+        return f"{value:g}"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, list):
+        text = f"[{len(value)} items]"
+    elif isinstance(value, dict):
+        try:
+            from polytess.core import tables
+            text = tables.summary(value)
+        except Exception:
+            text = "{…}"
+    else:
+        text = str(value)
+    return text if len(text) <= 48 else text[:47] + "…"
+
+
+def _live_text(prop) -> str | None:
+    if not _LIVE_DISPLAY["enabled"] or _LIVE_DISPLAY["ctx_factory"] is None:
+        return None
+    try:
+        ctx = _LIVE_DISPLAY["ctx_factory"]()
+        if ctx is None:
+            return None
+        return _format_live(prop.get(ctx))
+    except Exception:
+        return None
+
+
 class PropertyGet(PolymorphicItem):
     """TPropertyGet — wraps an exchangeable get-source."""
 
@@ -1052,6 +1104,9 @@ class PropertyGet(PolymorphicItem):
 
     @property
     def display(self) -> str:
+        live = _live_text(self)
+        if live is not None:
+            return live
         return self.source.display if self.source is not None else "(none)"
 
     def __str__(self) -> str:
@@ -1302,6 +1357,9 @@ class PropertySet(PolymorphicItem):
 
     @property
     def display(self) -> str:
+        live = _live_text(self)
+        if live is not None:
+            return live
         return self.source.display if self.source is not None else "(none)"
 
     def __str__(self) -> str:

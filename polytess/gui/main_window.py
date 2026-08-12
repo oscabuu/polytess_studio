@@ -166,6 +166,12 @@ class MainWindow(QMainWindow):
         self.act_minimap = QAction(icon("minimap", "text"), "&Minimap", self,
                                    checkable=True, checked=True,
                                    triggered=self._toggle_minimap)
+        self.act_live_values = QAction("Show Current &Values", self,
+                                       shortcut="F4", checkable=True,
+                                       toggled=self._toggle_live_values)
+        self.act_live_values.setToolTip(
+            "Show the current variable values in instruction previews "
+            "instead of the variable names (F4)")
         self.act_restore_layout = QAction("&Restore Default Layout", self,
                                           triggered=self._restore_default_layout)
         self.act_add_node = QAction(icon("plus", "text"), "&Add Node…", self,
@@ -245,6 +251,7 @@ class MainWindow(QMainWindow):
         view_menu = self.menuBar().addMenu("&View")
         view_menu.addAction(self.act_fit)
         view_menu.addAction(self.act_minimap)
+        view_menu.addAction(self.act_live_values)
         view_menu.addSeparator()
         self._dock_toggle_separator = view_menu.addSeparator()
         for dock_name in ("inspector", "variables", "log"):
@@ -607,6 +614,29 @@ class MainWindow(QMainWindow):
         dock.show()
         dock.raise_()
         dock.widget().input.setFocus()
+
+    def _toggle_live_values(self, checked: bool) -> None:
+        """F4 — instruction previews show current variable values instead
+        of variable names (falls back to names where nothing resolves)."""
+        from polytess.core import Context
+        from polytess.core.properties import set_live_display
+
+        def make_ctx():
+            doc = self.current_document()
+            if doc is None:
+                return None
+            return Context(graph=doc.graph,
+                           logger=lambda level, message: None)
+
+        set_live_display(checked, make_ctx if checked else None)
+        doc = self.current_document()
+        if doc is not None:
+            doc.view.viewport().update()      # node previews repaint live
+        if self.inspector._node is not None:  # rebuild visible inspector
+            self.inspector.refresh_if_showing(self.inspector._node)
+        self.statusBar().showMessage(
+            "Showing current values (F4 toggles back)" if checked
+            else "Showing variable names", 4000)
 
     def _open_built_graph(self, graph, modifies_open_flow: bool = False) -> None:
         """A flow built by the flow assistant becomes a new document tab.

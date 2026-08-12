@@ -676,6 +676,39 @@ def test_flow_assistant_insert_reports_context_flag(app):
     assert received == [False, True]
 
 
+def test_f4_toggles_live_value_display(app):
+    import qasync
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    from polytess.core.properties import live_display_enabled
+    from polytess.graph.flow_builder import build_flow
+    from polytess.gui.main_window import GraphDocument, MainWindow
+
+    window = MainWindow()
+    graph = build_flow({
+        "name": "live", "variables": [
+            {"name": "result_dir", "type": "path", "value": "/proj/runs"}],
+        "nodes": [{"id": "a", "kind": "actions", "instructions": [
+            {"type": "CreateFolder", "params": {"path": {"var": "result_dir"}}}]}],
+        "edges": [{"from": "start", "to": "a"}],
+    }).graph
+    window._add_document(GraphDocument(graph))
+    node = next(n for n in graph.nodes if n.name == "Actions")
+    instruction = list(node.instructions)[0]
+
+    assert window.act_live_values.shortcut().toString() == "F4"
+    assert "graph:result_dir" in instruction.title
+
+    window.act_live_values.setChecked(True)
+    assert live_display_enabled()
+    assert "/proj/runs" in instruction.title
+
+    window.act_live_values.setChecked(False)
+    assert not live_display_enabled()
+    assert "graph:result_dir" in instruction.title
+    window.close()
+
+
 def test_main_window_open_and_run(app, tmp_path):
     import qasync
     loop = qasync.QEventLoop(app)

@@ -45,6 +45,10 @@ The searchable catalog opens with **Ctrl+Space** or *Add Instruction…*.
   Fields accept **drag & drop** from the Variables dock.
 - Loops set a **target** (the current element); read it with the
   *Loop Target* source.
+- **F4** (View → Show Current Values) toggles instruction previews
+  between variable names (`graph:result_dir`) and the variables'
+  current values (`/proj/runs`) — in node previews and the inspector
+  alike. Unresolvable references keep showing their name.
 
 ## Files
 
