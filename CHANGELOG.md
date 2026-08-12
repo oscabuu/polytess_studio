@@ -4,6 +4,13 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.12.3 — 2026-08-12
+- Flow documentation now resolves nested content fully: branches of a
+  Branch node (and loop bodies, repeat-until checks — every nested
+  Instructions/Conditions list) are expanded item by item with their
+  parameters, indented per nesting level, instead of being summarized
+  as "N nested steps/checks".
+
 ## 1.12.2 — 2026-08-11
 - Flow documentation now includes groups: each node chapter (and the
   table of contents) names the canvas group whose frame contains the

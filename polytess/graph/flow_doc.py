@@ -23,8 +23,9 @@ import os
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import (Flowable, HRFlowable, PageBreak, Paragraph,
-                                SimpleDocTemplate, Spacer, Table, TableStyle)
+from reportlab.platypus import (Flowable, HRFlowable, Indenter, PageBreak,
+                                Paragraph, SimpleDocTemplate, Spacer, Table,
+                                TableStyle)
 
 from polytess.core.metadata import get_meta
 from polytess.graph.model import Graph, Node
@@ -126,12 +127,8 @@ def _item_fields(item) -> list[tuple[str, str]]:
             continue                       # default — no documentation value
         if key == "breakpoint" and value is False:
             continue
-        if isinstance(value, InstructionList):
-            rows.append((humanize(key), f"{len(value)} nested steps"))
-            continue
-        if isinstance(value, ConditionList):
-            rows.append((humanize(key), f"{len(value)} nested checks"))
-            continue
+        if isinstance(value, (InstructionList, ConditionList)):
+            continue                       # expanded recursively in the doc
         text = _display_value(value)
         if len(text) > 90:
             text = text[:87] + "…"
@@ -328,6 +325,52 @@ def _param_table(rows: list[tuple[str, str]], width: float) -> Table:
     return table
 
 
+def _append_item(story: list, styles, item, content_width: float,
+                 depth: int = 0) -> None:
+    """One content item (instruction/condition/event/branch) as document
+    flowables — nested Instruction/Condition lists (branch bodies, loop
+    bodies, repeat-until checks) are expanded recursively and indented
+    instead of being summarized as a count."""
+    from polytess.core.conditions import ConditionList
+    from polytess.core.instructions import InstructionList
+    from polytess.core.metadata import humanize
+
+    indent = depth * 5 * mm
+    if indent:
+        story.append(Indenter(left=indent))
+    try:
+        item_meta = get_meta(type(item))
+        title = getattr(item, "title", None) or item_meta.title
+        story.append(Paragraph(_esc(title), styles["itemhead"]))
+        story.append(Paragraph(
+            _esc(f"{item_meta.title}  ·  {item_meta.category}"),
+            styles["itemmeta"]))
+        if item_meta.description:
+            story.append(Paragraph(_esc(item_meta.description),
+                                   styles["body"]))
+        rows = _item_fields(item)
+        if rows:
+            story.append(Spacer(0, 3))
+            story.append(_param_table(rows, content_width - indent))
+        for key, value in vars(item).items():
+            if key.startswith("_") \
+                    or not isinstance(value, (InstructionList, ConditionList)):
+                continue
+            children = list(getattr(value, "instructions", None)
+                            if isinstance(value, InstructionList)
+                            else value.conditions)
+            if not children:
+                continue
+            story.append(Spacer(0, 2))
+            story.append(Paragraph(
+                f"<b>{_esc(humanize(key).title())}</b>", styles["itemmeta"]))
+            for child in children:
+                _append_item(story, styles, child, content_width, depth + 1)
+    finally:
+        if indent:
+            story.append(Indenter(left=-indent))
+
+
 def _group_title_of(graph: Graph, node) -> str:
     """Title of the canvas group whose frame contains *node* ('' if none;
     the innermost = smallest matching frame wins for nested groups)."""
@@ -461,19 +504,7 @@ def _build_story(graph: Graph, styles, source_path: str = "") -> list:
                 f"continues on the success or fail port.", styles["body"]))
 
         for item in node.content_lines():
-            item_meta = get_meta(type(item))
-            title = getattr(item, "title", None) or item_meta.title
-            story.append(Paragraph(_esc(title), styles["itemhead"]))
-            story.append(Paragraph(
-                _esc(f"{item_meta.title}  ·  {item_meta.category}"),
-                styles["itemmeta"]))
-            if item_meta.description:
-                story.append(Paragraph(_esc(item_meta.description),
-                                       styles["body"]))
-            rows = _item_fields(item)
-            if rows:
-                story.append(Spacer(0, 3))
-                story.append(_param_table(rows, content_width))
+            _append_item(story, styles, item, content_width)
         story.append(Spacer(0, 14))
 
     story.append(Paragraph('<a name="blackboard"/>Blackboard', styles["h2"]))

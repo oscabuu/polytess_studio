@@ -105,3 +105,35 @@ def test_doc_shows_canvas_and_variable_groups():
     text = _story_text(graph)
     assert "Preparation Phase" in text        # canvas group at the chapter
     assert "Model Inputs" in text             # variable group in Blackboard
+
+
+def test_doc_resolves_branches_and_loop_bodies():
+    """Branch nodes and loop bodies are expanded item by item — not
+    summarized as 'N nested steps/checks'."""
+    from polytess.core.conditions import Branch
+    from polytess.graph.nodes import BranchNode
+    from polytess.library.conditions.condition_compare_number import \
+        CompareNumber
+    from polytess.library.instructions.instruction_loop_range import LoopRange
+
+    graph = _make_graph()
+    branch_node = BranchNode()
+    branch_node.custom_name = "Route"
+    case_a = Branch("fast lane")
+    case_a.conditions.conditions.append(CompareNumber(1, "<", 2))
+    case_a.instructions.instructions.append(LogMessage("taking fast lane"))
+    loop = LoopRange(0, 3, 1)
+    loop.actions.instructions.append(LogMessage("inner loop step"))
+    case_b = Branch("fallback")
+    case_b.instructions.instructions.append(loop)
+    branch_node.branches.branches.append(case_a)
+    branch_node.branches.branches.append(case_b)
+    graph.add_node(branch_node)
+
+    text = _story_text(graph)
+    assert "fast lane" in text
+    assert "Compare Number" in text            # branch condition expanded
+    assert "taking fast lane" in text          # branch instruction expanded
+    assert "inner loop step" in text           # nested loop body expanded
+    assert "nested steps" not in text
+    assert "nested checks" not in text
