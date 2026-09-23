@@ -43,7 +43,8 @@ Describe your plan briefly, then put the COMPLETE flow in exactly ONE
 {
   "name": "<workflow name>",
   "variables": [{"name": "deck", "type": "string|number|bool|path|date",
-                 "value": ..., "group": "optional group name"}],
+                 "value": ..., "group": "optional group name",
+                 "status": "checked (optional: user verified the value)"}],
   "lists":     [{"name": "paths", "type": "path", "items": []}],
   "groups": [{"title": "Section 1", "x": 0, "y": 0,
               "width": 400, "height": 300, "color": "#3d7ad9"}],
@@ -119,7 +120,9 @@ out of your params so they retain those sources when rebuilt, and
 mention this. Variables and lists marked "set_at_runtime": true are
 written by the flow while it runs; their current contents are
 deliberately omitted (they are run results, not design input). Keep
-them declared without a value — never invent one.
+them declared without a value — never invent one. Keep "status":
+"checked" on variables that carry it (the user verified their content)
+unless you change that variable's value.
 Only the LATEST user message carries the <current_flow> block; earlier
 turns show "<current_flow omitted>" in its place — always work from the
 latest one.

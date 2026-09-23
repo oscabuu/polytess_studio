@@ -272,3 +272,32 @@ async def test_serialization_roundtrip():
     assert clone_prop.get(ctx) == "rotor"
     num = PropertyGetNumber(GetConstantNumber(4.5))
     assert from_data(to_data(num)).get(ctx) == 4.5
+
+
+def test_variable_status_persists_and_effective_status():
+    """The review status is stored with the variable (round-trips through
+    serialization, absent in old files -> unchecked); 'runtime' is derived
+    from the set of names the flow writes and wins over a stored mark."""
+    from polytess.core.serialization import from_data, to_data
+    from polytess.core.variables import (STATUS_CHECKED, STATUS_RUNTIME,
+                                         STATUS_UNCHECKED, ListVariable,
+                                         NameVariables, effective_status)
+
+    variables = NameVariables()
+    deck = variables.declare("deck", "string", "MR_001")
+    assert effective_status(deck) == STATUS_UNCHECKED
+    deck.status = STATUS_CHECKED
+    assert effective_status(deck) == STATUS_CHECKED
+    assert effective_status(deck, {"deck"}) == STATUS_RUNTIME
+
+    restored = NameVariables.from_data(variables.to_data())
+    assert restored.variable("deck").status == STATUS_CHECKED
+
+    legacy = to_data(deck)
+    legacy.pop("status")                    # file written before 1.15
+    assert from_data(legacy).status == ""
+
+    lst = ListVariable("found", "path", [])
+    assert effective_status(lst) == STATUS_UNCHECKED
+    assert effective_status(lst, ["found"]) == STATUS_RUNTIME
+    assert from_data(to_data(lst)).status == ""

@@ -4,6 +4,18 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.15.0 — 2026-09-23
+- **Variable status tags** in the Blackboard: every variable row has a
+  Status column and every list header a tag — *unchecked* (default),
+  *checked* (you verified the content: click the Status cell or
+  right-click → Mark as Checked; click again resets) or *runtime*
+  (a block of the flow writes the variable while running — derived
+  automatically from the flow, shown in yellow, not toggleable). The
+  checked mark is stored with the variable (`status`), old files load
+  as unchecked. Globals are re-evaluated whenever the open flow changes.
+- The Flow Assistant schema carries `"status": "checked"` and the guide
+  asks the assistant to preserve it unless it changes that value.
+
 ## 1.14.0 — 2026-09-23
 - **Flow Assistant context slimmed:** variables and lists that the flow
   WRITES during a run (set-sources, `target_list`, `*_to` fields) are

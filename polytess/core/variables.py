@@ -21,6 +21,25 @@ from polytess.core.polymorphic import PolymorphicItem
 from polytess.core.values import Value, ValueNull, create_value, value_from_python
 
 
+# Review status of a variable's CONTENT (display metadata, persisted with
+# the variable): "" = not yet checked, STATUS_CHECKED = the user verified
+# the value. STATUS_RUNTIME is never stored — it is derived: a variable
+# that some block WRITES during the run carries run results, so checking
+# its content by hand makes no sense.
+STATUS_UNCHECKED = "unchecked"
+STATUS_CHECKED = "checked"
+STATUS_RUNTIME = "runtime"
+
+
+def effective_status(var, runtime_written: Iterable[str] = ()) -> str:
+    """STATUS_RUNTIME when the flow writes *var*, else the stored review
+    status (STATUS_CHECKED / STATUS_UNCHECKED)."""
+    if var.name in set(runtime_written):
+        return STATUS_RUNTIME
+    return STATUS_CHECKED if getattr(var, "status", "") == STATUS_CHECKED \
+        else STATUS_UNCHECKED
+
+
 @meta(title="Name Variable", icon="variable", color="purple", hidden=True)
 class NameVariable(PolymorphicItem):
     """A named, typed value slot.
@@ -31,11 +50,12 @@ class NameVariable(PolymorphicItem):
     anything."""
 
     def __init__(self, name: str = "", value: Value | None = None,
-                 group: str = ""):
+                 group: str = "", status: str = ""):
         super().__init__()
         self.name = name
         self.value: Value = value if value is not None else ValueNull()
         self.group = group
+        self.status = status         # "" (unchecked) | STATUS_CHECKED
 
     @property
     def type_id(self) -> str:
@@ -137,11 +157,13 @@ class ListVariable(PolymorphicItem):
 
     Items are plain Python values; ``type_id`` declares the element type."""
 
-    def __init__(self, name: str = "", type_id: str = "string", items: list | None = None):
+    def __init__(self, name: str = "", type_id: str = "string", items: list | None = None,
+                 status: str = ""):
         super().__init__()
         self.name = name
         self.type_id = type_id
         self.items: list = list(items) if items else []
+        self.status = status         # "" (unchecked) | STATUS_CHECKED
 
     @property
     def title(self) -> str:

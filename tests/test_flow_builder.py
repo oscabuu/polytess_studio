@@ -254,3 +254,32 @@ def test_flow_to_data_omits_runtime_written_values():
     assert rebuilt.ok, (rebuilt.errors, rebuilt.missing)
     assert rebuilt.graph.variables.variable("result") is not None
     assert rebuilt.graph.lists.get("found") is not None
+
+
+def test_flow_to_data_carries_checked_status():
+    """A checked mark survives the assistant round-trip; runtime-written
+    variables never export a status of their own."""
+    from polytess.core.variables import STATUS_CHECKED
+
+    graph = build_flow(_flow(
+        variables=[{"name": "deck", "type": "string", "value": "MR_001",
+                    "status": "checked"},
+                   {"name": "result", "type": "string", "value": ""}],
+        lists=[{"name": "inputs", "type": "path", "items": ["a.inp"],
+                "status": "checked"}],
+        nodes=[{"id": "prep", "kind": "actions", "instructions": [
+            {"type": "SetString",
+             "params": {"value": {"var": "deck"}, "target": "result"}}]}],
+        edges=[{"from": "start", "to": "prep"}],
+    )).graph
+    assert graph.variables.variable("deck").status == STATUS_CHECKED
+    assert graph.lists.get("inputs").status == STATUS_CHECKED
+
+    data = flow_to_data(graph)
+    deck = next(v for v in data["variables"] if v["name"] == "deck")
+    result = next(v for v in data["variables"] if v["name"] == "result")
+    inputs = next(l for l in data["lists"] if l["name"] == "inputs")
+    assert deck["status"] == "checked" and "status" not in result
+    assert inputs["status"] == "checked"
+    rebuilt = build_flow(data).graph
+    assert rebuilt.variables.variable("deck").status == STATUS_CHECKED

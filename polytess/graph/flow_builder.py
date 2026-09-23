@@ -41,6 +41,8 @@ For Property*Set* write-targets a plain string is the graph-variable name.
 
 from __future__ import annotations
 
+from typing import Iterable
+
 from polytess.core.conditions import Branch, BranchList, Condition, ConditionList
 from polytess.core.events import Event
 from polytess.core.instructions import Instruction, InstructionList
@@ -55,6 +57,7 @@ from polytess.core.properties import (GetConstantList, GetGlobalList,
                                     SetGlobalList, SetGlobalTable,
                                     SetGlobalVariable, SetGraphList,
                                     SetGraphTable, SetGraphVariable, SetNone)
+from polytess.core.variables import STATUS_CHECKED
 from polytess.graph.model import Graph, Group, StickyNote
 from polytess.graph.nodes import (ActionsNode, BranchNode, ConditionsNode,
                                 ExitNode, StartNode, SubGraphNode, TriggerNode)
@@ -298,13 +301,17 @@ def build_flow(data: dict) -> BuildResult:
                                           str(spec.get("type", "string")),
                                           spec.get("value"))
             var.group = str(spec.get("group", "") or "")
+            if spec.get("status") == STATUS_CHECKED:
+                var.status = STATUS_CHECKED
         except Exception as exc:
             result.warnings.append(f"variable {spec!r}: {exc}")
     for spec in data.get("lists") or []:
         try:
-            graph.lists.declare(str(spec["name"]),
-                                str(spec.get("type", "string")),
-                                list(spec.get("items") or []))
+            lst = graph.lists.declare(str(spec["name"]),
+                                      str(spec.get("type", "string")),
+                                      list(spec.get("items") or []))
+            if spec.get("status") == STATUS_CHECKED:
+                lst.status = STATUS_CHECKED
         except Exception as exc:
             result.warnings.append(f"list {spec!r}: {exc}")
 
@@ -499,16 +506,21 @@ def _export_block(block) -> dict:
     return {"type": type(block).__name__, "params": _export_params(block)}
 
 
-def runtime_written_names(graph: Graph) -> set[str]:
-    """Names of graph variables and lists that some block WRITES during a
-    run (set-sources, ``*_to`` targets, …). Their current contents are
-    run results, not design input — the assistant export leaves them
-    out so a flow with large computed values stays small."""
+def runtime_written_names(graph: Graph, scope: str = "graph",
+                          names: Iterable[str] | None = None) -> set[str]:
+    """Names of variables and lists (*scope* "graph" or "global") that
+    some block of *graph* WRITES during a run (set-sources, ``*_to``
+    targets, …). Their current contents are run results, not design
+    input — the assistant export leaves them out so a flow with large
+    computed values stays small, and the Blackboard shows them as
+    "runtime". *names* defaults to the graph's own variables and lists;
+    pass the global names to check the global scope."""
     from polytess.core.refs import find_references
-    names = [v.name for v in graph.variables] + [l.name for l in graph.lists]
+    if names is None:
+        names = [v.name for v in graph.variables] + [l.name for l in graph.lists]
     written: set[str] = set()
     for name in names:
-        refs = find_references(graph, name, "graph")
+        refs = find_references(graph, name, scope)
         if any("write" in ref.access for ref in refs):
             written.add(name)
     return written
@@ -535,6 +547,8 @@ def flow_to_data(graph: Graph) -> dict:
             spec["value"] = var.value.get()
         if getattr(var, "group", ""):
             spec["group"] = var.group
+        if getattr(var, "status", "") == STATUS_CHECKED:
+            spec["status"] = STATUS_CHECKED
         data["variables"].append(spec)
     for lst in graph.lists:
         spec = {"name": lst.name, "type": lst.type_id}
@@ -543,6 +557,8 @@ def flow_to_data(graph: Graph) -> dict:
             spec["items"] = []
         else:
             spec["items"] = list(lst.items)
+        if getattr(lst, "status", "") == STATUS_CHECKED:
+            spec["status"] = STATUS_CHECKED
         data["lists"].append(spec)
 
     ids: dict[str, str] = {}

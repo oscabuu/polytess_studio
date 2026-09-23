@@ -879,3 +879,67 @@ def test_inspector_undo_stack_follows_active_tab(app):
     window.tabs.setCurrentWidget(doc1)
     assert window.inspector.undo_stack is doc1.scene.undo_stack
     window.tabs.clear()
+
+
+def test_blackboard_status_tags(app):
+    """Every variable row shows a status tag: unchecked by default, checked
+    after a click on the Status cell (toggle), runtime when a block of the
+    flow writes the variable (derived, not toggleable). Lists show the tag
+    in their header text."""
+    from PySide6.QtCore import Qt
+    from polytess.core.variables import STATUS_CHECKED
+    from polytess.graph.flow_builder import build_flow
+    from polytess.gui.blackboard import BlackboardPanel
+
+    graph = build_flow({
+        "name": "status",
+        "variables": [{"name": "deck", "type": "string", "value": "MR_001"},
+                      {"name": "result", "type": "string", "value": ""}],
+        "lists": [{"name": "found", "type": "path", "items": []},
+                  {"name": "inputs", "type": "path", "items": []}],
+        "nodes": [{"id": "a", "kind": "actions", "instructions": [
+            {"type": "SetString",
+             "params": {"value": {"var": "deck"}, "target": "result"}},
+            {"type": "FindFiles",
+             "params": {"pattern": "*.txt", "target_list": "found"}}]}],
+        "edges": [{"from": "start", "to": "a"}],
+    }).graph
+    panel = BlackboardPanel()
+    panel.set_graph(graph)
+    table = panel.graph_vars.table
+    assert table.columnCount() == 4
+
+    def status_text(name):
+        for r in range(table.rowCount()):
+            item = table.item(r, 0)
+            if item is not None and item.data(Qt.UserRole) == name:
+                return r, table.item(r, 3).text()
+        raise AssertionError(name)
+
+    row, text = status_text("deck")
+    assert "unchecked" in text
+    assert "runtime" in status_text("result")[1]
+
+    # click on the Status cell toggles checked <-> unchecked
+    panel.graph_vars._on_cell_clicked(row, 3)
+    assert graph.variables.variable("deck").status == STATUS_CHECKED
+    assert "✔" in status_text("deck")[1]
+    panel.graph_vars._on_cell_clicked(status_text("deck")[0], 3)
+    assert graph.variables.variable("deck").status == ""
+
+    # runtime variables cannot be toggled
+    row, _ = status_text("result")
+    panel.graph_vars._on_cell_clicked(row, 3)
+    assert graph.variables.variable("result").status == ""
+    assert "runtime" in status_text("result")[1]
+
+    # lists: tag in the header text, context-menu setter
+    tree = panel.graph_lists.tree
+    headers = {tree.topLevelItem(i).text(0): tree.topLevelItem(i).text(1)
+               for i in range(tree.topLevelItemCount())}
+    assert "runtime" in headers["found"] and "unchecked" in headers["inputs"]
+    panel.graph_lists._set_status("inputs", STATUS_CHECKED)
+    assert graph.lists.get("inputs").status == STATUS_CHECKED
+    headers = {tree.topLevelItem(i).text(0): tree.topLevelItem(i).text(1)
+               for i in range(tree.topLevelItemCount())}
+    assert "checked" in headers["inputs"] and "unchecked" not in headers["inputs"]

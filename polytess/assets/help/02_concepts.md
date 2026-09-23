@@ -39,6 +39,14 @@ The searchable catalog opens with **Ctrl+Space** or *Add Instruction…*.
   references. **Renaming** a variable rewrites all its
   references in the current flow (sources, name fields and `{name}`
   templates), so renames don't break nodes either.
+- Every variable and list carries a **status tag**: *unchecked* (the
+  default), *checked* (you verified its content — click the Status cell
+  or right-click → Mark as Checked; click again to reset) or *runtime*
+  (some block of the flow writes it while running, so its content is a
+  run result, not an input to review — derived automatically, never
+  editable). The checked mark is saved with the flow; the Flow
+  Assistant sees it too and receives runtime variables without their
+  contents.
 - Every field of a block is a **property slot**: click the ▼ to switch
   its source — constant value, graph/global variable, formatted
   template (`MR_{deck}.inp`), split string, table cell, and more.

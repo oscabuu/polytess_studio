@@ -23,7 +23,10 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog,
 
 from polytess.core.metadata import get_meta
 from polytess.core.values import create_value, value_types
-from polytess.core.variables import GlobalScope, ListVariables, NameVariables
+from polytess.core.variables import (STATUS_CHECKED, STATUS_RUNTIME,
+                                     STATUS_UNCHECKED, GlobalScope,
+                                     ListVariables, NameVariables,
+                                     effective_status)
 from polytess.gui.icons import icon
 from polytess.gui.widgets import VARIABLE_MIME, PathEdit
 
@@ -39,6 +42,45 @@ def type_icon(type_id: str):
         return icon("variable", "text-light")
     m = get_meta(cls)
     return icon(m.icon, m.color)
+
+
+# status tag: (label, accent) per effective status
+STATUS_TAGS = {
+    STATUS_UNCHECKED: ("○ unchecked", "text-light"),
+    STATUS_CHECKED: ("✔ checked", "green"),
+    STATUS_RUNTIME: ("⟳ runtime", "yellow"),
+}
+STATUS_TOOLTIPS = {
+    STATUS_UNCHECKED: "Content not verified yet — click (or right-click) "
+                      "to mark it as checked.",
+    STATUS_CHECKED: "Content verified by you — click to reset to unchecked.",
+    STATUS_RUNTIME: "Written by the flow while it runs — its content is a "
+                    "run result, not an input to check.",
+}
+
+
+def _status_item(status: str) -> QTableWidgetItem:
+    from PySide6.QtGui import QColor
+    from polytess.gui.theme import ACCENTS
+    label, accent = STATUS_TAGS[status]
+    item = QTableWidgetItem(label)
+    item.setForeground(QColor(ACCENTS[accent]))
+    item.setToolTip(STATUS_TOOLTIPS[status])
+    item.setFlags((item.flags() | Qt.ItemIsEnabled)
+                  & ~Qt.ItemIsEditable & ~Qt.ItemIsDragEnabled)
+    return item
+
+
+def _runtime_written(graph_provider, scope: str, names) -> set[str]:
+    """Names (of *names*) the current graph writes at runtime."""
+    graph = graph_provider() if graph_provider else None
+    if graph is None:
+        return set()
+    from polytess.graph.flow_builder import runtime_written_names
+    try:
+        return runtime_written_names(graph, scope, list(names))
+    except Exception:
+        return set()
 
 
 def _variable_mime(name: str) -> QMimeData:
@@ -241,6 +283,7 @@ class _VariablesTable(QWidget):
         self._scope = scope
         self._graph_provider = graph_provider
         self._collapsed: set[str] = set()
+        self._written: set[str] = set()   # names the flow writes at runtime
         self._updating = False
         self._sort_column: int | None = None
         self._sort_asc = True
@@ -259,10 +302,12 @@ class _VariablesTable(QWidget):
                                         self.refresh, (add_btn, remove_btn))
         layout.addLayout(self.header_bar)
 
-        self.table = _DragTable(0, 3)
-        self.table.setHorizontalHeaderLabels(["Name", "Type", "Value"])
+        self.table = _DragTable(0, 4)
+        self.table.setHorizontalHeaderLabels(["Name", "Type", "Value", "Status"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionsClickable(True)
         self.table.horizontalHeader().sectionClicked.connect(self._sort_by)
         self.table.verticalHeader().setVisible(False)
@@ -294,9 +339,10 @@ class _VariablesTable(QWidget):
         menu = QMenu(self)
         menu.addAction(icon("search", "text-light"), f"Find References of '{name}'…",
                        lambda: self.find_refs.emit(name))
+        var = self.variables.variable(name) if self.variables else None
+        self._add_status_actions(menu, var)
         group_menu = menu.addMenu(icon("folder", "text-light"),
                                   "Move to Group")
-        var = self.variables.variable(name) if self.variables else None
         current = var.group if var is not None else ""
         no_group = group_menu.addAction("(no group)")
         no_group.setEnabled(current != "")
@@ -314,6 +360,44 @@ class _VariablesTable(QWidget):
         group_menu.addAction("New group…",
                              lambda n=name: self._move_to_new_group(n))
         menu.exec(self.table.viewport().mapToGlobal(pos))
+
+    # ---- status ---------------------------------------------------------------- #
+
+    def _status_of(self, var) -> str:
+        return effective_status(var, self._written)
+
+    def _add_status_actions(self, menu: QMenu, var) -> None:
+        if var is None:
+            return
+        status = self._status_of(var)
+        if status == STATUS_RUNTIME:
+            action = menu.addAction(icon("play", "yellow"),
+                                    "Status: written at runtime")
+            action.setEnabled(False)
+            return
+        if status == STATUS_CHECKED:
+            menu.addAction(icon("check", "text-light"), "Mark as Unchecked",
+                           lambda n=var.name: self._set_status(n, ""))
+        else:
+            menu.addAction(icon("check", "green"), "Mark as Checked",
+                           lambda n=var.name: self._set_status(n, STATUS_CHECKED))
+
+    def _set_status(self, name: str, status: str) -> None:
+        if self.variables is None:
+            return
+        var = self.variables.variable(name)
+        if var is None or getattr(var, "status", "") == status:
+            return
+        var.status = status
+        self.refresh()
+        self.changed.emit()
+
+    def _toggle_status(self, name: str) -> None:
+        var = self.variables.variable(name) if self.variables else None
+        if var is None or self._status_of(var) == STATUS_RUNTIME:
+            return
+        self._set_status(name, "" if var.status == STATUS_CHECKED
+                         else STATUS_CHECKED)
 
     # ---- groups ---------------------------------------------------------------- #
 
@@ -392,10 +476,14 @@ class _VariablesTable(QWidget):
         self.refresh()
         self.changed.emit()
 
-    def _on_cell_clicked(self, row: int, _column: int) -> None:
+    def _on_cell_clicked(self, row: int, column: int) -> None:
         item = self.table.item(row, 0)
         group = item.data(self._GROUP_ROLE) if item is not None else None
         if group is None:
+            if column == 3:
+                name = self._row_name(row)
+                if name:
+                    self._toggle_status(name)
             return
         if group in self._collapsed:
             self._collapsed.discard(group)
@@ -464,6 +552,8 @@ class _VariablesTable(QWidget):
         self._updating = True
         self.table.setRowCount(0)
         visible = self._visible_variables()
+        self._written = _runtime_written(self._graph_provider, self._scope,
+                                         (v.name for v in visible))
         ungrouped = [v for v in visible if not getattr(v, "group", "")]
         grouped: dict[str, list] = {}
         for var in visible:
@@ -491,7 +581,7 @@ class _VariablesTable(QWidget):
                         & ~Qt.ItemIsEditable & ~Qt.ItemIsDragEnabled)
         header.setData(self._GROUP_ROLE, group)
         self.table.setItem(row, 0, header)
-        self.table.setSpan(row, 0, 1, 3)
+        self.table.setSpan(row, 0, 1, 4)
 
     def _append_variable_row(self, var) -> None:
         row = self.table.rowCount()
@@ -542,6 +632,7 @@ class _VariablesTable(QWidget):
                 f"{format_vector3(value['rot'])}"))
         else:
             self.table.setItem(row, 2, QTableWidgetItem(str(var.value.get())))
+        self.table.setItem(row, 3, _status_item(self._status_of(var)))
 
     def _row_name(self, row: int) -> str | None:
         item = self.table.item(row, 0)
@@ -642,9 +733,13 @@ class _ListsPanel(QWidget):
     changed = Signal()
     find_refs = Signal(str)     # list name
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, scope: str = "graph",
+                 graph_provider=None):
         super().__init__(parent)
         self.lists: ListVariables | None = None
+        self._scope = scope
+        self._graph_provider = graph_provider
+        self._written: set[str] = set()
         self._updating = False
         self._sort_column: int | None = None
         self._sort_asc = True
@@ -693,7 +788,28 @@ class _ListsPanel(QWidget):
         menu = QMenu(self)
         menu.addAction(icon("search", "text-light"), f"Find References of '{name}'…",
                        lambda: self.find_refs.emit(name))
+        lst = self.lists.get(name) if self.lists else None
+        if lst is not None:
+            status = effective_status(lst, self._written)
+            if status == STATUS_RUNTIME:
+                action = menu.addAction(icon("play", "yellow"),
+                                        "Status: written at runtime")
+                action.setEnabled(False)
+            elif status == STATUS_CHECKED:
+                menu.addAction(icon("check", "text-light"), "Mark as Unchecked",
+                               lambda n=name: self._set_status(n, ""))
+            else:
+                menu.addAction(icon("check", "green"), "Mark as Checked",
+                               lambda n=name: self._set_status(n, STATUS_CHECKED))
         menu.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def _set_status(self, name: str, status: str) -> None:
+        lst = self.lists.get(name) if self.lists else None
+        if lst is None or getattr(lst, "status", "") == status:
+            return
+        lst.status = status
+        self.refresh()
+        self.changed.emit()
 
     # ---- binding ----------------------------------------------------------- #
 
@@ -756,11 +872,18 @@ class _ListsPanel(QWidget):
                     for i in range(self.tree.topLevelItemCount())
                     if self.tree.topLevelItem(i).isExpanded()}
         self.tree.clear()
-        for lst in self._visible_lists():
-            top = QTreeWidgetItem([lst.name, f"{lst.type_id}  [{len(lst)}]"])
+        visible = self._visible_lists()
+        self._written = _runtime_written(self._graph_provider, self._scope,
+                                         (l.name for l in visible))
+        for lst in visible:
+            status = effective_status(lst, self._written)
+            tag = STATUS_TAGS[status][0]
+            top = QTreeWidgetItem([lst.name,
+                                   f"{lst.type_id}  [{len(lst)}]   {tag}"])
             top.setData(0, Qt.UserRole, lst.name)
             top.setIcon(0, type_icon(lst.type_id))
             top.setForeground(1, Qt.gray)
+            top.setToolTip(1, STATUS_TOOLTIPS[status])
             top.setFlags(top.flags() | Qt.ItemIsEditable)
             self.tree.addTopLevelItem(top)
             for index, value in enumerate(lst.items):
@@ -934,7 +1057,8 @@ class BlackboardPanel(QWidget):
         self._graph = None
         self.graph_vars = _VariablesTable(
             scope="graph", graph_provider=lambda: self._graph)
-        self.graph_lists = _ListsPanel()
+        self.graph_lists = _ListsPanel(
+            scope="graph", graph_provider=lambda: self._graph)
         graph_page = QWidget()
         graph_layout = QVBoxLayout(graph_page)
         graph_layout.setContentsMargins(2, 2, 2, 2)
@@ -944,7 +1068,8 @@ class BlackboardPanel(QWidget):
 
         self.global_vars = _VariablesTable(
             scope="global", graph_provider=lambda: self._graph)
-        self.global_lists = _ListsPanel()
+        self.global_lists = _ListsPanel(
+            scope="global", graph_provider=lambda: self._graph)
         global_page = QWidget()
         global_layout = QVBoxLayout(global_page)
         global_layout.setContentsMargins(2, 2, 2, 2)
@@ -970,3 +1095,6 @@ class BlackboardPanel(QWidget):
         self._graph = graph
         self.graph_vars.set_collection(graph.variables if graph else None)
         self.graph_lists.set_collection(graph.lists if graph else None)
+        # runtime status of globals depends on the open graph's blocks
+        self.global_vars.refresh()
+        self.global_lists.refresh()
