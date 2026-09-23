@@ -44,7 +44,11 @@ Describe your plan briefly, then put the COMPLETE flow in exactly ONE
   "name": "<workflow name>",
   "variables": [{"name": "deck", "type": "string|number|bool|path|date",
                  "value": ..., "group": "optional group name",
-                 "status": "checked (optional: user verified the value)"}],
+                 "status": "checked (optional: user verified the value)",
+                 "form": {"label": "Caption", "description": "help text",
+                          "required": true, "mode": "input|output|hidden",
+                          "choices": [...], "minimum": 0, "maximum": 1,
+                          "path_kind": "file|folder|any", "must_exist": true}}],
   "lists":     [{"name": "paths", "type": "path", "items": []}],
   "groups": [{"title": "Section 1", "x": 0, "y": 0,
               "width": 400, "height": 300, "color": "#3d7ad9"}],
@@ -82,6 +86,13 @@ Describe your plan briefly, then put the COMPLETE flow in exactly ONE
   plain string, or {"global": "name"} for a global.
 - Every "type" MUST be a class name from the registry below — check it.
   Declare every variable you reference.
+- "form" (optional, all keys optional) describes a variable for the
+  polytess Viewer, where non-expert users fill in the inputs as a form
+  without seeing the flow: give every USER INPUT a short "label" and a
+  one-sentence "description"; mark inputs the run cannot do without as
+  "required"; mark result variables the user should see afterwards as
+  "mode": "output". Variables the flow writes itself are hidden
+  automatically. Preserve existing "form" blocks.
 
 ## Missing building blocks
 When the process needs a step that no registered block covers, SAY SO

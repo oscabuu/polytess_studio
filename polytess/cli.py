@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 
@@ -86,6 +87,18 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     graph = Graph.load(args.file)
     graph.ensure_endpoints()
+    if getattr(args, "vars_file", ""):
+        from polytess.graph.inputs import (apply_values, input_spec,
+                                           load_vars_file, validate_values)
+        values = load_vars_file(args.vars_file)
+        unknown = apply_values(graph, values)
+        for name in unknown:
+            print(f"[WARNING] vars file: unknown variable {name!r}", file=sys.stderr)
+        problems = validate_values(input_spec(graph), values)
+        if problems:
+            for problem in problems:
+                print(f"[ERROR] {problem}", file=sys.stderr)
+            return 2
     _apply_vars(graph, args.var or [])
 
     workdir = os.path.abspath(args.workdir or os.path.dirname(os.path.abspath(args.file)))
@@ -103,6 +116,22 @@ def cmd_run(args: argparse.Namespace) -> int:
     except KeyboardInterrupt:
         print("\n[WARNING] interrupted", file=sys.stderr)
         return 130
+    return 0
+
+
+def cmd_inputs(args: argparse.Namespace) -> int:
+    """Print the Viewer input form of a flow as JSON (what a non-expert
+    user gets to fill in), or write a vars-file template for it."""
+    from polytess.graph.inputs import input_spec, save_vars_file
+    from polytess.graph.model import Graph
+
+    graph = Graph.load(args.file)
+    spec = input_spec(graph)
+    if args.template:
+        save_vars_file(args.template, {f.name: f.value for f in spec.fields})
+        print(f"template written: {args.template}")
+        return 0
+    print(json.dumps(spec.to_dict(), indent=1, ensure_ascii=False))
     return 0
 
 
@@ -147,8 +176,19 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("file")
     p_run.add_argument("--var", action="append", metavar="NAME=VALUE",
                        help="override a graph variable (repeatable)")
+    p_run.add_argument("--vars-file", default="", metavar="FILE",
+                       help="JSON object {name: value} with input values "
+                            "(Viewer preset format); validated before the run")
     p_run.add_argument("--workdir", default="", help="working directory (default: file's folder)")
     p_run.set_defaults(fn=cmd_run)
+
+    p_inputs = sub.add_parser("inputs", help="show the input form of a flow "
+                                             "(Viewer view) as JSON")
+    p_inputs.add_argument("file")
+    p_inputs.add_argument("--template", default="", metavar="FILE",
+                          help="write a vars-file template with the current "
+                               "values instead")
+    p_inputs.set_defaults(fn=cmd_inputs)
 
     p_val = sub.add_parser("validate", help="check a workflow file")
     p_val.add_argument("file")

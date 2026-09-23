@@ -943,3 +943,50 @@ def test_blackboard_status_tags(app):
     headers = {tree.topLevelItem(i).text(0): tree.topLevelItem(i).text(1)
                for i in range(tree.topLevelItemCount())}
     assert "checked" in headers["inputs"] and "unchecked" not in headers["inputs"]
+
+
+def test_viewer_settings_dialog_edits_form(app):
+    """The Blackboard's Viewer Settings dialog writes only the keys the
+    user filled into var.form and converts numbers/choices per type."""
+    from polytess.core.variables import ListVariable, NameVariables
+    from polytess.gui.blackboard import ViewerSettingsDialog
+
+    variables = NameVariables()
+    cpus = variables.declare("cpus", "integer", 4)
+    dialog = ViewerSettingsDialog(cpus)
+    dialog.label.setText("CPU cores")
+    dialog.description.setPlainText("Cores per solver job")
+    dialog.required.setChecked(True)
+    dialog.minimum.setText("1")
+    dialog.maximum.setText("64")
+    dialog.choices.setText("1, 2, 4, x, 8")
+    dialog.mode.setCurrentIndex(dialog.mode.findData("input"))
+    dialog.apply()
+    assert cpus.form == {"mode": "input", "label": "CPU cores",
+                         "description": "Cores per solver job",
+                         "required": True, "choices": [1, 2, 4, 8],
+                         "minimum": 1.0, "maximum": 64.0}
+
+    # reopening shows the stored values; clearing everything empties form
+    dialog = ViewerSettingsDialog(cpus)
+    assert dialog.label.text() == "CPU cores" and dialog.minimum.text() == "1"
+    dialog.label.setText(""); dialog.description.setPlainText("")
+    dialog.required.setChecked(False); dialog.minimum.setText("")
+    dialog.maximum.setText(""); dialog.choices.setText("")
+    dialog.mode.setCurrentIndex(0)
+    dialog.apply()
+    assert cpus.form == {}
+
+    model = variables.declare("model", "path", "")
+    dialog = ViewerSettingsDialog(model, is_runtime=True)
+    assert "hidden" in dialog.mode.itemText(0)
+    dialog.path_kind.setCurrentIndex(dialog.path_kind.findData("file"))
+    dialog.must_exist.setChecked(True)
+    dialog.apply()
+    assert model.form == {"path_kind": "file", "must_exist": True}
+
+    lst = ListVariable("inputs", "path", [])
+    dialog = ViewerSettingsDialog(lst)
+    dialog.order.setText("3")
+    dialog.apply()
+    assert lst.form == {"order": 3.0}

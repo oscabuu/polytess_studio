@@ -3,8 +3,12 @@
 Stand: 2026-09-23 · Basis: polytess Studio v1.15.0 (Blackboard mit Status-Tags,
 `runtime_written_names`, `GraphProcessor`, CLI `polytess run --var`)
 
-> **Status: ENTWURF** — noch nichts umgesetzt. Reihenfolge und Umfang siehe
-> Abschnitt 8.
+> **Status: Phase 1 UMGESETZT** (2026-09-23, v1.16.0): `form`-Metadaten an
+> Variablen/Listen, Blackboard-Dialog *Viewer Settings…*,
+> `polytess/graph/inputs.py` (InputSpec, Validierung, apply, Vars-Datei),
+> CLI `polytess inputs` und `run --vars-file`, Assistant-Schema. Metadaten
+> liegen in einem `form`-Dict statt in Einzelfeldern (Abschnitt 3).
+> Phase 2 (Viewer-App) offen.
 
 ---
 

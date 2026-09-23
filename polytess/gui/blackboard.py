@@ -206,6 +206,127 @@ class _NewVariableDialog(QDialog):
         return self.value_edit.text() or None
 
 
+class ViewerSettingsDialog(QDialog):
+    """Edit a variable's / list's Viewer form metadata (``var.form``):
+    how the field appears to non-expert users in the polytess Viewer
+    form (PLAN_VIEWER.md). Only keys the user set are stored."""
+
+    def __init__(self, var, is_runtime: bool = False, parent=None):
+        super().__init__(parent)
+        from PySide6.QtWidgets import QCheckBox, QPlainTextEdit
+        self._var = var
+        form = dict(getattr(var, "form", None) or {})
+        self.setWindowTitle(f"Viewer Settings — {var.name}")
+        self.setMinimumWidth(420)
+        layout = QFormLayout(self)
+
+        self.mode = QComboBox()
+        auto = ("hidden (written at runtime)" if is_runtime
+                else "input (not written by the flow)")
+        self.mode.addItem(f"automatic — {auto}", "")
+        self.mode.addItem("input — shown in the form", "input")
+        self.mode.addItem("output — shown read-only after the run", "output")
+        self.mode.addItem("hidden — never shown", "hidden")
+        index = self.mode.findData(form.get("mode", ""))
+        self.mode.setCurrentIndex(max(index, 0))
+        layout.addRow("Mode", self.mode)
+
+        self.label = QLineEdit(str(form.get("label", "")))
+        self.label.setPlaceholderText(var.name)
+        layout.addRow("Label", self.label)
+        self.description = QPlainTextEdit(str(form.get("description", "")))
+        self.description.setPlaceholderText("Help text shown under the field")
+        self.description.setFixedHeight(64)
+        layout.addRow("Description", self.description)
+        self.required = QCheckBox("must not be empty before a run")
+        self.required.setChecked(bool(form.get("required", False)))
+        layout.addRow("Required", self.required)
+
+        type_id = var.type_id
+        self.choices = QLineEdit(", ".join(str(c) for c in form.get("choices") or []))
+        self.choices.setPlaceholderText("comma-separated allowed values (optional)")
+        if type_id in ("string", "number", "integer"):
+            layout.addRow("Choices", self.choices)
+        self.minimum = QLineEdit("" if form.get("minimum") is None
+                                 else f"{form['minimum']:g}")
+        self.maximum = QLineEdit("" if form.get("maximum") is None
+                                 else f"{form['maximum']:g}")
+        if type_id in ("number", "integer"):
+            layout.addRow("Minimum", self.minimum)
+            layout.addRow("Maximum", self.maximum)
+        self.path_kind = QComboBox()
+        for kind in ("any", "file", "folder"):
+            self.path_kind.addItem(kind, kind)
+        self.path_kind.setCurrentIndex(
+            max(self.path_kind.findData(form.get("path_kind", "any")), 0))
+        self.must_exist = QCheckBox("must exist before a run")
+        self.must_exist.setChecked(bool(form.get("must_exist", False)))
+        if type_id == "path":
+            layout.addRow("Path kind", self.path_kind)
+            layout.addRow("Existence", self.must_exist)
+        self.order = QLineEdit("" if form.get("order") is None
+                               else f"{form['order']:g}")
+        self.order.setPlaceholderText("sort key inside the group (optional)")
+        layout.addRow("Order", self.order)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    @staticmethod
+    def _number(text: str):
+        text = text.strip()
+        if not text:
+            return None
+        try:
+            return float(text)
+        except ValueError:
+            return None
+
+    def form(self) -> dict:
+        """The edited metadata — only keys with a value."""
+        out: dict = {}
+        if self.mode.currentData():
+            out["mode"] = self.mode.currentData()
+        if self.label.text().strip():
+            out["label"] = self.label.text().strip()
+        if self.description.toPlainText().strip():
+            out["description"] = self.description.toPlainText().strip()
+        if self.required.isChecked():
+            out["required"] = True
+        type_id = self._var.type_id
+        if type_id in ("string", "number", "integer") and self.choices.text().strip():
+            raw = [c.strip() for c in self.choices.text().split(",") if c.strip()]
+            if type_id != "string":
+                converted = []
+                for item in raw:
+                    number = self._number(item)
+                    if number is not None:
+                        converted.append(int(number) if type_id == "integer"
+                                         else number)
+                raw = converted
+            if raw:
+                out["choices"] = raw
+        if type_id in ("number", "integer"):
+            for key, edit in (("minimum", self.minimum), ("maximum", self.maximum)):
+                number = self._number(edit.text())
+                if number is not None:
+                    out[key] = number
+        if type_id == "path":
+            if self.path_kind.currentData() != "any":
+                out["path_kind"] = self.path_kind.currentData()
+            if self.must_exist.isChecked():
+                out["must_exist"] = True
+        order = self._number(self.order.text())
+        if order is not None:
+            out["order"] = order
+        return out
+
+    def apply(self) -> None:
+        self._var.form = self.form()
+
+
 class _FilterHeader(QHBoxLayout):
     """Shared header row: title · search field · type filter · extra buttons."""
 
@@ -341,6 +462,9 @@ class _VariablesTable(QWidget):
                        lambda: self.find_refs.emit(name))
         var = self.variables.variable(name) if self.variables else None
         self._add_status_actions(menu, var)
+        if var is not None:
+            menu.addAction(icon("edit", "text-light"), "Viewer Settings…",
+                           lambda n=name: self.edit_viewer_settings(n))
         group_menu = menu.addMenu(icon("folder", "text-light"),
                                   "Move to Group")
         current = var.group if var is not None else ""
@@ -391,6 +515,16 @@ class _VariablesTable(QWidget):
         var.status = status
         self.refresh()
         self.changed.emit()
+
+    def edit_viewer_settings(self, name: str) -> None:
+        var = self.variables.variable(name) if self.variables else None
+        if var is None:
+            return
+        dialog = ViewerSettingsDialog(var, name in self._written, self)
+        if dialog.exec() == QDialog.Accepted:
+            dialog.apply()
+            self.refresh()
+            self.changed.emit()
 
     def _toggle_status(self, name: str) -> None:
         var = self.variables.variable(name) if self.variables else None
@@ -589,6 +723,16 @@ class _VariablesTable(QWidget):
         name_item = QTableWidgetItem(var.name)
         name_item.setIcon(type_icon(var.type_id))
         name_item.setData(Qt.UserRole, var.name)
+        form = getattr(var, "form", None) or {}
+        if form:
+            tip = "Viewer: " + (form.get("label") or var.name)
+            if form.get("description"):
+                tip += "\n" + form["description"]
+            if form.get("mode"):
+                tip += f"\nmode: {form['mode']}"
+            if form.get("required"):
+                tip += "\nrequired"
+            name_item.setToolTip(tip)
         self.table.setItem(row, 0, name_item)
         type_item = QTableWidgetItem(var.type_id)
         type_item.setFlags(type_item.flags() & ~Qt.ItemIsEditable)
@@ -801,7 +945,19 @@ class _ListsPanel(QWidget):
             else:
                 menu.addAction(icon("check", "green"), "Mark as Checked",
                                lambda n=name: self._set_status(n, STATUS_CHECKED))
+            menu.addAction(icon("edit", "text-light"), "Viewer Settings…",
+                           lambda n=name: self.edit_viewer_settings(n))
         menu.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def edit_viewer_settings(self, name: str) -> None:
+        lst = self.lists.get(name) if self.lists else None
+        if lst is None:
+            return
+        dialog = ViewerSettingsDialog(lst, name in self._written, self)
+        if dialog.exec() == QDialog.Accepted:
+            dialog.apply()
+            self.refresh()
+            self.changed.emit()
 
     def _set_status(self, name: str, status: str) -> None:
         lst = self.lists.get(name) if self.lists else None

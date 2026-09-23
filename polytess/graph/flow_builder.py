@@ -57,7 +57,7 @@ from polytess.core.properties import (GetConstantList, GetGlobalList,
                                     SetGlobalList, SetGlobalTable,
                                     SetGlobalVariable, SetGraphList,
                                     SetGraphTable, SetGraphVariable, SetNone)
-from polytess.core.variables import STATUS_CHECKED
+from polytess.core.variables import FORM_KEYS, STATUS_CHECKED
 from polytess.graph.model import Graph, Group, StickyNote
 from polytess.graph.nodes import (ActionsNode, BranchNode, ConditionsNode,
                                 ExitNode, StartNode, SubGraphNode, TriggerNode)
@@ -286,6 +286,13 @@ def _layout(graph: Graph) -> None:
         node.y = row * _Y_STEP
 
 
+def _clean_form(form) -> dict:
+    """Keep only known Viewer form keys (see core.variables.FORM_KEYS)."""
+    if not isinstance(form, dict):
+        return {}
+    return {k: v for k, v in form.items() if k in FORM_KEYS and v is not None}
+
+
 def build_flow(data: dict) -> BuildResult:
     """Simplified flow description -> Graph (see module docstring)."""
     result = BuildResult()
@@ -303,6 +310,7 @@ def build_flow(data: dict) -> BuildResult:
             var.group = str(spec.get("group", "") or "")
             if spec.get("status") == STATUS_CHECKED:
                 var.status = STATUS_CHECKED
+            var.form = _clean_form(spec.get("form"))
         except Exception as exc:
             result.warnings.append(f"variable {spec!r}: {exc}")
     for spec in data.get("lists") or []:
@@ -312,6 +320,7 @@ def build_flow(data: dict) -> BuildResult:
                                       list(spec.get("items") or []))
             if spec.get("status") == STATUS_CHECKED:
                 lst.status = STATUS_CHECKED
+            lst.form = _clean_form(spec.get("form"))
         except Exception as exc:
             result.warnings.append(f"list {spec!r}: {exc}")
 
@@ -549,6 +558,8 @@ def flow_to_data(graph: Graph) -> dict:
             spec["group"] = var.group
         if getattr(var, "status", "") == STATUS_CHECKED:
             spec["status"] = STATUS_CHECKED
+        if getattr(var, "form", None):
+            spec["form"] = dict(var.form)
         data["variables"].append(spec)
     for lst in graph.lists:
         spec = {"name": lst.name, "type": lst.type_id}
@@ -559,6 +570,8 @@ def flow_to_data(graph: Graph) -> dict:
             spec["items"] = list(lst.items)
         if getattr(lst, "status", "") == STATUS_CHECKED:
             spec["status"] = STATUS_CHECKED
+        if getattr(lst, "form", None):
+            spec["form"] = dict(lst.form)
         data["lists"].append(spec)
 
     ids: dict[str, str] = {}

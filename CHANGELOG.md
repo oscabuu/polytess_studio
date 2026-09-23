@@ -4,6 +4,27 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.16.0 — 2026-09-23
+- **Viewer, phase 1 (PLAN_VIEWER.md):** the data layer for the run-only
+  polytess Viewer, usable today from the Studio and the CLI.
+- Variables and lists carry **Viewer form metadata** (`form`, stored
+  with the variable): mode (automatic / input / output / hidden), label,
+  description, required, choices, minimum/maximum, path kind + must
+  exist, order. Blackboard: right-click → **Viewer Settings…** opens the
+  editor; the name cell's tooltip shows the label/description.
+- New `polytess.graph.inputs`: `input_spec(graph)` derives the form —
+  inputs grouped like the Blackboard, runtime-written variables hidden
+  unless marked input/output, outputs listed separately —,
+  `validate_values` checks entered values (required, bounds, choices,
+  path existence, dates), `apply_values` writes them into a graph,
+  `load/save_vars_file` handle the preset format.
+- CLI: `polytess inputs <flow>` prints the form as JSON,
+  `--template FILE` writes a fillable preset; `polytess run --vars-file
+  FILE` validates and applies a preset before the run (exit 2 on
+  problems).
+- Flow Assistant schema knows `"form"` and is asked to label user
+  inputs and mark outputs so generated flows are Viewer-ready.
+
 ## 1.15.1 — 2026-09-23
 - `PLAN_VIEWER.md`: design plan for a polytess Viewer — a run-only app
   for non-expert users that shows just the input variables as a form

@@ -47,6 +47,16 @@ The searchable catalog opens with **Ctrl+Space** or *Add Instruction…*.
   editable). The checked mark is saved with the flow; the Flow
   Assistant sees it too and receives runtime variables without their
   contents.
+- **Viewer Settings…** (right-click a variable or list) describe the
+  field for the polytess Viewer — the run-only app in which non-expert
+  users fill in a flow's inputs as a form without seeing the flow:
+  label, help text, required, allowed choices, numeric bounds, path
+  kind/existence, order inside the group, and the mode (*automatic*:
+  input unless the flow writes it; *output*: shown read-only after the
+  run; *hidden*). Headless: `polytess inputs flow.flow.json` prints
+  the form, `--template values.json` writes a fillable preset, and
+  `polytess run flow.flow.json --vars-file values.json` validates and
+  applies it before the run.
 - Every field of a block is a **property slot**: click the ▼ to switch
   its source — constant value, graph/global variable, formatted
   template (`MR_{deck}.inp`), split string, table cell, and more.

@@ -40,6 +40,24 @@ def effective_status(var, runtime_written: Iterable[str] = ()) -> str:
         else STATUS_UNCHECKED
 
 
+# Viewer form metadata (``var.form``, persisted with the variable; only
+# keys the expert set are stored). The Viewer shows a flow as a plain
+# input form for non-expert users — see polytess.graph.inputs.
+#   mode        "input" | "output" | "hidden"  (absent = automatic: input
+#               unless the flow writes the variable at runtime)
+#   label       caption in the form (default: the variable name)
+#   description help text under the field
+#   required    True: must not be empty before a run
+#   choices     list of allowed values (string/number/integer)
+#   minimum / maximum   numeric bounds
+#   path_kind   "file" | "folder" | "any"      (path variables)
+#   must_exist  True: the path has to exist before a run
+#   order       sort key inside its group (default: declaration order)
+FORM_KEYS = ("mode", "label", "description", "required", "choices",
+             "minimum", "maximum", "path_kind", "must_exist", "order")
+FORM_MODES = ("input", "output", "hidden")
+
+
 @meta(title="Name Variable", icon="variable", color="purple", hidden=True)
 class NameVariable(PolymorphicItem):
     """A named, typed value slot.
@@ -56,6 +74,7 @@ class NameVariable(PolymorphicItem):
         self.value: Value = value if value is not None else ValueNull()
         self.group = group
         self.status = status         # "" (unchecked) | STATUS_CHECKED
+        self.form: dict = {}         # Viewer form metadata, see FORM_KEYS
 
     @property
     def type_id(self) -> str:
@@ -164,6 +183,7 @@ class ListVariable(PolymorphicItem):
         self.type_id = type_id
         self.items: list = list(items) if items else []
         self.status = status         # "" (unchecked) | STATUS_CHECKED
+        self.form: dict = {}         # Viewer form metadata, see FORM_KEYS
 
     @property
     def title(self) -> str:
