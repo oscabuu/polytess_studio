@@ -44,7 +44,9 @@ The searchable catalog opens with **Ctrl+Space** or *Add Instruction…*.
   or right-click → Mark as Checked; click again to reset) or *runtime*
   (some block of the flow writes it while running, so its content is a
   run result, not an input to review — derived automatically, never
-  editable). The checked mark is saved with the flow; the Flow
+  editable). Lists are checked as a whole. Click the Status header to
+  sort by status, double-click it (or right-click → Hide Runtime
+  Variables) to hide runtime ones. The checked mark is saved with the flow; the Flow
   Assistant sees it too and receives runtime variables without their
   contents.
 - **Viewer Settings…** (right-click a variable or list) describe the

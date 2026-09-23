@@ -933,16 +933,46 @@ def test_blackboard_status_tags(app):
     assert graph.variables.variable("result").status == ""
     assert "runtime" in status_text("result")[1]
 
-    # lists: tag in the header text, context-menu setter
+    # lists: own Status column, click toggles the WHOLE list
     tree = panel.graph_lists.tree
-    headers = {tree.topLevelItem(i).text(0): tree.topLevelItem(i).text(1)
-               for i in range(tree.topLevelItemCount())}
-    assert "runtime" in headers["found"] and "unchecked" in headers["inputs"]
-    panel.graph_lists._set_status("inputs", STATUS_CHECKED)
+    assert tree.columnCount() == 3
+
+    def list_status():
+        return {tree.topLevelItem(i).text(0): tree.topLevelItem(i).text(2)
+                for i in range(tree.topLevelItemCount())}
+    assert "runtime" in list_status()["found"]
+    assert "unchecked" in list_status()["inputs"]
+    item = next(tree.topLevelItem(i) for i in range(tree.topLevelItemCount())
+                if tree.topLevelItem(i).text(0) == "inputs")
+    panel.graph_lists._on_item_clicked(item, 2)
     assert graph.lists.get("inputs").status == STATUS_CHECKED
-    headers = {tree.topLevelItem(i).text(0): tree.topLevelItem(i).text(1)
-               for i in range(tree.topLevelItemCount())}
-    assert "checked" in headers["inputs"] and "unchecked" not in headers["inputs"]
+    assert "✔" in list_status()["inputs"]
+    item = next(tree.topLevelItem(i) for i in range(tree.topLevelItemCount())
+                if tree.topLevelItem(i).text(0) == "found")
+    panel.graph_lists._on_item_clicked(item, 2)          # runtime: no-op
+    assert graph.lists.get("found").status == ""
+
+    # sort by status (click) and hide runtime (double-click on header)
+    vars_table = panel.graph_vars
+    vars_table._sort_by(3)
+    order = [table.item(r, 0).data(Qt.UserRole)
+             for r in range(table.rowCount()) if table.item(r, 0)]
+    assert order == ["deck", "result"]              # unchecked < runtime
+    vars_table._sort_by(3)                          # descending
+    order = [table.item(r, 0).data(Qt.UserRole)
+             for r in range(table.rowCount()) if table.item(r, 0)]
+    assert order == ["result", "deck"]
+    vars_table._on_header_double_clicked(3)
+    names = [table.item(r, 0).data(Qt.UserRole)
+             for r in range(table.rowCount()) if table.item(r, 0)]
+    assert names == ["deck"] and table.horizontalHeaderItem(3).text() == "Status ⊘"
+    vars_table.set_hide_runtime(False)
+    assert table.rowCount() == 2
+
+    panel.graph_lists._sort_by(2)
+    assert list(list_status()) == ["inputs", "found"]
+    panel.graph_lists._on_header_double_clicked(2)
+    assert list(list_status()) == ["inputs"]
 
 
 def test_viewer_settings_dialog_edits_form(app):

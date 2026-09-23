@@ -4,6 +4,16 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.16.1 — 2026-09-23
+- Blackboard: click the **Status** header to sort by status (unchecked →
+  checked → runtime, click again for descending, third click restores
+  the original order); double-click it, or right-click anywhere in the
+  table → **Hide Runtime Variables**, to hide the runtime-written ones
+  (header shows "Status ⊘" while hidden).
+- Lists get their own **Status column** (checked as a whole list, never
+  per element): click the cell to toggle, sort and hide-runtime work
+  like for variables, tag and tooltip moved out of the Value column.
+
 ## 1.16.0 — 2026-09-23
 - **Viewer, phase 1 (PLAN_VIEWER.md):** the data layer for the run-only
   polytess Viewer, usable today from the Studio and the CLI.

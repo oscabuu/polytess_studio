@@ -59,6 +59,9 @@ STATUS_TOOLTIPS = {
 }
 
 
+STATUS_RANK = {STATUS_UNCHECKED: 0, STATUS_CHECKED: 1, STATUS_RUNTIME: 2}
+
+
 def _status_item(status: str) -> QTableWidgetItem:
     from PySide6.QtGui import QColor
     from polytess.gui.theme import ACCENTS
@@ -405,6 +408,7 @@ class _VariablesTable(QWidget):
         self._graph_provider = graph_provider
         self._collapsed: set[str] = set()
         self._written: set[str] = set()   # names the flow writes at runtime
+        self._hide_runtime = False
         self._updating = False
         self._sort_column: int | None = None
         self._sort_asc = True
@@ -431,6 +435,10 @@ class _VariablesTable(QWidget):
             3, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionsClickable(True)
         self.table.horizontalHeader().sectionClicked.connect(self._sort_by)
+        self.table.horizontalHeader().sectionDoubleClicked.connect(
+            self._on_header_double_clicked)
+        self.table.horizontalHeaderItem(3).setToolTip(
+            "Click: sort by status · Double-click: hide/show runtime variables")
         self.table.verticalHeader().setVisible(False)
         self.table.itemChanged.connect(self._on_item_changed)
         self.table.cellDoubleClicked.connect(self._on_cell_double_clicked)
@@ -455,13 +463,16 @@ class _VariablesTable(QWidget):
             menu.exec(self.table.viewport().mapToGlobal(pos))
             return
         name = self._row_name(row) if row >= 0 else None
-        if not name:
-            return
         menu = QMenu(self)
+        if not name:
+            self._add_runtime_toggle(menu)
+            menu.exec(self.table.viewport().mapToGlobal(pos))
+            return
         menu.addAction(icon("search", "text-light"), f"Find References of '{name}'…",
                        lambda: self.find_refs.emit(name))
         var = self.variables.variable(name) if self.variables else None
         self._add_status_actions(menu, var)
+        self._add_runtime_toggle(menu)
         if var is not None:
             menu.addAction(icon("edit", "text-light"), "Viewer Settings…",
                            lambda n=name: self.edit_viewer_settings(n))
@@ -505,6 +516,26 @@ class _VariablesTable(QWidget):
         else:
             menu.addAction(icon("check", "green"), "Mark as Checked",
                            lambda n=var.name: self._set_status(n, STATUS_CHECKED))
+
+    def _add_runtime_toggle(self, menu: QMenu) -> None:
+        action = menu.addAction(icon("play", "yellow"), "Hide Runtime Variables")
+        action.setCheckable(True)
+        action.setChecked(self._hide_runtime)
+        action.toggled.connect(self.set_hide_runtime)
+
+    def set_hide_runtime(self, hidden: bool) -> None:
+        """Hide/show variables the flow writes at runtime (toggle also on
+        double-click of the Status column header)."""
+        if hidden == self._hide_runtime:
+            return
+        self._hide_runtime = hidden
+        self.table.horizontalHeaderItem(3).setText(
+            "Status ⊘" if hidden else "Status")
+        self.refresh()
+
+    def _on_header_double_clicked(self, column: int) -> None:
+        if column == 3:
+            self.set_hide_runtime(not self._hide_runtime)
 
     def _set_status(self, name: str, status: str) -> None:
         if self.variables is None:
@@ -642,8 +673,8 @@ class _VariablesTable(QWidget):
     # ---- sorting / filtering ---------------------------------------------------- #
 
     def _sort_by(self, column: int) -> None:
-        if column > 1:
-            return
+        if column == 2:
+            return                       # values are not sortable
         if self._sort_column == column:
             if self._sort_asc:
                 self._sort_asc = False
@@ -666,17 +697,25 @@ class _VariablesTable(QWidget):
         text = self.header_bar.search.text().strip().lower()
         types = self.header_bar.filter_types
         out = []
+        self._written = _runtime_written(self._graph_provider, self._scope,
+                                         (v.name for v in self.variables))
         for var in self.variables:
             if types and var.type_id not in types:
                 continue
             if text and text not in var.name.lower() \
                     and text not in str(var.value.get()).lower():
                 continue
+            if self._hide_runtime and var.name in self._written:
+                continue
             out.append(var)
         if self._sort_column == 0:
             out.sort(key=lambda v: v.name.lower(), reverse=not self._sort_asc)
         elif self._sort_column == 1:
             out.sort(key=lambda v: (v.type_id, v.name.lower()),
+                     reverse=not self._sort_asc)
+        elif self._sort_column == 3:
+            out.sort(key=lambda v: (STATUS_RANK[self._status_of(v)],
+                                    v.name.lower()),
                      reverse=not self._sort_asc)
         return out
 
@@ -686,8 +725,6 @@ class _VariablesTable(QWidget):
         self._updating = True
         self.table.setRowCount(0)
         visible = self._visible_variables()
-        self._written = _runtime_written(self._graph_provider, self._scope,
-                                         (v.name for v in visible))
         ungrouped = [v for v in visible if not getattr(v, "group", "")]
         grouped: dict[str, list] = {}
         for var in visible:
@@ -884,6 +921,7 @@ class _ListsPanel(QWidget):
         self._scope = scope
         self._graph_provider = graph_provider
         self._written: set[str] = set()
+        self._hide_runtime = False
         self._updating = False
         self._sort_column: int | None = None
         self._sort_asc = True
@@ -907,12 +945,18 @@ class _ListsPanel(QWidget):
         layout.addLayout(self.header_bar)
 
         self.tree = _DragTree()
-        self.tree.setColumnCount(2)
-        self.tree.setHeaderLabels(["Name", "Value"])
+        self.tree.setColumnCount(3)
+        self.tree.setHeaderLabels(["Name", "Value", "Status"])
         self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.tree.header().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.tree.header().setSectionsClickable(True)
         self.tree.header().sectionClicked.connect(self._sort_by)
+        self.tree.header().sectionDoubleClicked.connect(
+            self._on_header_double_clicked)
+        self.tree.headerItem().setToolTip(
+            2, "Click: sort by status · Double-click: hide/show runtime lists")
+        self.tree.itemClicked.connect(self._on_item_clicked)
         self.tree.setEditTriggers(QTreeWidget.NoEditTriggers)
         self.tree.itemDoubleClicked.connect(self._edit_item)
         self.tree.itemChanged.connect(self._on_item_changed)
@@ -923,13 +967,13 @@ class _ListsPanel(QWidget):
 
     def _context_menu(self, pos) -> None:
         item = self.tree.itemAt(pos)
-        if item is None:
-            return
-        top = item if item.parent() is None else item.parent()
-        name = top.data(0, Qt.UserRole)
-        if not name:
-            return
+        top = item if item is None or item.parent() is None else item.parent()
+        name = top.data(0, Qt.UserRole) if top is not None else None
         menu = QMenu(self)
+        if not name:
+            self._add_runtime_toggle(menu)
+            menu.exec(self.tree.viewport().mapToGlobal(pos))
+            return
         menu.addAction(icon("search", "text-light"), f"Find References of '{name}'…",
                        lambda: self.find_refs.emit(name))
         lst = self.lists.get(name) if self.lists else None
@@ -947,7 +991,37 @@ class _ListsPanel(QWidget):
                                lambda n=name: self._set_status(n, STATUS_CHECKED))
             menu.addAction(icon("edit", "text-light"), "Viewer Settings…",
                            lambda n=name: self.edit_viewer_settings(n))
+        self._add_runtime_toggle(menu)
         menu.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def _add_runtime_toggle(self, menu: QMenu) -> None:
+        action = menu.addAction(icon("play", "yellow"), "Hide Runtime Lists")
+        action.setCheckable(True)
+        action.setChecked(self._hide_runtime)
+        action.toggled.connect(self.set_hide_runtime)
+
+    def set_hide_runtime(self, hidden: bool) -> None:
+        if hidden == self._hide_runtime:
+            return
+        self._hide_runtime = hidden
+        self.tree.headerItem().setText(2, "Status ⊘" if hidden else "Status")
+        self.refresh()
+
+    def _on_header_double_clicked(self, column: int) -> None:
+        if column == 2:
+            self.set_hide_runtime(not self._hide_runtime)
+
+    def _on_item_clicked(self, item: QTreeWidgetItem, column: int) -> None:
+        """Click on a list's Status cell toggles checked <-> unchecked
+        (the whole list is checked, never single elements)."""
+        if column != 2 or item.parent() is not None:
+            return
+        name = item.data(0, Qt.UserRole)
+        lst = self.lists.get(name) if self.lists and name else None
+        if lst is None or effective_status(lst, self._written) == STATUS_RUNTIME:
+            return
+        self._set_status(name, "" if lst.status == STATUS_CHECKED
+                         else STATUS_CHECKED)
 
     def edit_viewer_settings(self, name: str) -> None:
         lst = self.lists.get(name) if self.lists else None
@@ -1006,17 +1080,25 @@ class _ListsPanel(QWidget):
         text = self.header_bar.search.text().strip().lower()
         types = self.header_bar.filter_types
         out = []
+        self._written = _runtime_written(self._graph_provider, self._scope,
+                                         (l.name for l in self.lists))
         for lst in self.lists:
             if types and lst.type_id not in types:
                 continue
             if text and text not in lst.name.lower() \
                     and not any(text in str(v).lower() for v in lst.items):
                 continue
+            if self._hide_runtime and lst.name in self._written:
+                continue
             out.append(lst)
         if self._sort_column == 0:
             out.sort(key=lambda l: l.name.lower(), reverse=not self._sort_asc)
         elif self._sort_column == 1:
             out.sort(key=lambda l: (l.type_id, l.name.lower()),
+                     reverse=not self._sort_asc)
+        elif self._sort_column == 2:
+            out.sort(key=lambda l: (STATUS_RANK[effective_status(l, self._written)],
+                                    l.name.lower()),
                      reverse=not self._sort_asc)
         return out
 
@@ -1029,17 +1111,17 @@ class _ListsPanel(QWidget):
                     if self.tree.topLevelItem(i).isExpanded()}
         self.tree.clear()
         visible = self._visible_lists()
-        self._written = _runtime_written(self._graph_provider, self._scope,
-                                         (l.name for l in visible))
+        from PySide6.QtGui import QColor
+        from polytess.gui.theme import ACCENTS
         for lst in visible:
             status = effective_status(lst, self._written)
-            tag = STATUS_TAGS[status][0]
-            top = QTreeWidgetItem([lst.name,
-                                   f"{lst.type_id}  [{len(lst)}]   {tag}"])
+            tag, accent = STATUS_TAGS[status]
+            top = QTreeWidgetItem([lst.name, f"{lst.type_id}  [{len(lst)}]", tag])
             top.setData(0, Qt.UserRole, lst.name)
             top.setIcon(0, type_icon(lst.type_id))
             top.setForeground(1, Qt.gray)
-            top.setToolTip(1, STATUS_TOOLTIPS[status])
+            top.setForeground(2, QColor(ACCENTS[accent]))
+            top.setToolTip(2, STATUS_TOOLTIPS[status])
             top.setFlags(top.flags() | Qt.ItemIsEditable)
             self.tree.addTopLevelItem(top)
             for index, value in enumerate(lst.items):
