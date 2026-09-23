@@ -116,7 +116,13 @@ changes) — inserting replaces nothing automatically, the user opens
 your version as a new document. Param values shown as "<...>" are
 computed sources the schema cannot express — keep the affected fields
 out of your params so they retain those sources when rebuilt, and
-mention this.
+mention this. Variables and lists marked "set_at_runtime": true are
+written by the flow while it runs; their current contents are
+deliberately omitted (they are run results, not design input). Keep
+them declared without a value — never invent one.
+Only the LATEST user message carries the <current_flow> block; earlier
+turns show "<current_flow omitted>" in its place — always work from the
+latest one.
 PRESERVE EVERYTHING you are not asked to change: keep every node's
 "x"/"y" position, every variable's "group", and the "groups" and
 "notes" arrays exactly as given — dropping them destroys the user's
@@ -188,6 +194,25 @@ def build_flow_system_prompt() -> str:
                      + practices)
     parts.append(build_flow_registry_summary())
     return "\n".join(parts)
+
+
+_CURRENT_FLOW_RE = re.compile(r"<current_flow\b.*?</current_flow>", re.DOTALL)
+
+
+def compact_history(history: list[dict]) -> list[dict]:
+    """The request messages: every user turn except the LAST loses its
+    <current_flow> block (replaced by a short marker). Each request
+    re-sends the whole transcript, so keeping the full flow in every
+    old turn multiplies the context by the number of turns."""
+    if not history:
+        return []
+    compact = [dict(message) for message in history]
+    for message in compact[:-1]:
+        if message.get("role") == "user":
+            message["content"] = _CURRENT_FLOW_RE.sub(
+                "<current_flow omitted — see the latest message>",
+                str(message.get("content", "")))
+    return compact
 
 
 def extract_json_block(text: str) -> dict | None:
@@ -350,7 +375,8 @@ class FlowAssistantPanel(QWidget):
         if self._system_prompt is None:
             self._system_prompt = build_flow_system_prompt()
 
-        self._worker = AssistantWorker(self._system_prompt, list(self._history))
+        self._worker = AssistantWorker(self._system_prompt,
+                                       compact_history(self._history))
         self._worker.chunk.connect(self._on_chunk)
         self._worker.finished_ok.connect(self._on_finished)
         self._worker.failed.connect(self._on_failed)

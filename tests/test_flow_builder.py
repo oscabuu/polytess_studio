@@ -4,6 +4,8 @@
 """Flow builder: simplified JSON -> Graph, registry validation, missing
 blocks, param binding; chat markdown rendering."""
 
+import json
+
 from polytess.graph.flow_builder import (build_flow, build_flow_registry_summary,
                                        flow_to_data, missing_blocks_prompt)
 from polytess.graph.nodes import (ActionsNode, ConditionsNode, ExitNode,
@@ -211,3 +213,44 @@ def test_markdown_rendering():
     assert html.count("<li") == 2
     # HTML in user content must be escaped
     assert "<script" not in markdown_to_html("<script>alert(1)</script>")
+
+
+def test_flow_to_data_omits_runtime_written_values():
+    """Variables/lists that some block writes during the run export
+    without their current value (run results, not design input) — the
+    assistant context stays small and rebuilding still declares them."""
+    from polytess.graph.flow_builder import runtime_written_names
+
+    graph = build_flow(_flow(
+        variables=[{"name": "deck", "type": "string", "value": "MR_001"},
+                   {"name": "result", "type": "string", "value": ""}],
+        lists=[{"name": "inputs", "type": "path", "items": ["a.inp"]},
+               {"name": "found", "type": "path", "items": []}],
+        nodes=[{"id": "prep", "kind": "actions", "instructions": [
+            {"type": "SetString",
+             "params": {"value": {"var": "deck"}, "target": "result"}},
+            {"type": "FindFiles",
+             "params": {"pattern": "*.txt", "target_list": "found"}},
+        ]}],
+        edges=[{"from": "start", "to": "prep"}],
+    )).graph
+    # simulate a finished run that filled the variables with big results
+    graph.variables.variable("result").value.set("x" * 10_000)
+    graph.lists.get("found").items[:] = [f"run_{i}.txt" for i in range(500)]
+
+    assert runtime_written_names(graph) == {"result", "found"}
+    data = flow_to_data(graph)
+    result = next(v for v in data["variables"] if v["name"] == "result")
+    assert result.get("set_at_runtime") is True and "value" not in result
+    deck = next(v for v in data["variables"] if v["name"] == "deck")
+    assert deck["value"] == "MR_001" and "set_at_runtime" not in deck
+    found = next(l for l in data["lists"] if l["name"] == "found")
+    assert found.get("set_at_runtime") is True and found["items"] == []
+    inputs = next(l for l in data["lists"] if l["name"] == "inputs")
+    assert inputs["items"] == ["a.inp"]
+    assert "xxxxxxxx" not in json.dumps(data)
+
+    rebuilt = build_flow(data)
+    assert rebuilt.ok, (rebuilt.errors, rebuilt.missing)
+    assert rebuilt.graph.variables.variable("result") is not None
+    assert rebuilt.graph.lists.get("found") is not None

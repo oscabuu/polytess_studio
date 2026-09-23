@@ -499,22 +499,51 @@ def _export_block(block) -> dict:
     return {"type": type(block).__name__, "params": _export_params(block)}
 
 
+def runtime_written_names(graph: Graph) -> set[str]:
+    """Names of graph variables and lists that some block WRITES during a
+    run (set-sources, ``*_to`` targets, …). Their current contents are
+    run results, not design input — the assistant export leaves them
+    out so a flow with large computed values stays small."""
+    from polytess.core.refs import find_references
+    names = [v.name for v in graph.variables] + [l.name for l in graph.lists]
+    written: set[str] = set()
+    for name in names:
+        refs = find_references(graph, name, "graph")
+        if any("write" in ref.access for ref in refs):
+            written.add(name)
+    return written
+
+
 def flow_to_data(graph: Graph) -> dict:
     """Serialize a Graph into the assistant's simplified flow schema —
     the inverse of build_flow, lossy for computed property sources (which
     export as informative "<...>" strings). Used to show the assistant
-    the currently open flow."""
+    the currently open flow.
+
+    Variables/lists that the flow writes during a run are exported
+    WITHOUT their current value (``"set_at_runtime": true`` instead) —
+    they only carry run results, which would bloat the assistant's
+    context and are meaningless as design input."""
     data: dict = {"name": graph.name, "variables": [], "lists": [],
                   "nodes": [], "edges": []}
+    written = runtime_written_names(graph)
     for var in graph.variables:
-        spec = {"name": var.name, "type": var.type_id,
-                "value": var.value.get()}
+        spec = {"name": var.name, "type": var.type_id}
+        if var.name in written:
+            spec["set_at_runtime"] = True      # value omitted on purpose
+        else:
+            spec["value"] = var.value.get()
         if getattr(var, "group", ""):
             spec["group"] = var.group
         data["variables"].append(spec)
     for lst in graph.lists:
-        data["lists"].append({"name": lst.name, "type": lst.type_id,
-                              "items": list(lst.items)})
+        spec = {"name": lst.name, "type": lst.type_id}
+        if lst.name in written:
+            spec["set_at_runtime"] = True
+            spec["items"] = []
+        else:
+            spec["items"] = list(lst.items)
+        data["lists"].append(spec)
 
     ids: dict[str, str] = {}
     counter = 0

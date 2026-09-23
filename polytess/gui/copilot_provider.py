@@ -11,15 +11,46 @@ GitHub token. The configured enterprise host is exported as
 ``COPILOT_GH_HOST``/``GH_HOST`` for the spawned CLI, which routes all
 traffic to the tenant-local endpoints.
 
-The assistants are plain chat (no tool use) — the session gets OUR
-system prompt via ``system_message: replace`` and every permission
-request is denied.
+The session gets OUR system prompt via ``system_message: replace``.
+Without a *workdir* the assistants are plain chat: every permission
+request is denied. With a workdir (the code assistant's custom-library
+folder) file reads/writes INSIDE that folder are approved automatically,
+mirroring the Claude provider; shell commands, URLs and anything outside
+the folder stay denied.
 """
 
 from __future__ import annotations
 
 import asyncio
 import os
+
+
+def path_within(path: str, root: str) -> bool:
+    """True when *path* (absolute or relative to *root*) lies inside *root*."""
+    if not root:
+        return False
+    root_abs = os.path.realpath(os.path.expanduser(root))
+    candidate = os.path.expanduser(str(path or ""))
+    if not os.path.isabs(candidate):
+        candidate = os.path.join(root_abs, candidate)
+    candidate = os.path.realpath(candidate)
+    return candidate == root_abs or candidate.startswith(root_abs + os.sep)
+
+
+def permission_allowed(request, workdir: str) -> bool:
+    """Decide a Copilot permission request: only file reads/writes whose
+    target lies inside *workdir* are approved; everything else (shell,
+    URL fetches, MCP, files elsewhere) is denied."""
+    if not workdir:
+        return False
+    kind = getattr(request, "kind", "")
+    if kind == "read":
+        return path_within(getattr(request, "resolved_path", None)
+                           or getattr(request, "path", ""), workdir)
+    if kind == "write":
+        return path_within(getattr(request, "resolved_path", None)
+                           or getattr(request, "file_name", ""), workdir)
+    return False
 
 
 def enterprise_env(github_host: str) -> dict[str, str]:
@@ -47,14 +78,20 @@ def build_transcript_prompt(messages: list[dict]) -> str:
 
 def stream_copilot(system_prompt: str, messages: list[dict], *,
                    model: str, github_host: str = "",
-                   github_token: str = "", on_chunk=None,
-                   is_cancelled=None) -> str:
+                   github_token: str = "", workdir: str = "",
+                   on_chunk=None, is_cancelled=None) -> str:
     """Run one streaming Copilot request; returns the full response text.
+
+    With *workdir* set, the session runs in that directory and file
+    reads/writes inside it are approved (the code assistant's custom
+    library). Without it the session is plain chat.
 
     Raises RuntimeError with a helpful message when the SDK is missing
     or the user is not authenticated."""
     try:
         from copilot import CopilotClient
+        from copilot.session import (PermissionDecisionApproveOnce,
+                                     PermissionDecisionReject)
         from copilot.session_events import (AssistantMessageDeltaData,
                                             SessionIdleData)
     except ImportError:
@@ -72,16 +109,25 @@ def stream_copilot(system_prompt: str, messages: list[dict], *,
         parts: list[str] = []
         done = asyncio.Event()
 
-        def deny_permissions(*_args, **_kwargs):
-            return False            # assistants never execute tools
+        def decide_permission(request, _invocation=None):
+            if permission_allowed(request, workdir):
+                return PermissionDecisionApproveOnce()
+            return PermissionDecisionReject(
+                feedback="polytess only allows file access inside the "
+                         "custom-library folder; no shell or network.")
+
+        session_kwargs = {}
+        if workdir:
+            session_kwargs["working_directory"] = workdir
 
         async with CopilotClient(**client_kwargs) as client:
             session = await client.create_session(
                 model=model,
                 streaming=True,
-                on_permission_request=deny_permissions,
+                on_permission_request=decide_permission,
                 system_message={"mode": "replace",
                                 "content": system_prompt},
+                **session_kwargs,
             )
             async with session:
                 def on_event(event):

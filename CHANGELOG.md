@@ -4,6 +4,23 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.14.0 — 2026-09-23
+- **Flow Assistant context slimmed:** variables and lists that the flow
+  WRITES during a run (set-sources, `target_list`, `*_to` fields) are
+  exported to the assistant without their current contents — marked
+  `"set_at_runtime": true` instead. Run results (long strings, big
+  lists) no longer bloat the context; design inputs keep their values.
+  The guide tells the assistant to keep such variables declared without
+  inventing a value.
+- Every request re-sends the whole transcript, so the `<current_flow>`
+  block is now kept only in the LATEST user turn; earlier turns carry a
+  short "omitted" marker. Long modification conversations stay small.
+- **Copilot gets file access for the Code Assistant:** with the Copilot
+  provider the session now runs inside the custom-library folder and
+  file reads/writes there are approved automatically (as with Claude);
+  shell commands, URLs and files outside the folder remain denied. The
+  Flow Assistant stays plain chat.
+
 ## 1.13.0 — 2026-08-12
 - **F4 — Show Current Values**: instruction previews (node body and
   inspector) toggle between variable names (`graph:result_dir`) and

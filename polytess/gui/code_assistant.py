@@ -165,9 +165,10 @@ class MyTrigger(Event):
 
 ## File access (custom library)
 Your working directory IS the user's custom-library folder and you have
-Read/Write/Edit/Glob/Grep there. You may create or modify custom-block
-files directly; polytess hot-reloads the whole custom library right
-after your answer, so direct edits take effect immediately.
+file read/write/edit/search tools there (nothing outside it, no shell).
+You may create or modify custom-block files directly; polytess
+hot-reloads the whole custom library right after your answer, so direct
+edits take effect immediately.
 - For the file currently open in the editor (<current_file>), prefer
   answering with a ```python block (the user inserts/applies it) —
   editing it on disk behind the open editor invites conflicts. Say so
@@ -482,6 +483,7 @@ class AssistantWorker(QThread):
                 model=str(settings.get("copilot_model") or "gpt-5"),
                 github_host=str(settings.get("github_host") or ""),
                 github_token=str(settings.get("github_token") or ""),
+                workdir=self._workdir,
                 on_chunk=self.chunk.emit,
                 is_cancelled=lambda: self._cancelled)
         except RuntimeError as exc:

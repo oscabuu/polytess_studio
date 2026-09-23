@@ -332,3 +332,26 @@ def test_flow_assistant_sees_open_flow():
     context = panel._current_flow_context()
     assert context.startswith('<current_flow name="Open Flow">')
     assert "LogMessage" in context and context.endswith("</current_flow>")
+
+
+def test_flow_assistant_compacts_old_flow_context():
+    """Only the latest user turn carries the <current_flow> block; earlier
+    turns keep their question but lose the flow dump (every request
+    re-sends the whole transcript)."""
+    from polytess.gui.flow_assistant import compact_history
+
+    flow = '<current_flow name="F">\n{"nodes": []}\n</current_flow>'
+    history = [
+        {"role": "user", "content": flow + "\n\nadd a log step"},
+        {"role": "assistant", "content": "done ```json {} ```"},
+        {"role": "user", "content": flow + "\n\nnow rename deck"},
+    ]
+    compact = compact_history(history)
+    assert compact[0]["content"].startswith("<current_flow omitted")
+    assert "add a log step" in compact[0]["content"]
+    assert '{"nodes": []}' not in compact[0]["content"]
+    assert compact[1] == history[1]
+    assert compact[2]["content"] == history[2]["content"]
+    # the stored history itself is untouched
+    assert history[0]["content"].startswith('<current_flow name="F">')
+    assert compact_history([]) == []
