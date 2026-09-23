@@ -4,6 +4,13 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.15.1 — 2026-09-23
+- `PLAN_VIEWER.md`: design plan for a polytess Viewer — a run-only app
+  for non-expert users that shows just the input variables as a form
+  (runtime-written variables and the flow itself stay hidden), starts
+  the flow, tracks progress by phase and presents the result. Covers
+  variable metadata, presets, packaging, Studio additions and phases.
+
 ## 1.15.0 — 2026-09-23
 - **Variable status tags** in the Blackboard: every variable row has a
   Status column and every list header a tag — *unchecked* (default),
