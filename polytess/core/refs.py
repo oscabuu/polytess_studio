@@ -184,6 +184,10 @@ class _Walker:
                     self.scan_item(item, attr, seen)
             elif isinstance(value, PolymorphicItem):        # e.g. TriggerNode.event
                 self.scan_item(value, attr, seen)
+            elif isinstance(value, list):                   # e.g. SubGraphNode.inputs
+                for item in value:
+                    if isinstance(item, PolymorphicItem):
+                        self.scan_item(item, attr, seen)
             elif isinstance(value, str):
                 self._item_title = "(node)"
                 self._check_template(value, f"{type(node).__name__}.{attr}")
@@ -296,6 +300,10 @@ class _RenameWalker:
             if isinstance(value, (InstructionList, ConditionList, BranchList,
                                   PolymorphicItem)):
                 self.rewrite_object(value, seen)
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, PolymorphicItem):
+                        self.rewrite_object(item, seen)
             elif isinstance(value, str):
                 new_text, changed = self._rewrite_template(value)
                 if changed:

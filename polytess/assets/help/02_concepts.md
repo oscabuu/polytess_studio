@@ -12,11 +12,37 @@ nodes, executed push-based from the entry points.
 | **Conditions** | checks its conditions and continues on the **success** or **fail** port |
 | **Branch** | if / else-if / else — the first matching case runs |
 | **Trigger** | fires its children whenever its event occurs (timer, file change, …) |
-| **Sub-Workflow** | runs another `.flow.json`, then continues |
+| **Sub-Workflow** | calls another `.flow.json` with inputs/outputs, then continues |
 | **Exit** | finishes the run |
 
 Several outgoing connections run **concurrently**. A connection back to
 an earlier node builds a retry/repeat loop.
+
+## Sub-workflows
+
+A Sub-Workflow node calls another flow like a function:
+
+- **Inputs** bind a graph variable/list of the sub-flow to a value of
+  the calling flow (constant, variable, list, table, template, loop
+  target …). *None* keeps the sub-flow's own default.
+- **Outputs** copy a graph variable/list of the sub-flow back into a
+  variable of the calling flow after the call.
+- **Load Interface from Sub-Workflow** adds a binding for every
+  input/output variable of the sub-flow (its Viewer form modes) and
+  pre-binds same-named variables of the calling flow.
+- The sub-flow is loaded fresh for every call — its graph variables
+  are private, parallel calls cannot interfere.
+- *Share Global Variables* (default on): off gives the sub-flow a
+  private **snapshot** of the globals taken at the call — it sees the
+  caller's values as of that moment, later changes by the caller or by
+  parallel branches are invisible, and its own global writes never leak
+  back (outputs still reach the caller). *Fail If Sub-Workflow Fails*
+  (default on): a failed node inside fails the calling node, outputs
+  are not returned.
+- Relative file paths resolve against the calling flow's folder (then
+  the working directory). Nesting deeper than 32 levels is an error.
+- A sub-flow with persistent triggers (timer, file, signal …) only
+  returns when one of its Exit nodes runs — `polytess validate` warns.
 
 ## Building blocks
 

@@ -116,6 +116,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     except KeyboardInterrupt:
         print("\n[WARNING] interrupted", file=sys.stderr)
         return 130
+    if processor.failed_nodes:
+        print(f"[ERROR] run finished with failed node(s): "
+              f"{', '.join(processor.failed_nodes)}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -143,9 +147,31 @@ def cmd_validate(args: argparse.Namespace) -> int:
     for edge in graph.edges:
         if edge.src_node not in guids or edge.dst_node not in guids:
             problems.append(f"dangling edge {edge!r}")
-    from polytess.graph.nodes import StartNode, TriggerNode
+    from polytess.graph.nodes import (StartNode, SubGraphNode, TriggerNode,
+                                      has_persistent_triggers)
     if not any(isinstance(n, (StartNode, TriggerNode)) for n in graph.nodes):
         problems.append("no entry point (Start or Trigger node)")
+    for node in graph.nodes:
+        if not isinstance(node, SubGraphNode) or not node.enabled:
+            continue
+        where = f"sub-workflow node {node.name!r}"
+        if not node.file:
+            problems.append(f"{where}: no workflow file set")
+            continue
+        path = node.resolve_file(graph.path, os.path.dirname(graph.path))
+        if not os.path.isfile(path):
+            problems.append(f"{where}: file not found: {path}")
+            continue
+        try:
+            sub_graph = Graph.load(path)
+        except Exception as exc:
+            problems.append(f"{where}: cannot load {path}: "
+                            f"{exc.__class__.__name__}: {exc}")
+            continue
+        problems += [f"{where}: {p}" for p in node.binding_problems(sub_graph)]
+        if has_persistent_triggers(sub_graph):
+            print(f"[WARNING] {where}: {os.path.basename(path)} has persistent "
+                  f"triggers — the call only returns when an Exit node runs")
     for problem in problems:
         print(f"[ERROR] {problem}")
     print(f"{args.file}: {len(graph.nodes)} nodes, {len(graph.edges)} edges — "

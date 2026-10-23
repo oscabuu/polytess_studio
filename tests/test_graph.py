@@ -297,3 +297,228 @@ async def test_graph_save_load_roundtrip(tmp_path):
 
     await GraphProcessor(clone).run(ctx_for(clone))
     assert trace(clone) == ["A"]
+
+
+# ---- sub-workflow bindings ------------------------------------------------- #
+
+@pytest.fixture(autouse=True)
+def _fresh_global_scope():
+    """Sub-workflow tests assert on global variables — start every test
+    with an empty singleton instead of depending on test order."""
+    GlobalScope.reset()
+    yield
+    GlobalScope.reset()
+
+
+from polytess.core.properties import (GetGraphList, GetGraphVariable,  # noqa: E402
+                                      PropertyGetAny, PropertySetAny,
+                                      SetGlobalVariable, SetGraphList,
+                                      SetGraphVariable)
+from polytess.graph import SubFlowInput, SubFlowOutput, SubGraphNode  # noqa: E402
+
+
+@meta(title="Test Double", category="Testing/Double", hidden=True)
+class TestingDouble(Instruction):
+    """y = 2 * x (yields in between, so parallel calls interleave)."""
+
+    async def run(self, ctx):
+        x = ctx.graph_variables.get("x")
+        await asyncio.sleep(0.01)
+        ctx.graph_variables.set("y", 2 * x)
+        ctx.graph_lists.require("items").push("child")
+        ctx.globals.variables.set("touched", "yes")
+
+
+@meta(title="Test Raise", category="Testing/Raise", hidden=True)
+class TestingRaise(Instruction):
+    async def run(self, ctx):
+        raise RuntimeError("boom")
+
+
+def _linear(graph, *nodes):
+    previous = next(iter(graph.nodes_of_type(StartNode)))
+    for node in nodes:
+        graph.add_node(node)
+        graph.connect(previous, "out", node, "in")
+        previous = node
+    return nodes
+
+
+def _child_flow(path, *instructions):
+    child = build_graph()
+    child.variables.declare("x", "number", 1)
+    child.variables.declare("y", "number", 0)
+    child.lists.declare("items", "string", [])
+    actions = ActionsNode()
+    actions.instructions.instructions.extend(instructions)
+    _linear(child, actions)
+    child.save(str(path))
+
+
+def _sub_node(file, **bindings):
+    node = SubGraphNode()
+    node.file = file
+    node.inputs.append(SubFlowInput("x", PropertyGetAny(GetGraphVariable(bindings.get("x", "a")))))
+    node.outputs.append(SubFlowOutput("y", PropertySetAny(SetGraphVariable(bindings.get("y", "res")))))
+    return node
+
+
+def _parent(tmp_path, *nodes):
+    graph = build_graph()
+    graph.variables.declare("a", "number", 5)
+    graph.variables.declare("b", "number", 7)
+    graph.variables.declare("res", "number", 0)
+    graph.variables.declare("res2", "number", 0)
+    _linear(graph, *nodes)
+    path = str(tmp_path / "parent.flow.json")
+    graph.save(path)
+    return Graph.load(path)
+
+
+async def test_subflow_passes_inputs_and_outputs(tmp_path):
+    _child_flow(tmp_path / "child.flow.json", TestingDouble())
+    sub = _sub_node("child.flow.json")
+    sub.inputs.append(SubFlowInput("items", PropertyGetAny(GetGraphList("files"))))
+    sub.outputs.append(SubFlowOutput("items", PropertySetAny(SetGraphList("files"))))
+    after = ActionsNode()
+    after.instructions.instructions.append(TestingPush("after"))
+    graph = build_graph()
+    graph.variables.declare("a", "number", 5)
+    graph.variables.declare("res", "number", 0)
+    graph.lists.declare("files", "string", ["parent"])
+    _linear(graph, sub, after)
+    graph.save(str(tmp_path / "parent.flow.json"))
+    graph = Graph.load(str(tmp_path / "parent.flow.json"))
+
+    # workdir elsewhere: the file must resolve against the parent's folder
+    workdir = tmp_path / "elsewhere"
+    workdir.mkdir()
+    ctx = Context(graph=graph, workdir=str(workdir), logger=lambda lvl, msg: None)
+    processor = GraphProcessor(graph)
+    await processor.run(ctx)
+
+    assert processor.failed_nodes == []
+    assert graph.variables.get("res") == 10
+    assert graph.lists.get("files").items == ["parent", "child"]
+    assert trace(graph) == ["after"]
+    assert GlobalScope.instance().variables.get("touched") == "yes"
+    child = Graph.load(str(tmp_path / "child.flow.json"))
+    assert child.variables.get("y") == 0          # file untouched
+
+
+async def test_subflow_parallel_calls_are_isolated(tmp_path):
+    _child_flow(tmp_path / "child.flow.json", TestingDouble())
+    graph = build_graph()
+    graph.variables.declare("a", "number", 5)
+    graph.variables.declare("b", "number", 7)
+    start = next(iter(graph.nodes_of_type(StartNode)))
+    for x, y in (("a", "res"), ("b", "res2")):
+        node = graph.add_node(_sub_node("child.flow.json", x=x, y=y))
+        graph.connect(start, "out", node, "in")
+    graph.save(str(tmp_path / "parent.flow.json"))
+    graph = Graph.load(str(tmp_path / "parent.flow.json"))
+    await GraphProcessor(graph).run(ctx_for(graph))
+    assert graph.variables.get("res") == 10
+    assert graph.variables.get("res2") == 14
+
+
+async def test_subflow_unknown_binding_fails_node(tmp_path):
+    _child_flow(tmp_path / "child.flow.json", TestingDouble())
+    sub = _sub_node("child.flow.json")
+    sub.inputs.append(SubFlowInput("nope", PropertyGetAny(GetGraphVariable("a"))))
+    after = ActionsNode()
+    after.instructions.instructions.append(TestingPush("after"))
+    graph = _parent(tmp_path, sub, after)
+    processor = GraphProcessor(graph)
+    await processor.run(ctx_for(graph))
+    assert processor.failed_nodes == [sub.name]
+    assert trace(graph) == []
+
+
+async def test_subflow_failure_propagates(tmp_path):
+    _child_flow(tmp_path / "child.flow.json", TestingRaise())
+    after = ActionsNode()
+    after.instructions.instructions.append(TestingPush("after"))
+    sub = _sub_node("child.flow.json")
+    graph = _parent(tmp_path, sub, after)
+    processor = GraphProcessor(graph)
+    await processor.run(ctx_for(graph))
+    assert processor.failed_nodes and trace(graph) == []
+
+    graph.node_by_guid(sub.guid).fail_on_error = False
+    processor = GraphProcessor(graph)
+    await processor.run(ctx_for(graph))
+    assert processor.failed_nodes == [] and trace(graph) == ["after"]
+
+
+async def test_subflow_isolated_globals(tmp_path):
+    _child_flow(tmp_path / "child.flow.json", TestingDouble())
+    sub = _sub_node("child.flow.json")
+    sub.share_globals = False
+    sub.outputs.append(SubFlowOutput("x", PropertySetAny(SetGlobalVariable("got_x"))))
+    graph = _parent(tmp_path, sub)
+    await GraphProcessor(graph).run(ctx_for(graph))
+    assert graph.variables.get("res") == 10
+    assert GlobalScope.instance().variables.get("touched") is None
+    assert GlobalScope.instance().variables.get("got_x") == 5   # outputs still reach the caller
+
+
+async def test_subflow_recursion_is_bounded(tmp_path):
+    graph = build_graph()
+    sub = SubGraphNode()
+    sub.file = "self.flow.json"
+    _linear(graph, sub)
+    graph.save(str(tmp_path / "self.flow.json"))
+    graph = Graph.load(str(tmp_path / "self.flow.json"))
+    processor = GraphProcessor(graph)
+    await asyncio.wait_for(processor.run(ctx_for(graph)), timeout=20)
+    assert processor.failed_nodes == [sub.name]
+
+
+def test_subflow_bindings_in_refs_and_rename(tmp_path):
+    from polytess.core.refs import find_references, rename_references
+    graph = build_graph()
+    graph.variables.declare("a", "number", 5)
+    graph.variables.declare("res", "number", 0)
+    sub = _sub_node("child.flow.json")
+    _linear(graph, sub)
+    assert [r.access for r in find_references(graph, "res", "graph")] == ["write"]
+    assert [r.access for r in find_references(graph, "a", "graph")] == ["read"]
+    assert find_references(graph, "x", "graph") == []           # sub-flow param
+    assert rename_references(graph, "a", "a2", "graph") == 1
+    assert sub.inputs[0].value.source.name == "a2" and sub.inputs[0].param == "x"
+
+
+def test_subflow_bindings_flow_builder_roundtrip():
+    from polytess.graph.flow_builder import build_flow, flow_to_data
+    result = build_flow({
+        "variables": [{"name": "a", "type": "number", "value": 2},
+                      {"name": "res", "type": "number", "value": 0}],
+        "lists": [{"name": "files", "type": "string", "items": []}],
+        "nodes": [{"id": "sub", "kind": "subworkflow", "file": "c.flow.json",
+                   "inputs": {"x": {"var": "a"}, "n": 3, "items": {"var": "files"}},
+                   "outputs": {"y": "res", "items": "files", "g": {"global": "out"}},
+                   "share_globals": False}],
+        "edges": [{"from": "start", "to": "sub"}, {"from": "sub", "to": "exit"}]})
+    assert result.ok, result.warnings
+    spec = next(n for n in flow_to_data(result.graph)["nodes"]
+                if n.get("kind") == "subworkflow")
+    assert spec["inputs"] == {"x": {"var": "a"}, "n": 3, "items": {"var": "files"}}
+    assert spec["outputs"] == {"y": "res", "items": "files", "g": {"global": "out"}}
+    assert spec["share_globals"] is False and "fail_on_error" not in spec
+    node = next(iter(result.graph.nodes_of_type(SubGraphNode)))
+    assert type(node.inputs[2].value.source).__name__ == "GetGraphList"
+    assert type(node.outputs[1].target.source).__name__ == "SetGraphList"
+
+
+def test_cli_run_exit_code_reflects_failed_nodes(tmp_path):
+    from polytess.cli import main
+    for name, instruction, expected in (("ok", TestingPush("x"), 0),
+                                        ("bad", TestingRaise(), 1)):
+        graph = build_graph()
+        actions = ActionsNode()
+        actions.instructions.instructions.append(instruction)
+        _linear(graph, actions)
+        path = str(tmp_path / f"{name}.flow.json")
+        graph.save(path)
+        assert main(["run", path]) == expected

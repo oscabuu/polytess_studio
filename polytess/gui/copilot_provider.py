@@ -90,14 +90,24 @@ def stream_copilot(system_prompt: str, messages: list[dict], *,
     or the user is not authenticated."""
     try:
         from copilot import CopilotClient
-        from copilot.session import (PermissionDecisionApproveOnce,
-                                     PermissionDecisionReject)
         from copilot.session_events import (AssistantMessageDeltaData,
                                             SessionIdleData)
     except ImportError:
         raise RuntimeError(
             "The 'github-copilot-sdk' package is not installed — run: "
             "pip install github-copilot-sdk") from None
+    try:
+        from copilot.generated.rpc import (PermissionDecisionApproveOnce,
+                                           PermissionDecisionReject)
+    except ImportError:
+        # SDK versions before the generated rpc module exported them here
+        try:
+            from copilot.session import (PermissionDecisionApproveOnce,
+                                         PermissionDecisionReject)
+        except ImportError as exc:
+            raise RuntimeError(
+                f"Incompatible 'github-copilot-sdk' version ({exc}) — run: "
+                f"pip install --upgrade github-copilot-sdk") from None
 
     for key, value in enterprise_env(github_host).items():
         os.environ[key] = value

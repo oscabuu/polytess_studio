@@ -27,6 +27,7 @@ class Context:
         self.target: Any = target                # loop element / current subject
         self.workdir = workdir or os.getcwd()
         self.runner = runner                     # GraphProcessor while running
+        self.call_stack: tuple[str, ...] = ()    # sub-workflow files being called
         self._cancelled = False
         self._parent: Context | None = None
 
@@ -74,6 +75,7 @@ class Context:
         ctx = Context(graph=self.graph, globals_scope=self.globals, logger=self.logger,
                       target=self.target if target is ... else target,
                       workdir=self.workdir, runner=self.runner)
+        ctx.call_stack = self.call_stack
         ctx._parent = self
         return ctx
 

@@ -47,20 +47,25 @@ from polytess.core.conditions import Branch, BranchList, Condition, ConditionLis
 from polytess.core.events import Event
 from polytess.core.instructions import Instruction, InstructionList
 from polytess.core.metadata import get_meta, iter_subclasses
-from polytess.core.properties import (GetConstantList, GetGlobalList,
+from polytess.core.properties import (GetConstantBool, GetConstantList,
+                                    GetConstantNumber, GetConstantString,
+                                    GetGlobalList,
                                     GetGlobalTable, GetGlobalVariable,
                                     GetGraphList, GetGraphTable,
                                     GetGraphVariable, GetNone, GetPathFormat,
                                     GetStringFormat, GetTarget, PropertyGet,
-                                    PropertyGetList, PropertyGetPath,
-                                    PropertyGetTable, PropertySet,
+                                    PropertyGetAny, PropertyGetList,
+                                    PropertyGetPath, PropertyGetTable,
+                                    PropertySet, PropertySetAny,
+                                    PropertySetList,
                                     SetGlobalList, SetGlobalTable,
                                     SetGlobalVariable, SetGraphList,
                                     SetGraphTable, SetGraphVariable, SetNone)
 from polytess.core.variables import FORM_KEYS, STATUS_CHECKED
 from polytess.graph.model import Graph, Group, StickyNote
 from polytess.graph.nodes import (ActionsNode, BranchNode, ConditionsNode,
-                                ExitNode, StartNode, SubGraphNode, TriggerNode)
+                                ExitNode, StartNode, SubFlowInput,
+                                SubFlowOutput, SubGraphNode, TriggerNode)
 
 
 class BuildResult:
@@ -254,6 +259,44 @@ def _fill_condition_list(target: ConditionList, specs, result, where) -> None:
             target.conditions.append(block)
 
 
+def _constant_source(value):
+    if isinstance(value, bool):
+        return GetConstantBool(value)
+    if isinstance(value, (int, float)):
+        return GetConstantNumber(value)
+    if isinstance(value, (list, tuple)):
+        return GetConstantList(list(value))
+    return GetConstantString("" if value is None else str(value))
+
+
+def _fill_subflow_bindings(node: SubGraphNode, spec: dict, graph: Graph,
+                           result: BuildResult, where: str) -> None:
+    """"inputs": {sub_param: value spec}, "outputs": {sub_param: target}."""
+    for param, value in (spec.get("inputs") or {}).items():
+        if isinstance(value, dict) and "var" in value \
+                and graph.lists.exists(str(value["var"])):
+            prop = PropertyGetList()
+        else:
+            prop = PropertyGetAny()
+        source = _get_source_for(prop, value) if isinstance(value, dict) \
+            else _constant_source(value)
+        if source is None:
+            result.warnings.append(f"{where}.inputs.{param}: unsupported "
+                                   f"value spec {value!r}")
+            continue
+        node.inputs.append(SubFlowInput(str(param), PropertyGetAny(source)))
+    for param, target in (spec.get("outputs") or {}).items():
+        name = target.get("var") if isinstance(target, dict) else target
+        prop = PropertySetList() if isinstance(name, str) \
+            and graph.lists.exists(name) else PropertySetAny()
+        node.outputs.append(SubFlowOutput(
+            str(param), PropertySetAny(_set_source_for(prop, target))))
+    if "share_globals" in spec:
+        node.share_globals = bool(spec["share_globals"])
+    if "fail_on_error" in spec:
+        node.fail_on_error = bool(spec["fail_on_error"])
+
+
 # ---- graph building -------------------------------------------------------------- #
 
 _X_STEP, _Y_STEP, _X_START = 300.0, 190.0, -300.0
@@ -366,6 +409,7 @@ def build_flow(data: dict) -> BuildResult:
         elif kind in ("subworkflow", "subgraph"):
             node = SubGraphNode()
             node.file = str(spec.get("file", ""))
+            _fill_subflow_bindings(node, spec, graph, result, where)
         else:
             result.warnings.append(f"{where}: unknown kind {kind!r} — skipped")
             continue
@@ -622,6 +666,16 @@ def flow_to_data(graph: Graph) -> dict:
         elif isinstance(node, SubGraphNode):
             spec["kind"] = "subworkflow"
             spec["file"] = node.file
+            if node.inputs:
+                spec["inputs"] = {b.param: _export_get_source(b.value.source)
+                                  for b in node.inputs if b.is_enabled}
+            if node.outputs:
+                spec["outputs"] = {b.param: _export_set_source(b.target.source)
+                                   for b in node.outputs if b.is_enabled}
+            if not node.share_globals:
+                spec["share_globals"] = False
+            if not node.fail_on_error:
+                spec["fail_on_error"] = False
         else:
             continue
         if getattr(node, "custom_name", ""):

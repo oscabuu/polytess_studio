@@ -11,21 +11,24 @@ connections.
 
 from __future__ import annotations
 
+import os
 from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCursor, QUndoStack
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFrame,
-                               QHBoxLayout, QLabel, QLineEdit, QPushButton,
-                               QScrollArea, QToolButton, QVBoxLayout, QWidget)
+                               QHBoxLayout, QLabel, QLineEdit, QMessageBox,
+                               QPushButton, QScrollArea, QToolButton,
+                               QVBoxLayout, QWidget)
 
 from polytess.core.conditions import Branch, Condition
 from polytess.core.events import Event
 from polytess.core.instructions import Instruction
-from polytess.core.metadata import get_meta, iter_subclasses
+from polytess.core.metadata import get_field_help, get_meta, iter_subclasses
 from polytess.graph.model import Graph, Node
 from polytess.graph.nodes import (ActionsNode, BranchNode, ConditionsNode,
-                                ExitNode, StartNode, SubGraphNode, TriggerNode)
+                                ExitNode, StartNode, SubFlowInput,
+                                SubFlowOutput, SubGraphNode, TriggerNode)
 from polytess.gui.icons import icon
 from polytess.gui.inspector.commands import (EditFieldCommand, ListEditCommand,
                                              UndoCallbacks)
@@ -276,20 +279,85 @@ class InspectorPanel(QWidget):
         browse.setToolTip("Browse…")
 
         def do_browse():
+            base = os.path.dirname(self._graph.path) if self._graph.path else ""
             path, _ = QFileDialog.getOpenFileName(
-                self, "Select workflow", "", "Workflows (*.flow.json)")
+                self, "Select workflow", base, "Workflows (*.flow.json)")
             if path:
-                edit.setText(path)
+                # relative to the calling flow -> the pair can be moved together
+                edit.setText(os.path.relpath(path, base) if base else path)
 
         browse.clicked.connect(do_browse)
         row.addWidget(browse)
         layout.addLayout(row)
+
+        for attr, text in (("share_globals", "Share Global Variables"),
+                           ("fail_on_error", "Fail If Sub-Workflow Fails")):
+            box = QCheckBox(text)
+            box.setChecked(getattr(node, attr))
+            box.setToolTip(get_field_help(SubGraphNode).get(attr, ""))
+            box.toggled.connect(lambda value, a=attr, t=text:
+                                self._set_field(node, a, value, f"Toggle {t}"))
+            layout.addWidget(box)
+
+        layout.addWidget(self._list_widget("Inputs", SubFlowInput, node.inputs,
+                                           "subflow-inputs",
+                                           direct_add_cls=SubFlowInput))
+        layout.addWidget(self._list_widget("Outputs", SubFlowOutput, node.outputs,
+                                           "subflow-outputs",
+                                           direct_add_cls=SubFlowOutput))
+
+        interface_btn = QPushButton("  Load Interface from Sub-Workflow")
+        interface_btn.setIcon(icon("variable", "blue"))
+        interface_btn.setToolTip("Add a binding for every input/output variable "
+                                 "of the sub-workflow (Viewer form modes) that "
+                                 "is not bound yet")
+        interface_btn.clicked.connect(lambda: self._load_subflow_interface(node))
+        layout.addWidget(interface_btn)
 
         open_btn = QPushButton("  Open Sub-Workflow")
         open_btn.setIcon(icon("graph", "blue"))
         open_btn.clicked.connect(lambda: self.open_subgraph.emit(node.file))
         layout.addWidget(open_btn)
         return container
+
+    def _load_subflow_interface(self, node: SubGraphNode) -> None:
+        from polytess.core.properties import (GetGraphList, GetGraphVariable,
+                                              PropertyGetAny, PropertySetAny,
+                                              SetGraphList, SetGraphVariable)
+        from polytess.graph.inputs import input_spec
+        path = node.resolve_file(self._graph.path or "", os.getcwd())
+        try:
+            sub_spec = input_spec(Graph.load(path))
+        except Exception as exc:
+            QMessageBox.warning(self, "Sub-Workflow", f"Cannot load {path}:\n{exc}")
+            return
+        own_vars, own_lists = self._graph.variables, self._graph.lists
+
+        def source_for(name: str, kind: str, write: bool):
+            # pre-bind same-named variables of the calling flow, else leave unbound
+            if kind == "list" and own_lists.exists(name):
+                return (SetGraphList if write else GetGraphList)(name)
+            if kind != "list" and own_vars.exists(name):
+                return (SetGraphVariable if write else GetGraphVariable)(name)
+            return None
+
+        for items, fields, write in ((node.inputs, sub_spec.fields, False),
+                                     (node.outputs, sub_spec.outputs, True)):
+            bound = {b.param for b in items}
+            new = [f for f in fields if f.name not in bound]
+            if not new:
+                continue
+            before = [b.copy() for b in items]
+            for fld in new:
+                source = source_for(fld.name, fld.kind, write)
+                if write:
+                    items.append(SubFlowOutput(fld.name, PropertySetAny(source)))
+                else:
+                    items.append(SubFlowInput(fld.name, PropertyGetAny(source)))
+            self._undo.push_list(items, before, [b.copy() for b in items],
+                                 "Load Sub-Workflow Interface")
+        self._emit_changed()
+        self._build()
 
     # ---- transitions ------------------------------------------------------------- #
 

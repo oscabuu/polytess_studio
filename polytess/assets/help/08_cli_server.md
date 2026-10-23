@@ -16,6 +16,10 @@ nightly jobs and HPC servers.
 `--var` overrides graph variables per run — the tool for parameter
 studies driven by an outer script or scheduler.
 
+Exit codes of `run`: `0` success, `1` at least one node failed (also
+inside a sub-workflow with *Fail If Sub-Workflow Fails*), `2` invalid
+`--vars-file` values, `130` interrupted.
+
 ## Deployment
 
 - **Desktop**: the polytess executable — unzip and run, no Python

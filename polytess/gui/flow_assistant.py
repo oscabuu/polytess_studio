@@ -64,7 +64,9 @@ Describe your plan briefly, then put the COMPLETE flow in exactly ONE
                    "instructions": [...]}]},
     {"id": "trg", "kind": "trigger",
      "event": {"type": "<EventClassName>", "params": {...}}},
-    {"id": "sub", "kind": "subworkflow", "file": "other.flow.json"}
+    {"id": "sub", "kind": "subworkflow", "file": "other.flow.json",
+     "inputs": {"<sub var>": <param value>}, "outputs": {"<sub var>": "<own var>"},
+     "share_globals": true, "fail_on_error": true}
   ],
   "edges": [
     {"from": "start", "to": "prep"},
@@ -84,6 +86,11 @@ Describe your plan briefly, then put the COMPLETE flow in exactly ONE
   formatted string/path from variables, {"target": true} reads the loop
   target. For set:-fields (write targets) pass the variable name as a
   plain string, or {"global": "name"} for a global.
+- Sub-workflows are called like functions: "inputs" maps graph variables
+  of the SUB flow to values of this flow (same param-value syntax),
+  "outputs" maps sub-flow variables back to write targets of this flow.
+  Pass data through these bindings, not through global variables; the
+  file path is relative to this flow's folder.
 - Every "type" MUST be a class name from the registry below — check it.
   Declare every variable you reference.
 - "form" (optional, all keys optional) describes a variable for the

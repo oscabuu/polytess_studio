@@ -4,6 +4,33 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.17.0 — 2026-10-23
+- **Sub-workflows with inputs and outputs.** A Sub-Workflow node now
+  calls another flow like a function: *Inputs* bind graph variables/
+  lists of the sub-flow to values of the calling flow (constant,
+  variable, list, table, template, loop target …), *Outputs* copy
+  sub-flow variables back after the call. The sub-flow is loaded fresh
+  per call, so parallel calls are isolated. Inspector: Inputs/Outputs
+  lists, **Load Interface from Sub-Workflow** (uses the Viewer form
+  modes: inputs → inputs, mode "output" → outputs, same-named variables
+  pre-bound), checkboxes *Share Global Variables* and *Fail If
+  Sub-Workflow Fails*. Bindings take part in Find References / rename,
+  in the Flow Assistant schema (`"inputs"`, `"outputs"`) and in
+  `polytess validate` (missing file, unknown bindings, unloadable file,
+  persistent-trigger warning).
+- **Behaviour change:** a failed node inside a sub-workflow now fails
+  the calling node (chain stops, outputs not returned) — before, the
+  failure was only logged and the parent continued. Switch *Fail If
+  Sub-Workflow Fails* off to get the old behaviour. Relative sub-flow
+  paths resolve against the calling flow's folder first (working
+  directory as fallback) instead of the working directory only.
+- *Share Global Variables* off gives the sub-flow a private snapshot
+  of the globals; nesting is limited to 32 levels.
+- `GraphProcessor.failed_nodes` lists the nodes that raised; `polytess
+  run` exits with 1 when any node failed (documented exit codes).
+- Copilot provider: permission classes imported from the SDK's
+  generated module with a fallback for older SDK versions.
+
 ## 1.16.1 — 2026-09-23
 - Blackboard: click the **Status** header to sort by status (unchecked →
   checked → runtime, click again for descending, third click restores

@@ -44,6 +44,7 @@ class GraphProcessor:
         self._exit = asyncio.Event()
         self._stopped = False
         self._results: dict[str, bool] = {}      # ConditionsNode outcomes
+        self.failed_nodes: list[str] = []        # names of nodes that raised
         self.is_running = False
         self._paused = False
         self._step_tokens = 0
@@ -140,6 +141,7 @@ class GraphProcessor:
             raise
         except Exception as exc:
             ctx.error(f"Node '{node.name}': {exc.__class__.__name__}: {exc}")
+            self.failed_nodes.append(node.name)
             self._emit(node, NodeStatus.FAIL)
             return
         result = self._results.get(node.guid, True)
@@ -165,6 +167,7 @@ class GraphProcessor:
         from polytess.graph.nodes import StartNode, TriggerNode
         self.is_running = True
         self._stopped = False
+        self.failed_nodes = []
         self._exit = asyncio.Event()
         ctx.runner = self
         try:

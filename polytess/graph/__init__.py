@@ -7,6 +7,6 @@ push-based asyncio execution processor."""
 from polytess.graph.model import Graph, Node, Edge, PortSpec, Group, StickyNote
 from polytess.graph.nodes import (
     StartNode, ExitNode, ActionsNode, ConditionsNode, BranchNode,
-    TriggerNode, SubGraphNode,
+    TriggerNode, SubGraphNode, SubFlowInput, SubFlowOutput,
 )
 from polytess.graph.processor import GraphProcessor, NodeStatus
