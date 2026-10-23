@@ -290,6 +290,17 @@ class InspectorPanel(QWidget):
         row.addWidget(browse)
         layout.addLayout(row)
 
+        desc_row = QHBoxLayout()
+        desc_row.addWidget(QLabel("Card description"))
+        desc = QLineEdit(node.description)
+        desc.setPlaceholderText("Shown on the Viewer board card")
+        desc.setToolTip(get_field_help(SubGraphNode).get("description", ""))
+        desc.editingFinished.connect(
+            lambda e=desc: self._set_field(node, "description", e.text(),
+                                           "Edit Card Description"))
+        desc_row.addWidget(desc, 1)
+        layout.addLayout(desc_row)
+
         for attr, text in (("share_globals", "Share Global Variables"),
                            ("fail_on_error", "Fail If Sub-Workflow Fails")):
             box = QCheckBox(text)

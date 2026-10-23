@@ -25,6 +25,7 @@ polytess = "polytess.cli:main"
 
 [project.gui-scripts]
 polytess-studio = "polytess.__main__:main"
+polytess-viewer = "polytess.viewer.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["polytess*"]

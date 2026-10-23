@@ -63,6 +63,10 @@ DEFAULTS: dict[str, Any] = {
     # custom-library folder override (empty = ~/.polytess/custom_library;
     # the POLYTESS_CUSTOM_LIBRARY env var wins over both)
     "custom_library_path": "",
+    # ---- Viewer (run-only app, PLAN_VIEWER.md) ----
+    "viewer_recent": [],              # recently opened flows (paths)
+    "viewer_celebrations": "subtle",  # off | subtle | full
+    "viewer_auto_advance": True,      # board: start ready successors
 }
 
 

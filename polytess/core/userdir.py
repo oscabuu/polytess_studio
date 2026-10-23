@@ -22,7 +22,12 @@ _LEGACY_ENV_PREFIXES = ("POLYFLOW_", "GCFLOW_")
 
 
 def user_dir() -> str:
-    """``~/.polytess`` — created on demand, migrated from a legacy dir."""
+    """``~/.polytess`` — created on demand, migrated from a legacy dir.
+    ``POLYTESS_USER_DIR`` overrides the location (tests, portable use)."""
+    override = os.environ.get("POLYTESS_USER_DIR", "")
+    if override:
+        os.makedirs(override, exist_ok=True)
+        return override
     new = os.path.join(os.path.expanduser("~"), ".polytess")
     if not os.path.isdir(new):
         for legacy in _LEGACY_DIRS:

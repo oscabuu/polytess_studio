@@ -1,0 +1,277 @@
+{
+  "name": "Prepare Model",
+  "lineage": {
+    "flow_id": "20b1ec194e68424e824e754b8ae6b338",
+    "branch": "main",
+    "revision": 0,
+    "parent_branch": "",
+    "parent_revision": 0
+  },
+  "nodes": [
+    {
+      "guid": "45d86c50e3854a689f79aa741b5d1ca2",
+      "custom_name": "",
+      "x": -300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "StartNode"
+    },
+    {
+      "guid": "d7c2f20c54f042c8af13008fc01f0925",
+      "custom_name": "Create model",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "Preparing model for {project_name}",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "work_folder",
+                "$type": "GetGraphVariable"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "$type": "CreateFolder"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "seconds": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": 1.5,
+                "$type": "GetConstantNumber"
+              },
+              "$type": "PropertyGetNumber"
+            },
+            "$type": "WaitSeconds"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "{work_folder}/{project_name}_model.txt",
+                "$type": "GetPathFormat"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "content": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "MODEL {project_name}\nnodes 1200\n",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "append": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": false,
+                "$type": "GetConstantBool"
+              },
+              "$type": "PropertyGetBool"
+            },
+            "$type": "WriteTextFile"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "target": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "model_file",
+                "$type": "SetGraphVariable"
+              },
+              "$type": "PropertySetString"
+            },
+            "value": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "{work_folder}/{project_name}_model.txt",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "SetString"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "Model written: {model_file}",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "d418d881cb684cb18f50eb4c0a8543d6",
+      "custom_name": "",
+      "x": 600.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "ExitNode"
+    }
+  ],
+  "edges": [
+    {
+      "guid": "d94b12dbd6144a4aaab1090ffec49827",
+      "src_node": "45d86c50e3854a689f79aa741b5d1ca2",
+      "src_port": "out",
+      "dst_node": "d7c2f20c54f042c8af13008fc01f0925",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "3c686459f46842f6b9a71650dc667b04",
+      "src_node": "d7c2f20c54f042c8af13008fc01f0925",
+      "src_port": "out",
+      "dst_node": "d418d881cb684cb18f50eb4c0a8543d6",
+      "dst_port": "in",
+      "$type": "Edge"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "variables": {
+    "items": [
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "project_name",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "demo",
+          "$type": "ValueString"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "label": "Project name",
+          "required": true
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "work_folder",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValuePath"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "label": "Work folder",
+          "path_kind": "folder",
+          "required": true
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "model_file",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValuePath"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Model file"
+        },
+        "$type": "NameVariable"
+      }
+    ],
+    "$type": "NameVariables"
+  },
+  "lists": {
+    "items": [],
+    "$type": "ListVariables"
+  },
+  "pan_x": 0.0,
+  "pan_y": 0.0,
+  "zoom": 1.0,
+  "$type": "Graph"
+}

@@ -1,0 +1,730 @@
+{
+  "name": "Bracket Study",
+  "lineage": {
+    "flow_id": "c2723e4be6ff4bedb03de3f98e8bc6d9",
+    "branch": "main",
+    "revision": 0,
+    "parent_branch": "",
+    "parent_revision": 0
+  },
+  "nodes": [
+    {
+      "guid": "93651bb3ebe44ae186f217ed898a4390",
+      "custom_name": "",
+      "x": 0.0,
+      "y": 390.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "StartNode"
+    },
+    {
+      "guid": "0b43a2efc60c4e639aabc1ca9ca370b4",
+      "custom_name": "Prepare Model",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "file": "prepare.flow.json",
+      "inputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "project_name",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "project_name",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "work_folder",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "work_folder",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        }
+      ],
+      "outputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "model_file",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "model_file",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        }
+      ],
+      "share_globals": true,
+      "fail_on_error": true,
+      "description": "Creates the work folder and the model file.",
+      "$type": "SubGraphNode"
+    },
+    {
+      "guid": "df0d65232e0b40b58ce4bbc9ea4a7119",
+      "custom_name": "Mesh",
+      "x": 340.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "file": "mesh.flow.json",
+      "inputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "model_file",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "model_file",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "mesh_size",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "mesh_size",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        }
+      ],
+      "outputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "mesh_file",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "mesh_file",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "element_count",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "element_count",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        }
+      ],
+      "share_globals": true,
+      "fail_on_error": true,
+      "description": "Meshes the model with the chosen element size.",
+      "$type": "SubGraphNode"
+    },
+    {
+      "guid": "86ca8ce7922548d9a424c511c2f5a7bd",
+      "custom_name": "Static Load Case",
+      "x": 720.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "file": "solve_static.flow.json",
+      "inputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "mesh_file",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "mesh_file",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "load_kn",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "load_kn",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        }
+      ],
+      "outputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "max_stress",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "max_stress",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        }
+      ],
+      "share_globals": true,
+      "fail_on_error": true,
+      "description": "Linear static analysis with the given load.",
+      "$type": "SubGraphNode"
+    },
+    {
+      "guid": "dcc01817c71c46bca4ba1dcfe27449e9",
+      "custom_name": "Modal Analysis",
+      "x": 720.0,
+      "y": 200.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "file": "solve_modal.flow.json",
+      "inputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "mesh_file",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "mesh_file",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        }
+      ],
+      "outputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "first_freq",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "first_freq",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        }
+      ],
+      "share_globals": true,
+      "fail_on_error": true,
+      "description": "Eigenfrequencies — independent of the static case.",
+      "$type": "SubGraphNode"
+    },
+    {
+      "guid": "e876e4b7f5144feba18df52cbd448c7d",
+      "custom_name": "Report",
+      "x": 1100.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "file": "report.flow.json",
+      "inputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "project_name",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "project_name",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "work_folder",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "work_folder",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "max_stress",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "max_stress",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "report_format",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "report_format",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        }
+      ],
+      "outputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "report_file",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "report_file",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "summary",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "summary",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        }
+      ],
+      "share_globals": true,
+      "fail_on_error": true,
+      "description": "Collects the static result into a report file.",
+      "$type": "SubGraphNode"
+    },
+    {
+      "guid": "f1f3457771944e98bb5ad5bd89880f06",
+      "custom_name": "",
+      "x": 300.0,
+      "y": 390.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "ExitNode"
+    }
+  ],
+  "edges": [
+    {
+      "guid": "8d7506e675b146a29602129546e24f64",
+      "src_node": "93651bb3ebe44ae186f217ed898a4390",
+      "src_port": "out",
+      "dst_node": "0b43a2efc60c4e639aabc1ca9ca370b4",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "6efe7ff2acdf4365ba9eb4a87a97b04b",
+      "src_node": "0b43a2efc60c4e639aabc1ca9ca370b4",
+      "src_port": "out",
+      "dst_node": "df0d65232e0b40b58ce4bbc9ea4a7119",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "184d6382f22b4625a0f199fc5d882bde",
+      "src_node": "df0d65232e0b40b58ce4bbc9ea4a7119",
+      "src_port": "out",
+      "dst_node": "86ca8ce7922548d9a424c511c2f5a7bd",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "8a268764481a4d72b4b164e35786af06",
+      "src_node": "df0d65232e0b40b58ce4bbc9ea4a7119",
+      "src_port": "out",
+      "dst_node": "dcc01817c71c46bca4ba1dcfe27449e9",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "4524d2f607a44440b2e3975504c16b64",
+      "src_node": "86ca8ce7922548d9a424c511c2f5a7bd",
+      "src_port": "out",
+      "dst_node": "e876e4b7f5144feba18df52cbd448c7d",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "57c175fb6cec4076bb4529c400446189",
+      "src_node": "e876e4b7f5144feba18df52cbd448c7d",
+      "src_port": "out",
+      "dst_node": "f1f3457771944e98bb5ad5bd89880f06",
+      "dst_port": "in",
+      "$type": "Edge"
+    }
+  ],
+  "groups": [
+    {
+      "guid": "fdc0b32fae17473b8800cce078db34d8",
+      "title": "Pre-processing",
+      "x": -120.0,
+      "y": -80.0,
+      "width": 760.0,
+      "height": 230.0,
+      "color": "#3d7ad9",
+      "$type": "Group"
+    },
+    {
+      "guid": "cf75bb1e2b1f49afa9e96d849020f5db",
+      "title": "Solving",
+      "x": 680.0,
+      "y": -80.0,
+      "width": 420.0,
+      "height": 420.0,
+      "color": "#519932",
+      "$type": "Group"
+    }
+  ],
+  "notes": [],
+  "variables": {
+    "items": [
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "project_name",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "bracket_v1",
+          "$type": "ValueString"
+        },
+        "group": "Project",
+        "status": "",
+        "form": {
+          "label": "Project name",
+          "required": true,
+          "description": "Used as prefix for every result file."
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "work_folder",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValuePath"
+        },
+        "group": "Project",
+        "status": "",
+        "form": {
+          "label": "Work folder",
+          "path_kind": "folder",
+          "required": true,
+          "description": "All results are written here."
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "mesh_size",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": 2.0,
+          "$type": "ValueNumber"
+        },
+        "group": "Settings",
+        "status": "",
+        "form": {
+          "label": "Element size [mm]",
+          "minimum": 0.5,
+          "maximum": 10
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "load_kn",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": 5.0,
+          "$type": "ValueNumber"
+        },
+        "group": "Settings",
+        "status": "",
+        "form": {
+          "label": "Load [kN]",
+          "minimum": 0,
+          "maximum": 100,
+          "required": true
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "report_format",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "txt",
+          "$type": "ValueString"
+        },
+        "group": "Settings",
+        "status": "",
+        "form": {
+          "label": "Report format",
+          "choices": [
+            "txt",
+            "md"
+          ]
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "model_file",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValuePath"
+        },
+        "group": "",
+        "status": "",
+        "form": {},
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "mesh_file",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValuePath"
+        },
+        "group": "",
+        "status": "",
+        "form": {},
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "element_count",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": 0.0,
+          "$type": "ValueNumber"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Elements"
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "max_stress",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": 0.0,
+          "$type": "ValueNumber"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Max. stress [MPa]"
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "first_freq",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": 0.0,
+          "$type": "ValueNumber"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "1st eigenfrequency [Hz]"
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "summary",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValueString"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Summary"
+        },
+        "$type": "NameVariable"
+      }
+    ],
+    "$type": "NameVariables"
+  },
+  "lists": {
+    "items": [],
+    "$type": "ListVariables"
+  },
+  "pan_x": 0.0,
+  "pan_y": 0.0,
+  "zoom": 1.0,
+  "$type": "Graph"
+}

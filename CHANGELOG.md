@@ -4,6 +4,38 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.18.0 — 2026-10-23
+- **polytess Viewer** (`polytess-viewer`, `python -m polytess.viewer`,
+  third executable in the bundle): the run-only app for non-expert
+  users. Start page with recent flows and drag & drop; a flow without
+  sub-workflow nodes opens as a **form** (fields from the Viewer
+  metadata, presets per flow family incl. *Last values*, validation,
+  run with progress/phase/log/pause/stop, result page with outputs,
+  work folder and log); a main process opens as a **Kanban board**
+  (Backlog · Active · Done) whose cards are its Sub-Workflow nodes:
+  drag to Active starts a card (dialog when predecessors are
+  unfinished: run in order / only this / cancel), results are
+  remembered in `<flow>.board.json` with an input hash (reopening
+  shows Done; changed inputs → *outdated*, with successors), drag Done
+  → Backlog forgets, auto-advance starts ready successors, *Run all*,
+  *Reset*, *Process inputs…*; detail panel with description,
+  bindings, progress and log; dashboard with progress ring, counters,
+  time spent, estimated remaining, success rate, streak, most failing
+  card and 30-day run bars. Celebrations off / subtle / full (slide +
+  playful bounce on drop, glow + toast on Done, confetti when all done).
+- Board core without GUI: `polytess.graph.board` (`board_spec`,
+  `BoardState`, `BoardRunner`), CLI `polytess board <flow>
+  [--run CARD | --all | --reset | --json]` sharing the same state file.
+- Sub-Workflow nodes gain a **Card description** (Inspector, assistant
+  schema `"description"`); `SubGraphNode.call` is public and reports
+  sub-flow progress.
+- Demo: `examples/viewer/` — *Bracket Study* main process with five
+  sub-workflows (prepare → mesh → static/modal → report), built by
+  `build_process.py`, runs without any solver.
+- `POLYTESS_USER_DIR` overrides `~/.polytess` (tests, portable use).
+- Manual: new chapter *polytess Viewer*; CLI chapter lists `inputs`,
+  `--vars-file` and `board`.
+
 ## 1.17.1 — 2026-10-23
 - `PLAN_VIEWER.md`: the Viewer plan grows a Kanban board for main
   processes built from sub-workflow nodes (cards, dependencies,

@@ -6,7 +6,8 @@
     python build_exe.py [--no-custom-library] [--no-plugins]
 
 Produces ``dist/exe/polytess/`` containing the GUI executable
-(``polytess``) and the headless CLI (``polytess-cli``), then zips it as
+(``polytess``), the Viewer (``polytess-viewer``) and the headless CLI
+(``polytess-cli``), then zips it as
 ``dist/polytess-<version>-<os>-<arch>.zip``. No Python required on the
 target machine. Bundles plain Python source (BUSL — no IP-protection
 compilation step). Platform rules: build on the OS you target.
@@ -36,7 +37,8 @@ SHIPPED_PLUGINS = ["simpack_template"]
 # loaded as folder plugins at runtime
 HIDDEN = ["qasync", "cryptography", "cryptography.hazmat.primitives."
           "asymmetric.ed25519", "reportlab", "polytess",
-          "polytess.cli", "polytess.gui.main_window"]
+          "polytess.cli", "polytess.gui.main_window",
+          "polytess.viewer.app"]
 COLLECT_ALL = ["polytess", "reportlab"]
 
 
@@ -46,7 +48,11 @@ def build(no_custom: bool, no_plugins: bool) -> str:
 
     launcher = os.path.join(ROOT, "build", "exe_launcher_gui.py")
     cli_launcher = os.path.join(ROOT, "build", "exe_launcher_cli.py")
+    viewer_launcher = os.path.join(ROOT, "build", "exe_launcher_viewer.py")
     os.makedirs(os.path.dirname(launcher), exist_ok=True)
+    with open(viewer_launcher, "w", encoding="utf-8") as fh:
+        fh.write("import sys\nfrom polytess.viewer.__main__ import main\n"
+                 "sys.exit(main())\n")
     with open(launcher, "w", encoding="utf-8") as fh:
         fh.write("import sys\nfrom polytess.__main__ import main\n"
                  "sys.exit(main())\n")
@@ -94,8 +100,16 @@ pyz_cli = PYZ(analysis_cli.pure)
 exe_cli = EXE(pyz_cli, analysis_cli.scripts, [], exclude_binaries=True,
               name="polytess-cli", console=True, upx=False)
 
+analysis_viewer = Analysis([{viewer_launcher!r}], pathex=[{ROOT!r}],
+                           datas=datas, binaries=binaries,
+                           hiddenimports=hidden, noarchive=False)
+pyz_viewer = PYZ(analysis_viewer.pure)
+exe_viewer = EXE(pyz_viewer, analysis_viewer.scripts, [], exclude_binaries=True,
+                 name="polytess-viewer", {windowed}, upx=False)
+
 coll = COLLECT(exe_gui, analysis_gui.binaries, analysis_gui.datas,
                exe_cli, analysis_cli.binaries, analysis_cli.datas,
+               exe_viewer, analysis_viewer.binaries, analysis_viewer.datas,
                name="polytess")
 """)
     shutil.rmtree(os.path.join(EXE_DIR, "polytess"), ignore_errors=True)

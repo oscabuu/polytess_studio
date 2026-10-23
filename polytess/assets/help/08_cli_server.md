@@ -8,6 +8,9 @@ nightly jobs and HPC servers.
     polytess-cli run flow.flow.json [--var name=value …] [--workdir DIR]
     polytess-cli validate flow.flow.json
     polytess-cli doc flow.flow.json
+    polytess-cli inputs flow.flow.json [--template values.json]
+    polytess-cli run flow.flow.json --vars-file values.json
+    polytess-cli board main.flow.json [--run CARD | --all | --reset CARD|all] [--json]
     polytess-cli --version
 
 (In a Python environment the same commands are
@@ -15,6 +18,15 @@ nightly jobs and HPC servers.
 
 `--var` overrides graph variables per run — the tool for parameter
 studies driven by an outer script or scheduler.
+
+`inputs` prints the Viewer form of a flow (what a non-expert user
+fills in) and `--template` writes a preset file with the current
+values; `run --vars-file` validates and applies such a preset before
+the run. `board` shows a main process (sub-workflow nodes = cards) with
+its card statuses, runs one card after its unfinished predecessors
+(`--run`), everything in dependency order (`--all`) or forgets results
+(`--reset`) — the same state file (`<flow>.board.json`) the Viewer
+uses, so a run started headless shows up Done in the Viewer.
 
 Exit codes of `run`: `0` success, `1` at least one node failed (also
 inside a sub-workflow with *Fail If Sub-Workflow Fails*), `2` invalid

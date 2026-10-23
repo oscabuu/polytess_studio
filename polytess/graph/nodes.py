@@ -331,6 +331,9 @@ class SubGraphNode(Node):
         "fail_on_error": "On: a failed node inside the sub-workflow fails "
                          "this node (the chain stops, outputs are not "
                          "returned). Off: only a warning is logged.",
+        "description": "One or two sentences shown on this card in the "
+                       "polytess Viewer board (what the step does, what "
+                       "the user should know before starting it).",
     }
 
     def __init__(self):
@@ -340,6 +343,7 @@ class SubGraphNode(Node):
         self.outputs: list[SubFlowOutput] = []
         self.share_globals: bool = True
         self.fail_on_error: bool = True
+        self.description: str = ""     # shown on the Viewer board card
 
     @property
     def default_name(self) -> str:
@@ -374,11 +378,16 @@ class SubGraphNode(Node):
 
     async def process(self, ctx: Context, processor) -> None:
         if self.file:
-            await self._call(ctx)
+            await self.call(ctx)
         if not ctx.is_cancelled:
             await processor.run_children(self, "out", ctx)
 
-    async def _call(self, ctx: Context) -> None:
+    async def call(self, ctx: Context, on_status=None) -> None:
+        """Run the sub-workflow once with *ctx* as the caller's context —
+        inputs evaluated in *ctx*, outputs written back into it. Used by
+        process() and by the Viewer board, which runs cards outside the
+        main flow's processor. *on_status* (node, NodeStatus) receives
+        the sub-workflow's node progress."""
         from polytess.graph.model import Graph
         from polytess.graph.processor import GraphProcessor
 
@@ -408,7 +417,7 @@ class SubGraphNode(Node):
             ctx.warning(f"Sub-workflow {self.file} has persistent triggers — "
                         f"it only returns when one of its Exit nodes runs")
 
-        sub_processor = GraphProcessor(sub_graph)
+        sub_processor = GraphProcessor(sub_graph, on_status)
         ctx.info(f"Sub-workflow start: {self.file}")
         await sub_processor.run(sub_ctx)
         if ctx.is_cancelled:

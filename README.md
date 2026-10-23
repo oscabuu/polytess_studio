@@ -15,6 +15,9 @@ python3 -m venv .venv
 ./.venv/bin/python -m polytess                      # empty studio
 ./.venv/bin/python -m polytess examples/demo.flow.json
 
+# Viewer — run-only app for non-expert users (form or Kanban board)
+./.venv/bin/python -m polytess.viewer examples/viewer/main_process.flow.json
+
 # Headless (batch / compute server / HPC)
 ./.venv/bin/python -m polytess.cli run examples/demo.flow.json --var case=run42
 ./.venv/bin/python -m polytess.cli validate examples/demo.flow.json

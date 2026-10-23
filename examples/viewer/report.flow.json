@@ -1,0 +1,327 @@
+{
+  "name": "Report",
+  "lineage": {
+    "flow_id": "97f7a7c564874215839960d3ee49685b",
+    "branch": "main",
+    "revision": 0,
+    "parent_branch": "",
+    "parent_revision": 0
+  },
+  "nodes": [
+    {
+      "guid": "4842a633b1ce43c9a9c8b40e17ec9c0b",
+      "custom_name": "",
+      "x": -300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "StartNode"
+    },
+    {
+      "guid": "bdae9e5c42864c3789a3c7b498664bd4",
+      "custom_name": "Write report",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "seconds": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": 1.0,
+                "$type": "GetConstantNumber"
+              },
+              "$type": "PropertyGetNumber"
+            },
+            "$type": "WaitSeconds"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "target": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "report_file",
+                "$type": "SetGraphVariable"
+              },
+              "$type": "PropertySetString"
+            },
+            "value": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "{work_folder}/{project_name}_report.{report_format}",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "SetString"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "target": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "summary",
+                "$type": "SetGraphVariable"
+              },
+              "$type": "PropertySetString"
+            },
+            "value": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "{project_name}: max stress {max_stress} MPa",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "SetString"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "report_file",
+                "$type": "GetGraphVariable"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "content": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "REPORT {project_name}\n{summary}\n",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "append": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": false,
+                "$type": "GetConstantBool"
+              },
+              "$type": "PropertyGetBool"
+            },
+            "$type": "WriteTextFile"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "Report written: {report_file}",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "9216864feb4f4428b1db10936dbe0a0f",
+      "custom_name": "",
+      "x": 600.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "ExitNode"
+    }
+  ],
+  "edges": [
+    {
+      "guid": "ef964939eab04a74b0b062eedbe07a9c",
+      "src_node": "4842a633b1ce43c9a9c8b40e17ec9c0b",
+      "src_port": "out",
+      "dst_node": "bdae9e5c42864c3789a3c7b498664bd4",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "2164d2499aa547acadd9f93251957dff",
+      "src_node": "bdae9e5c42864c3789a3c7b498664bd4",
+      "src_port": "out",
+      "dst_node": "9216864feb4f4428b1db10936dbe0a0f",
+      "dst_port": "in",
+      "$type": "Edge"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "variables": {
+    "items": [
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "project_name",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "demo",
+          "$type": "ValueString"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "label": "Project name",
+          "required": true
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "work_folder",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValuePath"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "label": "Work folder",
+          "path_kind": "folder",
+          "required": true
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "max_stress",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": 0.0,
+          "$type": "ValueNumber"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "label": "Max. stress [MPa]"
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "report_format",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "txt",
+          "$type": "ValueString"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "label": "Format",
+          "choices": [
+            "txt",
+            "md"
+          ]
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "report_file",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValuePath"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Report"
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "summary",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValueString"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Summary"
+        },
+        "$type": "NameVariable"
+      }
+    ],
+    "$type": "NameVariables"
+  },
+  "lists": {
+    "items": [],
+    "$type": "ListVariables"
+  },
+  "pan_x": 0.0,
+  "pan_y": 0.0,
+  "zoom": 1.0,
+  "$type": "Graph"
+}

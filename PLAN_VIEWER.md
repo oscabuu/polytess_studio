@@ -8,9 +8,12 @@ Stand: 2026-09-23 · Basis: polytess Studio v1.15.0 (Blackboard mit Status-Tags,
 > `polytess/graph/inputs.py` (InputSpec, Validierung, apply, Vars-Datei),
 > CLI `polytess inputs` und `run --vars-file`, Assistant-Schema. Metadaten
 > liegen in einem `form`-Dict statt in Einzelfeldern (Abschnitt 3).
-> Phase 2 (Viewer-App) offen. **2026-10-23:** Abschnitt 8 ergänzt —
-> Hauptprozess als Kanban-Board (Karten = Sub-Workflow-Knoten),
-> Dashboard, Gamification-Stufen; Phasen in Abschnitt 9 neu geschnitten.
+> **2026-10-23, v1.18.0: Phasen 2–5 UMGESETZT** — `polytess/viewer/`
+> (Start, Formular, Board, Dashboard, Celebrations), `graph/board.py`,
+> CLI `board`, Demo `examples/viewer/`, Handbuchkapitel 10. Offen aus
+> Phase 5/6: Fertig-Prüfung (ConditionList) im Studio, Board-Vorschau im
+> Studio, kritischer Pfad im Dashboard, CSV/PDF-Export der Statistik,
+> "Problem melden", Viewer-Lizenz-Edition, Dateityp-Zuordnung der Exe.
 
 ---
 
@@ -263,8 +266,12 @@ den Einstellungen abschaltbar (*Celebrations: off / subtle / full*):
   Akzentfarbe des Sub-Flows, weiches Gleiten beim Spaltenwechsel
   (QPropertyAnimation), pulsierender Rand bei Active, Fortschrittsring
   auf der Karte, klare Typografie, Dunkel-Theme wie im Studio.
-- **Subtle (Standard)**: kurzes Aufleuchten und Häkchen-Animation beim
-  Wechsel nach Done, Toast "Meshing fertig · 4 min 12 s", dezenter
+- **Subtle (Standard, vom User bestätigt 2026-10-23)**: kurzes
+  Aufleuchten und Häkchen-Animation beim Wechsel nach Done; **playful
+  bounce** beim Ablegen einer Karte in einer Spalte — egal ob der
+  Anwender sie zieht oder der Auto-Weiterlauf sie verschiebt (kurzes
+  Überschwingen mit QEasingCurve.OutBack, ≈ 250 ms, nie länger als die
+  Interaktion selbst); Toast "Meshing fertig · 4 min 12 s", dezenter
   Klang optional, Streak-Anzeige "7 Läufe in Folge ohne Fehler".
 - **Full**: Konfetti-Partikel (QGraphicsScene) wenn der ganze
   Hauptprozess Done ist, Tagesziel-Ring ("3 von 3 geplanten Flows"),

@@ -139,6 +139,53 @@ def cmd_inputs(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_board(args: argparse.Namespace) -> int:
+    """Kanban view of a main process (sub-workflow nodes = cards): print
+    the board, run one card (with its unfinished predecessors), run all,
+    or reset results."""
+    from polytess.graph.board import DONE, BoardRunner, board_spec
+    from polytess.graph.model import Graph
+
+    graph = Graph.load(args.file)
+    if args.json and not (args.run or args.all or args.reset):
+        print(json.dumps(board_spec(graph).to_dict(), indent=1, ensure_ascii=False))
+        return 0
+    runner = BoardRunner(graph, workdir=args.workdir or "",
+                         logger=lambda level, text: print(f"[{level.upper()}] {text}",
+                                                          file=sys.stderr))
+    for problem in runner.spec.problems:
+        print(f"[ERROR] {problem}", file=sys.stderr)
+    if runner.spec.problems and (args.run or args.all):
+        return 2
+    if args.reset:
+        runner.reset(None if args.reset == "all" else _card_guid(runner, args.reset))
+    if args.run:
+        guid = _card_guid(runner, args.run)
+        if guid is None:
+            return 2
+        asyncio.run(runner.run_plan(guid, auto_advance=False))
+    elif args.all:
+        asyncio.run(runner.run_all())
+
+    summary = runner.state.summary(runner.spec)
+    print(f"{graph.name}: {summary['counts'][DONE]}/{summary['total']} done")
+    for card in runner.spec.cards:
+        preds = ", ".join(runner.spec.card(p).title for p in card.predecessors)
+        extra = f"  ← {preds}" if preds else ""
+        print(f"  [{runner.status(card.guid):7}] {card.title}{extra}")
+    if args.json:
+        print(json.dumps(summary, indent=1, default=str))
+    return 1 if any(runner.status(c.guid) == "failed" for c in runner.spec.cards) else 0
+
+
+def _card_guid(runner, name: str):
+    card = runner.spec.card(name) or runner.spec.card_by_title(name)
+    if card is None:
+        print(f"[ERROR] no card named {name!r}", file=sys.stderr)
+        return None
+    return card.guid
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     from polytess.graph.model import Graph
     graph = Graph.load(args.file)
@@ -215,6 +262,21 @@ def main(argv: list[str] | None = None) -> int:
                           help="write a vars-file template with the current "
                                "values instead")
     p_inputs.set_defaults(fn=cmd_inputs)
+
+    p_board = sub.add_parser("board", help="Kanban board of a main process: "
+                                           "show, run or reset its cards")
+    p_board.add_argument("file")
+    p_board.add_argument("--run", metavar="CARD", default="",
+                         help="run this card (title or guid) after its "
+                              "unfinished predecessors")
+    p_board.add_argument("--all", action="store_true",
+                         help="run every card in dependency order")
+    p_board.add_argument("--reset", metavar="CARD|all", default="",
+                         help="forget results of a card (+ successors) or all")
+    p_board.add_argument("--workdir", default="")
+    p_board.add_argument("--json", action="store_true",
+                         help="print the board/summary as JSON")
+    p_board.set_defaults(fn=cmd_board)
 
     p_val = sub.add_parser("validate", help="check a workflow file")
     p_val.add_argument("file")

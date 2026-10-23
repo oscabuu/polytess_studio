@@ -409,6 +409,7 @@ def build_flow(data: dict) -> BuildResult:
         elif kind in ("subworkflow", "subgraph"):
             node = SubGraphNode()
             node.file = str(spec.get("file", ""))
+            node.description = str(spec.get("description", "") or "")
             _fill_subflow_bindings(node, spec, graph, result, where)
         else:
             result.warnings.append(f"{where}: unknown kind {kind!r} — skipped")
@@ -666,6 +667,8 @@ def flow_to_data(graph: Graph) -> dict:
         elif isinstance(node, SubGraphNode):
             spec["kind"] = "subworkflow"
             spec["file"] = node.file
+            if node.description:
+                spec["description"] = node.description
             if node.inputs:
                 spec["inputs"] = {b.param: _export_get_source(b.value.source)
                                   for b in node.inputs if b.is_enabled}
