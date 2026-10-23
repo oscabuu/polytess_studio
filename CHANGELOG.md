@@ -4,6 +4,13 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.17.1 — 2026-10-23
+- `PLAN_VIEWER.md`: the Viewer plan grows a Kanban board for main
+  processes built from sub-workflow nodes (cards, dependencies,
+  run state with input hashes, predecessor dialog, auto-advance),
+  a statistics dashboard and optional celebration levels; phases
+  re-cut (board core testable without GUI).
+
 ## 1.17.0 — 2026-10-23
 - **Sub-workflows with inputs and outputs.** A Sub-Workflow node now
   calls another flow like a function: *Inputs* bind graph variables/

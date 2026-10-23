@@ -8,7 +8,9 @@ Stand: 2026-09-23 · Basis: polytess Studio v1.15.0 (Blackboard mit Status-Tags,
 > `polytess/graph/inputs.py` (InputSpec, Validierung, apply, Vars-Datei),
 > CLI `polytess inputs` und `run --vars-file`, Assistant-Schema. Metadaten
 > liegen in einem `form`-Dict statt in Einzelfeldern (Abschnitt 3).
-> Phase 2 (Viewer-App) offen.
+> Phase 2 (Viewer-App) offen. **2026-10-23:** Abschnitt 8 ergänzt —
+> Hauptprozess als Kanban-Board (Karten = Sub-Workflow-Knoten),
+> Dashboard, Gamification-Stufen; Phasen in Abschnitt 9 neu geschnitten.
 
 ---
 
@@ -177,15 +179,123 @@ polytess/graph/inputs.py   reine Ableitungslogik (testbar ohne Qt),
 - **Rückkanal zum Experten**: "Problem melden" packt Flow-ID, Preset und
   Log in eine ZIP — Phase 3.
 
-## 8. Phasen
+## 8. Hauptprozess als Kanban-Board (Ergänzung 2026-10-23)
+
+### 8.1 Idee
+Ein **Hauptprozess** ist ein gewöhnlicher polytess-Flow, dessen Knoten
+überwiegend Sub-Workflow-Knoten sind (seit v1.17.0 mit expliziten
+Inputs/Outputs). Jeder Sub-Workflow-Knoten ist im Viewer eine **Karte**,
+die Kanten des Hauptflows sind die **Abhängigkeiten**. Der Viewer zeigt
+den Hauptprozess nicht als Graph, sondern als Board mit drei Spalten:
+
+| Backlog | Active | Done |
+|---|---|---|
+| noch nicht gerechnet | läuft gerade (Fortschritt, aktueller Schritt, Laufzeit) | fertig (Dauer, Ergebnisse, Protokoll) — fehlgeschlagene Karten bleiben rot in Active mit *Erneut starten* |
+
+Kein neues Dateiformat: der Experte baut den Hauptprozess im Studio,
+der Viewer projiziert ihn. Einzel-Flows ohne Sub-Workflow-Knoten
+bekommen weiterhin das Formular aus Abschnitt 5.
+
+### 8.2 Wie Anwender damit arbeiten
+- **Karte nach Active ziehen** (oder ▶ auf der Karte) startet den
+  Sub-Flow. Fehlen Eingaben, öffnet sich zuerst das Formular der Karte
+  (Viewer-Form des Sub-Flows, minus alles, was der Hauptflow über
+  Bindings liefert).
+- **Vorgänger nicht fertig** → Dialog: *"Vorher müssen A und B
+  gerechnet werden. Jetzt der Reihe nach starten / Trotzdem nur diese
+  Karte / Abbrechen."* "Der Reihe nach" stellt die Vorgänger in eine
+  Warteschlange und startet sie automatisch nacheinander.
+- **Daten aus alten Läufen vorhanden** → Karte ist beim Öffnen bereits
+  in Done (siehe Lauf-Zustand in 8.3); ein Hinweis "Ergebnis vom
+  <Datum>" und *Neu rechnen* auf der Karte. Ändern sich die Eingaben
+  einer Done-Karte, wird sie als *veraltet* markiert und ihre Nachfolger
+  ebenfalls.
+- **Nachfolger automatisch starten**: Schalter *Auto-Weiterlauf* (pro
+  Board, Standard an). Wird eine Karte Done, wandern alle Nachfolger,
+  deren Vorgänger komplett sind, nach Active. Parallele Zweige des
+  Hauptflows laufen dann gleichzeitig — genau wie im Studio.
+- **Pause / Abbrechen** pro Karte; *Alles starten* für den kompletten
+  Prozess; Board-Zustand überlebt Schließen und Neustart.
+
+### 8.3 Technik
+- **Projektion**: `graph/board.py` (ohne Qt) liest den Hauptflow und
+  liefert `BoardSpec`: Karten (= Sub-Workflow-Knoten mit Label,
+  Beschreibung, Form-Eingaben, Outputs), Abhängigkeiten (transitive
+  Vorgänger aus den Kanten; Conditions/Branch-Knoten dazwischen werden
+  als "bedingt" markiert), Reihenfolge-Ebenen für die Spaltenanordnung.
+  Voraussetzung: der Hauptflow ist azyklisch — Rückkanten meldet
+  `polytess validate --board` als Problem.
+- **Karte ausführen** = genau das, was `SubGraphNode._call` tut, nur
+  ohne den Prozessor des Hauptflows: Bindings gegen den gespeicherten
+  Variablenstand des Hauptflows auswerten, Sub-Flow frisch laden,
+  `GraphProcessor.run`, Outputs in den Variablenstand zurückschreiben.
+  Dafür wird `_call` in eine wiederverwendbare Funktion
+  `run_subflow(node, state, workdir, on_status)` herausgezogen.
+- **Lauf-Zustand**: `<hauptflow>.board.json` neben dem Flow (plus
+  Kopie unter `~/.polytess/viewer/`): pro Karte Status
+  (`pending|queued|active|done|failed|stale`), Start/Ende/Dauer,
+  Hash der wirksamen Eingaben, Pfad des Protokolls; dazu die Werte
+  der Hauptflow-Variablen nach jeder Karte. "Alte Läufe vorhanden" =
+  Status done mit gleichem Eingabe-Hash. Optional kann der Experte pro
+  Sub-Workflow-Knoten eine **Fertig-Prüfung** hinterlegen (ConditionList,
+  z.B. FileExists auf die Ergebnisdatei) — dann gilt die Karte auch
+  ohne Board-Historie als Done, wenn die Prüfung besteht.
+- **Protokolle** je Karte unter `<workdir>/.runs/<karte>_<zeit>.log`.
+
+### 8.4 Dashboard
+Rechts neben dem Board (einklappbar) eine Statistik-Leiste:
+- Fortschrittsring *fertig / gesamt*, Zähler Done · Active · Backlog ·
+  Fehlgeschlagen · Veraltet.
+- Laufzeiten: bisher verbrauchte Zeit, **geschätzte Restzeit** (aus den
+  Dauern früherer Läufe derselben Karten), längste Karte.
+- Verlauf: Läufe der letzten 30 Tage als kleine Balken, Erfolgsquote,
+  Karte mit den meisten Fehlschlägen (zeigt, wo der Experte nachbessern
+  sollte).
+- Kritischer Pfad: welche Kette bestimmt die Gesamtdauer; Karten darauf
+  sind dezent markiert.
+- Export der Statistik als CSV/PDF (reportlab ist vorhanden).
+
+### 8.5 Design und Gamification
+Das Board soll Spaß machen, ohne albern zu werden — die Zielgruppe sind
+Ingenieure, die Ergebnisse erwarten. Vorschlag in drei Stufen, alle in
+den Einstellungen abschaltbar (*Celebrations: off / subtle / full*):
+- **Immer an (keine Gamification, nur gute Gestaltung)**: Karten mit
+  Akzentfarbe des Sub-Flows, weiches Gleiten beim Spaltenwechsel
+  (QPropertyAnimation), pulsierender Rand bei Active, Fortschrittsring
+  auf der Karte, klare Typografie, Dunkel-Theme wie im Studio.
+- **Subtle (Standard)**: kurzes Aufleuchten und Häkchen-Animation beim
+  Wechsel nach Done, Toast "Meshing fertig · 4 min 12 s", dezenter
+  Klang optional, Streak-Anzeige "7 Läufe in Folge ohne Fehler".
+- **Full**: Konfetti-Partikel (QGraphicsScene) wenn der ganze
+  Hauptprozess Done ist, Tagesziel-Ring ("3 von 3 geplanten Flows"),
+  Abzeichen pro Projekt (erster vollständiger Durchlauf, fehlerfreie
+  Woche, schnellster Lauf) — sichtbar nur im Dashboard, ohne
+  Ranglisten oder Punkte zwischen Personen.
+Grundsatz: Feedback belohnt Fortschritt des Prozesses, nie Klickzahlen;
+nichts davon blockiert oder verlangsamt die Arbeit.
+
+### 8.6 Studio-Seite
+- Sub-Workflow-Knoten bekommt im Inspector *Board-Karte*: Titel,
+  Beschreibung, Farbe, optionale Fertig-Prüfung.
+- *Graph → Vorschau als Board* zeigt die Projektion des offenen
+  Hauptflows (ohne Lauf), damit der Experte Ebenen und Beschriftung
+  prüfen kann.
+
+## 9. Phasen
 
 | Phase | Inhalt | Ergebnis |
 |---|---|---|
-| **1 · Kern** | `graph/inputs.py` (InputSpec, Validierung), Variablen-Metadaten (`viewer`, `label`, `description`, `required`, `minimum/maximum`, `choices`, `path_kind`), Blackboard-Dialog dafür, `polytess run --vars-file` | testbar ohne GUI; Studio kann Metadaten pflegen |
-| **2 · Viewer-App** | Start-, Eingabe-, Lauf-, Ergebnisbildschirm; Presets; Phasen-Erkennung; Exe-Launcher | Anwender kann Flows ausführen |
-| **3 · Komfort** | Vorschau im Studio, Flow-Beschreibung, Ausgabe-Variablen, "Problem melden", Viewer-Lizenz-Edition, Handbuchkapitel | rund für den Alltag |
+| **1 · Kern** ✅ | `graph/inputs.py`, Variablen-Metadaten (`form`), Blackboard-Dialog, `polytess inputs`, `run --vars-file` | umgesetzt in v1.16.0 |
+| **2 · Viewer-App (Formular)** | Start-, Eingabe-, Lauf-, Ergebnisbildschirm; Presets; Phasen-Erkennung; Exe-Launcher | Anwender kann Einzel-Flows ausführen |
+| **3 · Board-Kern** | `graph/board.py` (BoardSpec, Abhängigkeiten, Zyklus-Check), `run_subflow` aus `SubGraphNode._call`, Lauf-Zustand `.board.json` mit Eingabe-Hash, `polytess validate --board`, `polytess board <flow>` (Status als Text) | Board-Logik testbar ohne GUI |
+| **4 · Board-UI** | drei Spalten mit Drag & Drop, Karten mit Fortschritt, Vorgänger-Dialog, Auto-Weiterlauf, Pause/Abbrechen, Karten-Formular | Hauptprozess bedienbar |
+| **5 · Dashboard + Erlebnis** | Statistik-Leiste, Restzeit-Schätzung, Verlauf, Celebrations-Stufen, Fertig-Prüfung im Studio, Board-Vorschau im Studio | rund und angenehm |
+| **6 · Komfort** | Flow-Beschreibung, "Problem melden", Viewer-Lizenz-Edition, Handbuchkapitel | Alltag |
 
-Aufwandsschätzung: Phase 1 ≈ 1–2 Sessions, Phase 2 ≈ 3–4, Phase 3 ≈ 2.
+Aufwandsschätzung: Phase 2 ≈ 3–4 Sessions, Phase 3 ≈ 2, Phase 4 ≈ 3–4,
+Phase 5 ≈ 2–3, Phase 6 ≈ 2. Phase 3 kann vor Phase 2 begonnen werden,
+weil sie keine GUI braucht; die Board-UI (4) setzt den Lauf-Bildschirm
+aus Phase 2 wieder ein (Karte aufklappen = Lauf-Ansicht).
 Tests: `inputs.py` und Presets rein per pytest; Formular und Lauf per
 offscreen-Smoke-Tests wie `test_gui_smoke.py`; ein End-to-End-Test
 "Beispielflow im Viewer starten, Ergebnis-Variable prüfen".
