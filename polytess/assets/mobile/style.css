@@ -5,6 +5,7 @@
   --failed: #b03a3a; --stale: #8a6d1f; --green: #c2f771; --red: #e9754c;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; background: var(--bg); color: var(--text);
   font: 15px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; }
 body { padding-bottom: env(safe-area-inset-bottom); }

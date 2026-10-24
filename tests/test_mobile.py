@@ -70,6 +70,8 @@ async def test_server_token_state_events_and_log(tmp_path):
         html = await (await client.get(base)).text()
         assert "polytess" in html and f"{base}/static/app.js" in html
         js = await (await client.get(f"{base}/static/app.js")).text()
+        css = await (await client.get(f"{base}/static/style.css")).text()
+        assert "[hidden] { display: none !important; }" in css   # overlays start hidden
         assert f'const BASE = "{base}"' in js
         assert (await client.get(f"{base}/static/evil.txt")).status == 404
         # full state

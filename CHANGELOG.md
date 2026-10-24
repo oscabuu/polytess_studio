@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.19.1 — 2026-10-24
+- Phone page: the card-detail and predecessor-choice sheets were always
+  visible (a `display: flex` rule overrode the `hidden` attribute), so
+  the page looked stuck in the dialog even with control off. Fixed;
+  reload the page on the phone.
+
 ## 1.19.0 — 2026-10-24
 - **Follow the board on your phone** (PLAN_MOBILE.md, phases 1–3):
   *Phone…* in the Viewer shows a QR code; the phone's camera opens a
