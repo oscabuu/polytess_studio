@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.18.2 — 2026-10-24
+- `PLAN_MOBILE.md`: plan for following a Viewer board on the phone —
+  local aiohttp server inside the Viewer, QR code with session token,
+  web app served by the Viewer (no store app), live events, optional
+  control, security/network notes, phases.
+
 ## 1.18.1 — 2026-10-24
 - Viewer board: the middle column is called **In Progress** (was
   Active); manual and plan follow.
