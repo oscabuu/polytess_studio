@@ -160,6 +160,26 @@ async def test_board_page_runs_cards_with_auto_advance(tmp_path):
     assert page2.runner.status(page2.runner.spec.card_by_title("Prepare Model").guid) == DONE
 
 
+def test_board_columns_stretch_with_the_view(tmp_path):
+    from polytess.viewer.board_page import BoardPage
+    from polytess.viewer.board_view import COL_W, COL_GAP, PAD, column_at
+    folder = _demo_copy(tmp_path)
+    page = BoardPage(Graph.load(str(folder / "main_process.flow.json")))
+    view = page.view
+    view.resize(1500, 600)
+    view.relayout(animate=False)
+    col_w = view.column_width
+    assert col_w > COL_W + 100
+    item = next(iter(view.items_by_guid.values()))
+    assert abs(item.width - (col_w - 2 * PAD)) < 1
+    assert view.sceneRect().width() == 3 * col_w + 2 * COL_GAP
+    assert column_at(col_w * 1.5 + COL_GAP, col_w) == "active"
+    assert column_at(col_w * 2.5 + 2 * COL_GAP, col_w) == "done"
+    view.resize(500, 600)
+    view.relayout(animate=False)
+    assert view.column_width == COL_W                 # never narrower than the minimum
+
+
 def test_viewer_window_routes_board_and_form(tmp_path):
     from polytess.viewer.app import ViewerWindow
     from polytess.viewer.board_page import BoardPage
