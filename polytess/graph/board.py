@@ -300,9 +300,10 @@ class BoardRunner:
     def __init__(self, graph: Graph, state: BoardState | None = None,
                  workdir: str = "", logger=None,
                  on_change: Callable[[str, str], None] | None = None,
-                 on_progress=None):
+                 on_progress=None, on_log=None):
         self.graph = graph
         self.spec = board_spec(graph)
+        self.on_log = on_log            # (guid, level, text) per card run
         self.state = state or BoardState.load(state_path(graph.path)
                                               if graph.path else "")
         self.workdir = workdir or (os.path.dirname(graph.path)
@@ -382,6 +383,8 @@ class BoardRunner:
             lines.append(f"{time.strftime('%H:%M:%S')} [{level}] {text}")
             if self.logger:
                 self.logger(level, text)
+            if self.on_log:
+                self.on_log(guid, level, text)
         ctx.logger = log
 
         def progress(sub_node, status):

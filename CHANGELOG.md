@@ -4,6 +4,27 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.19.0 — 2026-10-24
+- **Follow the board on your phone** (PLAN_MOBILE.md, phases 1–3):
+  *Phone…* in the Viewer shows a QR code; the phone's camera opens a
+  page served by the Viewer itself (aiohttp inside the Viewer's event
+  loop, no store app) that mirrors the open board live over a
+  WebSocket — columns, running card's step and progress, dashboard
+  numbers, per-card description and log lines, banner + vibration on
+  Done/Failed, automatic reconnect, follows a flow change. The link
+  carries a random session token (*New code* invalidates old links);
+  without it the server answers 404. *Allow start / stop from the
+  phone* (off by default) enables Start (with the predecessor
+  choice), Stop and Run all from the phone; every phone action is
+  logged in the Viewer. Address picker for machines with several
+  interfaces, port setting (`mobile_port`), status line with the
+  number of connected phones.
+- `BoardRunner.on_log(guid, level, text)`: per-card log lines — the
+  board detail panel now shows the sub-flow's log (it was empty).
+- New optional dependency group `polytess[mobile]` (aiohttp, qrcode);
+  bundled in the executable. `POLYTESS_USER_DIR` honoured by presets.
+- Manual chapter 10: section *Follow on phone*.
+
 ## 1.18.2 — 2026-10-24
 - `PLAN_MOBILE.md`: plan for following a Viewer board on the phone —
   local aiohttp server inside the Viewer, QR code with session token,

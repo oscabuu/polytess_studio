@@ -38,7 +38,7 @@ SHIPPED_PLUGINS = ["simpack_template"]
 HIDDEN = ["qasync", "cryptography", "cryptography.hazmat.primitives."
           "asymmetric.ed25519", "reportlab", "polytess",
           "polytess.cli", "polytess.gui.main_window",
-          "polytess.viewer.app"]
+          "polytess.viewer.app", "aiohttp", "qrcode"]
 COLLECT_ALL = ["polytess", "reportlab"]
 
 

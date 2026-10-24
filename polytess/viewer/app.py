@@ -75,6 +75,7 @@ class ViewerWindow(QMainWindow):
         super().__init__(parent)
         self.setWindowTitle(f"polytess Viewer {__version__}")
         self.resize(1240, 820)
+        self.statusBar()
         self.setAcceptDrops(True)
         self._page: QWidget | None = None
 
@@ -89,6 +90,11 @@ class ViewerWindow(QMainWindow):
         open_button.setObjectName("flat")
         open_button.clicked.connect(self.open_dialog)
         bar.addWidget(open_button)
+        phone_button = QPushButton("Phone…")
+        phone_button.setObjectName("flat")
+        phone_button.setToolTip("Follow the board on your phone (QR code)")
+        phone_button.clicked.connect(self.share_on_phone)
+        bar.addWidget(phone_button)
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         bar.addWidget(spacer)
@@ -110,6 +116,54 @@ class ViewerWindow(QMainWindow):
         self.setCentralWidget(self.stack)
         self.start_page = StartPage(self)
         self.stack.addWidget(self.start_page)
+        self.mobile = None                       # MobileServer, started on demand
+
+    # ---- phone mirror -------------------------------------------------------------- #
+
+    def share_on_phone(self) -> None:
+        from polytess.viewer import mobile_server
+        if not mobile_server.available():
+            QMessageBox.information(
+                self, "Follow on phone",
+                "The phone mirror needs the packages 'aiohttp' and 'qrcode':\n"
+                "pip install polytess[mobile]")
+            return
+        if self.mobile is None:
+            settings = AppSettings.instance()
+            self.mobile = mobile_server.MobileServer(
+                port=int(settings.get("mobile_port") or 8765),
+                allow_control=lambda: bool(settings.get("mobile_allow_control")))
+            self.mobile.on_remote_action = self._remote_action
+            self._attach_mirror()
+        if not self.mobile.running:
+            import asyncio
+
+            async def boot():
+                try:
+                    await self.mobile.start()
+                    self.statusBar().showMessage(
+                        f"Phone mirror listening on port {self.mobile.port}")
+                except OSError as exc:
+                    QMessageBox.critical(self, "Follow on phone",
+                                         f"Cannot start the phone mirror on port "
+                                         f"{self.mobile.port}:\n{exc}")
+            asyncio.ensure_future(boot())
+        from polytess.viewer.share_dialog import ShareDialog
+        ShareDialog(self.mobile, self).exec()
+
+    def _attach_mirror(self) -> None:
+        if self.mobile is None:
+            return
+        page = self._page if isinstance(self._page, BoardPage) else None
+        if page is not None:
+            page.mirror = self.mobile
+        self.mobile.set_page(page)
+
+    def _remote_action(self, text: str) -> None:
+        self.statusBar().showMessage(f"Phone: {text}", 5000)
+        page = self._page if isinstance(self._page, BoardPage) else None
+        if page is not None:
+            page.run_panel.log.log("info", f"Phone requested: {text}")
 
     # ---- navigation ----------------------------------------------------------------- #
 
@@ -122,6 +176,7 @@ class ViewerWindow(QMainWindow):
             self._page = None
         self.start_page.refresh()
         self.stack.setCurrentWidget(self.start_page)
+        self._attach_mirror()
 
     def open_dialog(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Open flow", "",
@@ -148,6 +203,7 @@ class ViewerWindow(QMainWindow):
         self.stack.addWidget(page)
         self.stack.setCurrentWidget(page)
         self.setWindowTitle(f"{graph.name} — polytess Viewer")
+        self._attach_mirror()
 
     def _remember(self, path: str) -> None:
         settings = AppSettings.instance()
@@ -179,4 +235,7 @@ class ViewerWindow(QMainWindow):
         if self._page is not None and not self._page.confirm_close():
             event.ignore()
             return
+        if self.mobile is not None and self.mobile.running:
+            import asyncio
+            asyncio.ensure_future(self.mobile.stop())
         event.accept()

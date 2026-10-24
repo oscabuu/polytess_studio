@@ -72,6 +72,31 @@ toast when a card finishes, streak in the dashboard) or `full`
 (additionally confetti when the whole process is done). Feedback
 rewards progress of the process, never click counts, and never blocks.
 
+## Follow on phone
+
+*Phone…* in the toolbar (or *Follow on phone…* on the board) shows a
+**QR code**. Scan it with the phone's camera: the phone opens a page
+served by the Viewer itself and mirrors the board live — columns,
+progress of the running card, dashboard numbers, a card's description
+and its last log lines (tap a card). When a card finishes or fails
+the phone shows a banner and vibrates while the page is open.
+
+- The phone must reach this computer: same Wi-Fi or VPN. Windows asks
+  once to allow the Viewer through the firewall; the port (default
+  8765) is a setting (`mobile_port`). Pick the right address in the
+  dialog if the computer has several (Wi-Fi vs. VPN adapter).
+- The link contains a random **token** valid while the Viewer runs;
+  *New code* invalidates every earlier link. Without the token the
+  server answers nothing.
+- **Allow start / stop from the phone** (off by default) lets the
+  phone start cards (with the same predecessor choice), stop them and
+  run all; every phone action is written to the Viewer's log.
+- The phone follows whichever board is open in the Viewer; the form
+  page is not mirrored. The page is plain HTTP inside your network —
+  do not use it over an open guest Wi-Fi. Needs
+  `pip install polytess[mobile]` (aiohttp, qrcode); the executable
+  bundle includes both.
+
 ## Headless twin
 
 `polytess-cli board main.flow.json --run "Mesh"` runs a card with its

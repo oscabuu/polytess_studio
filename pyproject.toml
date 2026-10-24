@@ -19,6 +19,7 @@ dependencies = [
 dev = ["pytest", "pytest-asyncio"]
 ai = ["claude-agent-sdk>=0.1"] # assistants via Claude Agent SDK
 ai-copilot = ["github-copilot-sdk>=1.0"]   # assistants via GitHub Copilot
+mobile = ["aiohttp>=3.9", "qrcode>=7"]       # Viewer: follow the board on a phone
 
 [project.scripts]
 polytess = "polytess.cli:main"

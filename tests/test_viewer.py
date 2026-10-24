@@ -34,7 +34,8 @@ def _env(tmp_path, monkeypatch):
 def _demo_copy(tmp_path):
     import shutil
     folder = tmp_path / "demo"
-    shutil.copytree(EXAMPLES, folder)
+    shutil.copytree(EXAMPLES, folder,
+                    ignore=shutil.ignore_patterns("*.board.json", ".runs"))
     return folder
 
 

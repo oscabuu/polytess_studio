@@ -67,6 +67,8 @@ DEFAULTS: dict[str, Any] = {
     "viewer_recent": [],              # recently opened flows (paths)
     "viewer_celebrations": "subtle",  # off | subtle | full
     "viewer_auto_advance": True,      # board: start ready successors
+    "mobile_port": 8765,              # Viewer: phone mirror server port
+    "mobile_allow_control": False,    # phone may start/stop cards
 }
 
 

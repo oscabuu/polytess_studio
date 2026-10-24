@@ -4,7 +4,13 @@ Stand: 2026-10-24 · Basis: polytess Viewer v1.18 (Board-Kern
 `graph/board.py` mit `BoardRunner`-Events, Lauf-Zustand `<flow>.board.json`,
 Dashboard-Statistik `BoardState.summary`)
 
-> **Status: ENTWURF.** Reihenfolge und Umfang siehe Abschnitt 7.
+> **Status: Phasen 1–3 UMGESETZT** (2026-10-24, v1.19.0):
+> `polytess/viewer/mobile_server.py` (aiohttp, Token, WebSocket-Deltas,
+> Log-Puffer, Steuer-Endpunkte), `share_dialog.py` (QR per QPainter,
+> Adresswahl, Freigabe-Schalter, neuer Code), `assets/mobile/`
+> (Board, Dashboard, Kartendetail mit Log, Reconnect, Banner/Vibration,
+> Vorgänger-Auswahl). Offen: Phase 4 (HTTPS, PWA-Installation, Web-Push,
+> Relay), E-Mail-Hinweis bei Fertig.
 
 ---
 

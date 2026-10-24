@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#262626">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>polytess</title>
+<link rel="stylesheet" href="__BASE__/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">polytess</div>
+  <div class="flow" id="flow-name">Connecting…</div>
+  <div class="conn" id="conn" title="connection">●</div>
+</header>
+
+<div id="banner" class="banner" hidden></div>
+
+<section class="overview" id="overview" hidden>
+  <div class="ring"><svg viewBox="0 0 100 100">
+    <circle class="track" cx="50" cy="50" r="42"/>
+    <circle class="bar" id="ring-bar" cx="50" cy="50" r="42"/>
+  </svg><div class="ring-text" id="ring-text">0 / 0</div></div>
+  <div class="facts">
+    <div><span id="f-done">0</span><label>done</label></div>
+    <div><span id="f-active">0</span><label>running</label></div>
+    <div><span id="f-backlog">0</span><label>backlog</label></div>
+    <div><span id="f-failed">0</span><label>failed</label></div>
+    <div class="wide"><span id="f-remaining">–</span><label>estimated remaining</label></div>
+    <div class="wide"><span id="f-streak">–</span><label>streak</label></div>
+  </div>
+  <div class="actions" id="global-actions" hidden>
+    <button class="primary" id="run-all">Run all</button>
+  </div>
+</section>
+
+<main id="board"></main>
+
+<p class="empty" id="empty" hidden>Waiting for the Viewer to open a process…</p>
+
+<div id="detail" class="detail" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <div>
+        <h2 id="d-title"></h2>
+        <div class="pill" id="d-status"></div>
+      </div>
+      <button class="close" id="d-close">✕</button>
+    </div>
+    <p id="d-desc" class="muted"></p>
+    <p id="d-meta" class="muted small"></p>
+    <div class="actions" id="d-actions"></div>
+    <pre id="d-log" class="log"></pre>
+  </div>
+</div>
+
+<div id="choice" class="detail" hidden>
+  <div class="sheet">
+    <h2>Predecessors not finished</h2>
+    <p class="muted" id="choice-text"></p>
+    <div class="actions column">
+      <button class="primary" id="choice-order">Run in order</button>
+      <button id="choice-only">Only this step</button>
+      <button id="choice-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="__BASE__/static/app.js"></script>
+</body>
+</html>

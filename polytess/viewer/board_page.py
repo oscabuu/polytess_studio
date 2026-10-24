@@ -77,7 +77,9 @@ class BoardPage(QWidget):
         super().__init__(parent)
         self.graph = graph
         self.runner = BoardRunner(graph, on_change=self._on_change,
-                                  on_progress=self._on_progress)
+                                  on_progress=self._on_progress,
+                                  on_log=self._on_log)
+        self.mirror = None                     # MobileServer, set by the window
         self.runner.state.auto_advance = bool(
             AppSettings.instance().get("viewer_auto_advance", True))
         self._tasks: dict[str, asyncio.Task] = {}
@@ -126,6 +128,11 @@ class BoardPage(QWidget):
         reset_all.setToolTip("Forget every result")
         reset_all.clicked.connect(self._reset_all)
         head.addWidget(reset_all)
+        self.phone_button = QPushButton("Follow on phone…")
+        self.phone_button.setObjectName("flat")
+        self.phone_button.setToolTip("Show a QR code — the phone mirrors this board live")
+        self.phone_button.clicked.connect(lambda: self.window().share_on_phone())
+        head.addWidget(self.phone_button)
         layout.addLayout(head)
 
         for problem in self.runner.spec.problems:
@@ -187,8 +194,16 @@ class BoardPage(QWidget):
         if self._selected:
             self._show_detail(self._selected)
 
+    def _on_log(self, guid: str, level: str, text: str) -> None:
+        if guid == self._selected:
+            self.run_panel.log.log(level, text)
+        if self.mirror is not None:
+            self.mirror.notify_log(guid, level, text)
+
     def _on_change(self, guid: str, status: str) -> None:
         card = self.runner.spec.card(guid)
+        if self.mirror is not None:
+            self.mirror.notify_change(guid, status)
         if status == DONE:
             self.view.celebrate_done(guid)
             cs = self.runner.state.card(guid)
@@ -216,6 +231,9 @@ class BoardPage(QWidget):
             item.update()
         if guid == self._selected:
             self.run_panel.on_status(node, status)
+        if self.mirror is not None and status == NodeStatus.RUNNING:
+            self.mirror.notify_progress(guid, min(0.95, done / total),
+                                        getattr(node, "name", ""))
 
     # ---- selection / detail ---------------------------------------------------------- #
 
@@ -291,7 +309,27 @@ class BoardPage(QWidget):
             return
         self.view.relayout(animate=True, bounce_guid=guid)   # slide back
 
-    def start_card(self, guid: str) -> None:
+    def remote_start(self, guid: str, mode: str | None) -> dict:
+        """Start from the phone: no dialogs. Without *mode* and with
+        unfinished predecessors, returns their titles for the phone to
+        ask; *mode* "in_order" / "only" decides."""
+        if self.runner.spec.card(guid) is None:
+            return {"ok": False, "error": "unknown card"}
+        if self.runner.spec.problems:
+            return {"ok": False, "error": "; ".join(self.runner.spec.problems)}
+        if guid in self._tasks and not self._tasks[guid].done():
+            return {"ok": True, "already_running": True}
+        if mode is None:
+            unfinished = [c.title for c in self.runner.unfinished_predecessors(guid)
+                          if c.guid not in self._tasks or self._tasks[c.guid].done()]
+            if unfinished:
+                return {"ok": False, "needs_choice": unfinished}
+        self.start_card(guid, mode=mode or "only")
+        return {"ok": True}
+
+    def start_card(self, guid: str, mode: str | None = None) -> None:
+        """*mode*: None = ask when predecessors are unfinished (dialog),
+        "in_order" = run them first, "only" = just this card."""
         if guid in self._tasks and not self._tasks[guid].done():
             return
         if self.runner.spec.problems:
@@ -302,8 +340,8 @@ class BoardPage(QWidget):
         unfinished = self.runner.unfinished_predecessors(guid)
         unfinished = [c for c in unfinished if c.guid not in self._tasks
                       or self._tasks[c.guid].done()]
-        plan_first = False
-        if unfinished:
+        plan_first = mode == "in_order" and bool(unfinished)
+        if unfinished and mode is None:
             names = ", ".join(c.title for c in unfinished)
             box = QMessageBox(self)
             box.setWindowTitle("Predecessors not finished")
