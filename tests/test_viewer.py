@@ -193,6 +193,23 @@ def test_board_columns_stretch_with_the_view(tmp_path):
                for i in view.items_by_guid.values())
 
 
+def test_board_theme_switch(tmp_path):
+    from polytess.viewer.app import ViewerWindow
+    from polytess.viewer.style import BOARD_THEMES
+    folder = _demo_copy(tmp_path)
+    window = ViewerWindow()
+    window.open_flow(str(folder / "main_process.flow.json"))
+    view = window._page.view
+    assert view.theme is BOARD_THEMES["classic"]
+    window.theme_box.setCurrentIndex(window.theme_box.findData("vivid"))
+    assert AppSettings.instance().get("viewer_board_theme") == "vivid"
+    assert view.theme is BOARD_THEMES["vivid"]
+    assert all(i.theme is BOARD_THEMES["vivid"] for i in view.items_by_guid.values())
+    assert set(BOARD_THEMES) == {"classic", "tinted", "headers", "cards", "vivid"}
+    for theme in BOARD_THEMES.values():
+        assert set(theme["column_body"]) == {"backlog", "active", "done"}
+
+
 def test_viewer_window_routes_board_and_form(tmp_path):
     from polytess.viewer.app import ViewerWindow
     from polytess.viewer.board_page import BoardPage

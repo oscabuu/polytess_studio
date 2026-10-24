@@ -4,6 +4,13 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.20.0 — 2026-10-24
+- Viewer board **colour themes** (toolbar → Board): *Classic* (as
+  before), *Tinted* (columns softly coloured grey → blue → green),
+  *Headers* (solid coloured column headers), *Cards* (cards filled in
+  a dark shade of their status), *Vivid* (all of it). Stored in
+  `viewer_board_theme`, switches live.
+
 ## 1.19.3 — 2026-10-24
 - Viewer board: opening a finished process in a wide window no longer
   parks the Done cards in the middle — a slide animation started at

@@ -19,7 +19,7 @@ from polytess.graph.board import (ACTIVE, DONE, FAILED, PENDING, QUEUED, STALE,
 from polytess.gui.theme import ACCENTS, COLORS
 from polytess.viewer import celebrations
 from polytess.viewer.run_panel import format_duration
-from polytess.viewer.style import STATUS_FILL, STATUS_LABEL
+from polytess.viewer.style import STATUS_FILL, STATUS_LABEL, board_theme
 
 COLUMNS = ("backlog", "active", "done")
 COLUMN_TITLES = {"backlog": "Backlog", "active": "In Progress", "done": "Done"}
@@ -40,6 +40,7 @@ class CardItem(QGraphicsObject):
     def __init__(self, card: Card):
         super().__init__()
         self.card = card
+        self.theme: dict | None = None  # set by the view
         self.width = COL_W - 2 * PAD    # set by the view (stretches with it)
         self.status = PENDING
         self.duration: float | None = None
@@ -97,14 +98,16 @@ class CardItem(QGraphicsObject):
             painter.setPen(QPen(halo, 6))
             painter.setBrush(Qt.NoBrush)
             painter.drawRoundedRect(rect.adjusted(-2, -2, 2, 2), 10, 10)
+        theme = self.theme or board_theme()
         painter.setPen(QPen(QColor(COLORS["border-active"] if self.isSelected()
-                                   else COLORS["border-element"]), 1.5))
-        painter.setBrush(QBrush(QColor(COLORS["bg-dark"])))
+                                   else theme["card_border"]), 1.5))
+        painter.setBrush(QBrush(QColor(theme["card_fill"].get(self.status)
+                                       or COLORS["bg-dark"])))
         painter.drawRoundedRect(rect, 8, 8)
         # accent stripe
         painter.setPen(Qt.NoPen)
         painter.setBrush(fill)
-        painter.drawRoundedRect(QRectF(0, 0, 6, CARD_H), 3, 3)
+        painter.drawRoundedRect(QRectF(0, 0, theme["stripe"], CARD_H), 3, 3)
 
         # title
         font = QFont(painter.font())
@@ -227,6 +230,14 @@ class BoardView(QGraphicsView):
         self.items_by_guid: dict[str, CardItem] = {}
         self._rows = 1
         self._col_w = COL_W
+        self.theme = board_theme()
+
+    def set_theme(self, name: str) -> None:
+        self.theme = board_theme(name)
+        for item in self.items_by_guid.values():
+            item.theme = self.theme
+            item.update()
+        self.viewport().update()
 
     @property
     def column_width(self) -> float:
@@ -245,6 +256,7 @@ class BoardView(QGraphicsView):
         self.items_by_guid.clear()
         for card in spec.cards:
             item = CardItem(card)
+            item.theme = self.theme
             item.clicked.connect(self.card_clicked)
             item.double_clicked.connect(self.card_double_clicked)
             item.dropped.connect(self._on_dropped)
@@ -313,15 +325,15 @@ class BoardView(QGraphicsView):
             x = column_x(index, col_w)
             body = QRectF(x, 0, col_w, scene_rect.height())
             painter.setPen(Qt.NoPen)
-            painter.setBrush(QColor(COLORS["bg-darker"]))
+            painter.setBrush(QColor(self.theme["column_body"][column]))
             painter.drawRoundedRect(body, 10, 10)
-            painter.setBrush(QColor(COLORS["bg-dark"]))
+            painter.setBrush(QColor(self.theme["column_head"][column]))
             painter.drawRoundedRect(QRectF(x, 0, col_w, HEADER_H), 10, 10)
             font = QFont(painter.font())
             font.setPointSize(13)
             font.setBold(True)
             painter.setFont(font)
-            painter.setPen(QColor(ACCENTS["text"]))
+            painter.setPen(QColor(self.theme["head_text"][column]))
             count = sum(1 for i in self.items_by_guid.values()
                         if COLUMN_OF[i.status] == column)
             painter.drawText(QRectF(x + PAD, 0, col_w - 2 * PAD, HEADER_H),

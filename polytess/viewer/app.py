@@ -98,7 +98,18 @@ class ViewerWindow(QMainWindow):
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         bar.addWidget(spacer)
-        bar.addWidget(QLabel("Celebrations "))
+        bar.addWidget(QLabel("Board "))
+        self.theme_box = QComboBox()
+        from polytess.viewer.style import BOARD_THEMES
+        for key, theme in BOARD_THEMES.items():
+            self.theme_box.addItem(key.capitalize(), key)
+            self.theme_box.setItemData(self.theme_box.count() - 1, theme["label"],
+                                       Qt.ToolTipRole)
+        self.theme_box.setCurrentIndex(max(0, self.theme_box.findData(
+            str(AppSettings.instance().get("viewer_board_theme") or "classic"))))
+        self.theme_box.currentIndexChanged.connect(lambda _i: self._set_board_theme())
+        bar.addWidget(self.theme_box)
+        bar.addWidget(QLabel("   Celebrations "))
         self.celebration_box = QComboBox()
         for level in celebrations.LEVELS:
             self.celebration_box.addItem(level, level)
@@ -117,6 +128,13 @@ class ViewerWindow(QMainWindow):
         self.start_page = StartPage(self)
         self.stack.addWidget(self.start_page)
         self.mobile = None                       # MobileServer, started on demand
+
+    def _set_board_theme(self) -> None:
+        name = self.theme_box.currentData()
+        AppSettings.instance().set("viewer_board_theme", name)
+        AppSettings.instance().save()
+        if isinstance(self._page, BoardPage):
+            self._page.view.set_theme(name)
 
     # ---- phone mirror -------------------------------------------------------------- #
 
