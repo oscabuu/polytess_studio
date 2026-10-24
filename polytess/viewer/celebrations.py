@@ -43,6 +43,7 @@ def slide(item: QGraphicsObject, target: QPointF, bounce: bool = True,
           duration: int = 260) -> QPropertyAnimation | None:
     """Move *item* to *target*: immediate when off, eased otherwise, with
     an OutBack overshoot ("playful bounce") when *bounce* is set."""
+    stop_slide(item)
     if level() == "off" or item.pos() == target:
         item.setPos(target)
         return None
@@ -57,6 +58,15 @@ def slide(item: QGraphicsObject, target: QPointF, bounce: bool = True,
     animation.start(QPropertyAnimation.DeleteWhenStopped)
     item.setProperty("_slide", animation)
     return animation
+
+
+def stop_slide(item) -> None:
+    """Abort a running slide so a direct setPos is not overridden by the
+    animation's old target (e.g. after the view was resized)."""
+    animation = item.property("_slide")
+    if isinstance(animation, QPropertyAnimation):
+        animation.stop()
+        item.setProperty("_slide", None)
 
 
 def glow(item, duration: int = 700) -> None:

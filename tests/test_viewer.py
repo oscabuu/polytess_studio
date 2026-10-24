@@ -179,6 +179,19 @@ def test_board_columns_stretch_with_the_view(tmp_path):
     view.relayout(animate=False)
     assert view.column_width == COL_W                 # never narrower than the minimum
 
+    # a slide that is still running must not drag a card back to its
+    # old column position after a non-animated relayout (window resized
+    # right after opening a finished process)
+    AppSettings.instance().set("viewer_celebrations", "subtle")
+    done_item = view.items_by_guid[page.runner.spec.card_by_title("Report").guid]
+    view.set_status(done_item.card.guid, DONE)        # lives in the right column
+    view.resize(1500, 600)
+    view.relayout(animate=True)                       # its target moved -> slide runs
+    assert done_item.property("_slide") is not None
+    view.relayout(animate=False)
+    assert all(i.property("_slide") is None and i.pos() == i._home
+               for i in view.items_by_guid.values())
+
 
 def test_viewer_window_routes_board_and_form(tmp_path):
     from polytess.viewer.app import ViewerWindow

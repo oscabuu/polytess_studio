@@ -1,0 +1,2 @@
+MODEL bracket_v1
+nodes 1200

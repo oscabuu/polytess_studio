@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.19.3 — 2026-10-24
+- Viewer board: opening a finished process in a wide window no longer
+  parks the Done cards in the middle — a slide animation started at
+  the initial width kept pulling cards to its old target after the
+  resize; direct placement now stops running slides first.
+
 ## 1.19.2 — 2026-10-24
 - Viewer board: the three columns and their cards stretch to share the
   available width when the window grows (minimum width kept when it

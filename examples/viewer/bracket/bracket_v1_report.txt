@@ -1,0 +1,2 @@
+REPORT bracket_v1
+bracket_v1: max stress 184.6 MPa

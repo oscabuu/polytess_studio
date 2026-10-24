@@ -273,6 +273,7 @@ class BoardView(QGraphicsView):
                 if animate:
                     item.set_home(target, bounce=(item.card.guid == bounce_guid))
                 else:
+                    celebrations.stop_slide(item)
                     item._home = target
                     item.setPos(target)
         self._rows = rows
