@@ -4,6 +4,13 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.20.1 — 2026-10-24
+- Viewer crash fixed (segmentation fault in QObject::property): leaving
+  the board (Start, Open…, close) while a card was running deleted the
+  page, but the card task still reported its cancellation to the
+  destroyed view. The page now detaches every runner callback before it
+  is deleted; animation helpers check that the item is still alive.
+
 ## 1.20.0 — 2026-10-24
 - Viewer board **colour themes** (toolbar → Board): *Classic* (as
   before), *Tinted* (columns softly coloured grey → blue → green),

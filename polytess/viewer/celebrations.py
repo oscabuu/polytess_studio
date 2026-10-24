@@ -39,10 +39,20 @@ def set_level(value: str) -> None:
 
 # ---- card motion ----------------------------------------------------------------- #
 
+def _alive(item) -> bool:
+    try:
+        from shiboken6 import isValid
+        return isValid(item)
+    except ImportError:
+        return True
+
+
 def slide(item: QGraphicsObject, target: QPointF, bounce: bool = True,
           duration: int = 260) -> QPropertyAnimation | None:
     """Move *item* to *target*: immediate when off, eased otherwise, with
     an OutBack overshoot ("playful bounce") when *bounce* is set."""
+    if not _alive(item):
+        return None
     stop_slide(item)
     if level() == "off" or item.pos() == target:
         item.setPos(target)
@@ -63,6 +73,8 @@ def slide(item: QGraphicsObject, target: QPointF, bounce: bool = True,
 def stop_slide(item) -> None:
     """Abort a running slide so a direct setPos is not overridden by the
     animation's old target (e.g. after the view was resized)."""
+    if not _alive(item):
+        return
     animation = item.property("_slide")
     if isinstance(animation, QPropertyAnimation):
         animation.stop()
@@ -71,7 +83,7 @@ def stop_slide(item) -> None:
 
 def glow(item, duration: int = 700) -> None:
     """Short highlight pulse on a card item (expects ``set_glow(float)``)."""
-    if level() == "off" or not hasattr(item, "set_glow"):
+    if level() == "off" or not hasattr(item, "set_glow") or not _alive(item):
         return
     animation = QPropertyAnimation(item, b"glow", item)
     animation.setDuration(duration)

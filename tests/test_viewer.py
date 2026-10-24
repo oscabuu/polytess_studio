@@ -193,6 +193,36 @@ def test_board_columns_stretch_with_the_view(tmp_path):
                for i in view.items_by_guid.values())
 
 
+async def test_leaving_the_board_while_a_card_runs_detaches_callbacks(tmp_path):
+    """Navigating away while a card runs: the page is deleted but the
+    card task still winds down on the loop — it must not call into the
+    (deleted) view any more (this crashed the process)."""
+    from polytess.viewer.board_page import BoardPage
+    folder = _demo_copy(tmp_path)
+    graph = Graph.load(str(folder / "main_process.flow.json"))
+    graph.variables.set("work_folder", str(folder / "work"))
+    page = BoardPage(graph)
+    page.auto_box.setChecked(False)
+    prep = page.runner.spec.card_by_title("Prepare Model")
+    page.start_card(prep.guid, mode="only")
+    await asyncio.sleep(0.2)
+    assert page.is_running
+    runner, tasks = page.runner, list(page._tasks.values())
+    page.detach()
+    for guid in list(page._tasks):
+        page.stop_card(guid)
+    page.deleteLater()
+    from PySide6.QtWidgets import QApplication
+    QApplication.processEvents()                # the C++ widgets are gone now
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+    assert runner.on_change is None and runner.on_progress is None and runner.on_log is None
+    assert runner.status(prep.guid) == PENDING  # cancelled run left no result
+
+
 def test_board_theme_switch(tmp_path):
     from polytess.viewer.app import ViewerWindow
     from polytess.viewer.style import BOARD_THEMES

@@ -84,6 +84,7 @@ class BoardPage(QWidget):
             AppSettings.instance().get("viewer_auto_advance", True))
         self._tasks: dict[str, asyncio.Task] = {}
         self._contexts: dict[str, object] = {}
+        self._closed = False                   # widgets may be gone: ignore callbacks
         self._selected: str | None = None
         self._node_totals: dict[str, int] = {}
         self._node_done: dict[str, set] = {}
@@ -195,12 +196,16 @@ class BoardPage(QWidget):
             self._show_detail(self._selected)
 
     def _on_log(self, guid: str, level: str, text: str) -> None:
+        if self._closed:
+            return
         if guid == self._selected:
             self.run_panel.log.log(level, text)
         if self.mirror is not None:
             self.mirror.notify_log(guid, level, text)
 
     def _on_change(self, guid: str, status: str) -> None:
+        if self._closed:
+            return
         card = self.runner.spec.card(guid)
         if self.mirror is not None:
             self.mirror.notify_change(guid, status)
@@ -219,6 +224,8 @@ class BoardPage(QWidget):
             celebrations.toast(self.window(), f"{self.graph.name}: everything done 🎉")
 
     def _on_progress(self, guid: str, node, status: NodeStatus) -> None:
+        if self._closed:
+            return
         if status == NodeStatus.RUNNING:
             self._node_totals.setdefault(guid, 0)
         if status in (NodeStatus.SUCCESS, NodeStatus.FAIL):
@@ -410,6 +417,8 @@ class BoardPage(QWidget):
 
     def _finished(self, guid: str) -> None:
         self._tasks.pop(guid, None)
+        if self._closed:
+            return
         cs = self.runner.state.card(guid)
         if guid == self._selected:
             self.run_panel.finish(cs.status == DONE,
@@ -455,11 +464,24 @@ class BoardPage(QWidget):
 
     def confirm_close(self) -> bool:
         if not self.is_running:
+            self.detach()
             return True
         if QMessageBox.question(self, "Run in progress",
                                 "Cards are running. Stop them and leave?") \
                 == QMessageBox.Yes:
+            self.detach()
             for guid in list(self._tasks):
                 self.stop_card(guid)
             return True
         return False
+
+    def detach(self) -> None:
+        """Cut every callback into this page's widgets. Called before the
+        page is deleted: a card task that is still winding down (its
+        cancellation lands later on the loop) must never touch the view
+        again — doing so crashed the process (dangling QObject)."""
+        self._closed = True
+        self.runner.on_change = None
+        self.runner.on_progress = None
+        self.runner.on_log = None
+        self.mirror = None
