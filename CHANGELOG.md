@@ -4,6 +4,15 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.20.2 — 2026-10-24
+- CI: the Tests workflow crashed at interpreter shutdown (exit 139)
+  since 1.17.0 although every test passed — qasync loops created in
+  GUI smoke tests were never closed and died after the QApplication.
+  They are now closed per test.
+- The Release workflow no longer runs on tag pushes; it is manual
+  (Actions → Release → Run workflow). The repository is used from
+  source, nothing is built automatically any more.
+
 ## 1.20.1 — 2026-10-24
 - Viewer crash fixed (segmentation fault in QObject::property): leaving
   the board (Start, Open…, close) while a card was running deleted the

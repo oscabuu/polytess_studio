@@ -20,6 +20,32 @@ from polytess.graph import ActionsNode, ConditionsNode, Graph, StartNode, Trigge
 EXAMPLE = os.path.join(os.path.dirname(__file__), "..", "examples", "demo.flow.json")
 
 
+_LOOPS: list = []
+
+
+def _qloop(app):
+    """A qasync loop for one test — closed again by _close_qasync_loops.
+    Loops left open were destroyed during interpreter shutdown after the
+    QApplication, which crashed the process on CI (exit 139)."""
+    import qasync
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+    _LOOPS.append(loop)
+    return loop
+
+
+@pytest.fixture(autouse=True)
+def _close_qasync_loops():
+    yield
+    while _LOOPS:
+        loop = _LOOPS.pop()
+        try:
+            loop.close()
+        except Exception:
+            pass
+    asyncio.set_event_loop(None)
+
+
 @pytest.fixture(scope="module")
 def app():
     app = QApplication.instance() or QApplication([])
@@ -510,9 +536,7 @@ def test_references_dialog(app):
 
 
 def test_pause_step_actions_exist(app):
-    import qasync
-    loop = qasync.QEventLoop(app)
-    asyncio.set_event_loop(loop)
+    loop = _qloop(app)
     from polytess.gui.main_window import MainWindow
     window = MainWindow()
     assert not window.act_pause.isEnabled()      # only while running
@@ -585,9 +609,7 @@ def test_poly_list_widget_edit_ops(app):
 
 
 def test_flow_assistant_dock_tabbed_and_closable(app):
-    import qasync
-    loop = qasync.QEventLoop(app)
-    asyncio.set_event_loop(loop)
+    loop = _qloop(app)
     from PySide6.QtWidgets import QDockWidget, QMainWindow
     from polytess.gui.main_window import MainWindow
 
@@ -619,9 +641,7 @@ def test_flow_assistant_dock_tabbed_and_closable(app):
 def test_assistant_modification_creates_branch(app, tmp_path):
     """Inserting an assistant answer that modified the open flow creates
     a lineage branch of it — an unrelated build stays independent."""
-    import qasync
-    loop = qasync.QEventLoop(app)
-    asyncio.set_event_loop(loop)
+    loop = _qloop(app)
     from polytess.graph.flow_builder import build_flow
     from polytess.gui.main_window import GraphDocument, MainWindow
 
@@ -677,9 +697,7 @@ def test_flow_assistant_insert_reports_context_flag(app):
 
 
 def test_f4_toggles_live_value_display(app):
-    import qasync
-    loop = qasync.QEventLoop(app)
-    asyncio.set_event_loop(loop)
+    loop = _qloop(app)
     from polytess.core.properties import live_display_enabled
     from polytess.graph.flow_builder import build_flow
     from polytess.gui.main_window import GraphDocument, MainWindow
@@ -710,9 +728,7 @@ def test_f4_toggles_live_value_display(app):
 
 
 def test_main_window_open_and_run(app, tmp_path):
-    import qasync
-    loop = qasync.QEventLoop(app)
-    asyncio.set_event_loop(loop)
+    loop = _qloop(app)
     from polytess.gui.main_window import MainWindow
 
     window = MainWindow()
@@ -864,9 +880,7 @@ def test_settings_dialog_python_include_paths_roundtrip(app, tmp_path):
 
 
 def test_inspector_undo_stack_follows_active_tab(app):
-    import qasync
-    loop = qasync.QEventLoop(app)
-    asyncio.set_event_loop(loop)
+    loop = _qloop(app)
     from polytess.gui.main_window import MainWindow
 
     window = MainWindow()

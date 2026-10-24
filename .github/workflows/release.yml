@@ -7,9 +7,11 @@ name: Release
 #     the requirements and run polytess-cli directly, no build step)
 # Artifacts NEVER contain custom_instructions or license files.
 
+# Manual only: releases are built on demand (Actions → Release → Run
+# workflow, pick the tag). Tag pushes no longer build anything — the
+# repository is the source of truth, users run from source.
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
 
 jobs:
   tests:

@@ -1,2 +1,0 @@
-load=5 kN
-max_stress=184.6
