@@ -36,4 +36,5 @@ jobs:
       - name: Run test suite
         env:
           QT_QPA_PLATFORM: offscreen
+          POLYTESS_TEST_HARD_EXIT: "1"   # skip Qt interpreter-shutdown crash
         run: python -m pytest tests/ -q --tb=short

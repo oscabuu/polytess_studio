@@ -35,6 +35,7 @@ jobs:
       - name: Run test suite
         env:
           QT_QPA_PLATFORM: offscreen
+          POLYTESS_TEST_HARD_EXIT: "1"
         run: python -m pytest tests/ -q --tb=short
 
   windows-exe:

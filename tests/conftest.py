@@ -39,3 +39,31 @@ with tempfile.NamedTemporaryFile("w", suffix=".lic", delete=False) as _fh:
          "issued": "2026-01-01"}, _private_hex), _fh)
 os.environ["POLYTESS_LICENSE"] = _fh.name
 licensing.reset_cache()
+
+
+# Qt + Python 3.13 segfault during interpreter shutdown on Linux after the
+# whole suite passed (PySide6 objects destroyed after the Qt libraries are
+# torn down). The result is final once the summary is printed, so on CI
+# the process exits right there instead of running the destructors.
+import pytest  # noqa: E402
+
+
+_EXIT_STATUS = 0
+
+
+def pytest_sessionfinish(session, exitstatus):
+    global _EXIT_STATUS
+    _EXIT_STATUS = int(exitstatus)
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_unconfigure(config):
+    # runs after the terminal summary has been printed
+    if os.environ.get("POLYTESS_TEST_HARD_EXIT"):
+        from PySide6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app is not None:
+            app.processEvents()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(_EXIT_STATUS)

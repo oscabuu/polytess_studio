@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.20.3 — 2026-10-24
+- CI: the Linux runner still segfaulted during interpreter shutdown
+  after a green suite (Qt teardown). With `POLYTESS_TEST_HARD_EXIT=1`
+  (set in the workflows) pytest now exits right after printing its
+  summary, keeping the real exit code; local runs are unchanged.
+
 ## 1.20.2 — 2026-10-24
 - CI: the Tests workflow crashed at interpreter shutdown (exit 139)
   since 1.17.0 although every test passed — qasync loops created in
