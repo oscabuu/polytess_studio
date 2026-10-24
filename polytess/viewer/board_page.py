@@ -4,9 +4,9 @@
 """Main-process page: Kanban board + dashboard + card detail.
 
 Drops decide actions:
-  Backlog → Active   start the card (predecessor dialog when needed)
-  Done → Active      run the card again
-  Active → Backlog   stop a running card
+  Backlog → In Progress   start the card (predecessor dialog when needed)
+  Done → In Progress      run the card again
+  In Progress → Backlog   stop a running card
   Done → Backlog     forget the card's result (and its successors')
 Auto-advance (toggle) starts every card whose predecessors are Done."""
 

@@ -4,6 +4,10 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.18.1 — 2026-10-24
+- Viewer board: the middle column is called **In Progress** (was
+  Active); manual and plan follow.
+
 ## 1.18.0 — 2026-10-23
 - **polytess Viewer** (`polytess-viewer`, `python -m polytess.viewer`,
   third executable in the bundle): the run-only app for non-expert
@@ -12,7 +16,7 @@ Every commit bumps at least the patch version.
   metadata, presets per flow family incl. *Last values*, validation,
   run with progress/phase/log/pause/stop, result page with outputs,
   work folder and log); a main process opens as a **Kanban board**
-  (Backlog · Active · Done) whose cards are its Sub-Workflow nodes:
+  (Backlog · In Progress · Done) whose cards are its Sub-Workflow nodes:
   drag to Active starts a card (dialog when predecessors are
   unfinished: run in order / only this / cancel), results are
   remembered in `<flow>.board.json` with an input hash (reopening

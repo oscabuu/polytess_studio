@@ -34,11 +34,11 @@ A flow whose nodes are **Sub-Workflow nodes** (see *Sub-workflows* in
 Concepts) opens as a **Kanban board**: every sub-workflow node is a
 card, the connections are the dependencies.
 
-| Backlog | Active | Done |
+| Backlog | In Progress | Done |
 |---|---|---|
 | not run yet, outdated, failed | queued or running (progress bar) | finished (duration) |
 
-- **Drag a card to Active** (or double-click it, or *Start* in the
+- **Drag a card to In Progress** (or double-click it, or *Start* in the
   detail panel) to run it. If predecessors are unfinished, a dialog
   offers *Run in order* (they are queued and run first), *Only this
   step* or *Cancel*.

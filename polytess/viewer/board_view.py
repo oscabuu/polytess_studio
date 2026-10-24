@@ -22,7 +22,7 @@ from polytess.viewer.run_panel import format_duration
 from polytess.viewer.style import STATUS_FILL, STATUS_LABEL
 
 COLUMNS = ("backlog", "active", "done")
-COLUMN_TITLES = {"backlog": "Backlog", "active": "Active", "done": "Done"}
+COLUMN_TITLES = {"backlog": "Backlog", "active": "In Progress", "done": "Done"}
 COLUMN_OF = {PENDING: "backlog", STALE: "backlog", FAILED: "backlog",
              QUEUED: "active", ACTIVE: "active", DONE: "done"}
 

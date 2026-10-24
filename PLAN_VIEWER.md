@@ -191,16 +191,16 @@ Inputs/Outputs). Jeder Sub-Workflow-Knoten ist im Viewer eine **Karte**,
 die Kanten des Hauptflows sind die **Abhängigkeiten**. Der Viewer zeigt
 den Hauptprozess nicht als Graph, sondern als Board mit drei Spalten:
 
-| Backlog | Active | Done |
+| Backlog | In Progress | Done |
 |---|---|---|
-| noch nicht gerechnet | läuft gerade (Fortschritt, aktueller Schritt, Laufzeit) | fertig (Dauer, Ergebnisse, Protokoll) — fehlgeschlagene Karten bleiben rot in Active mit *Erneut starten* |
+| noch nicht gerechnet | läuft gerade (Fortschritt, aktueller Schritt, Laufzeit) | fertig (Dauer, Ergebnisse, Protokoll) — fehlgeschlagene Karten bleiben rot in In Progress mit *Erneut starten* |
 
 Kein neues Dateiformat: der Experte baut den Hauptprozess im Studio,
 der Viewer projiziert ihn. Einzel-Flows ohne Sub-Workflow-Knoten
 bekommen weiterhin das Formular aus Abschnitt 5.
 
 ### 8.2 Wie Anwender damit arbeiten
-- **Karte nach Active ziehen** (oder ▶ auf der Karte) startet den
+- **Karte nach In Progress ziehen** (oder ▶ auf der Karte) startet den
   Sub-Flow. Fehlen Eingaben, öffnet sich zuerst das Formular der Karte
   (Viewer-Form des Sub-Flows, minus alles, was der Hauptflow über
   Bindings liefert).
@@ -215,7 +215,7 @@ bekommen weiterhin das Formular aus Abschnitt 5.
   ebenfalls.
 - **Nachfolger automatisch starten**: Schalter *Auto-Weiterlauf* (pro
   Board, Standard an). Wird eine Karte Done, wandern alle Nachfolger,
-  deren Vorgänger komplett sind, nach Active. Parallele Zweige des
+  deren Vorgänger komplett sind, nach In Progress. Parallele Zweige des
   Hauptflows laufen dann gleichzeitig — genau wie im Studio.
 - **Pause / Abbrechen** pro Karte; *Alles starten* für den kompletten
   Prozess; Board-Zustand überlebt Schließen und Neustart.
@@ -247,7 +247,7 @@ bekommen weiterhin das Formular aus Abschnitt 5.
 
 ### 8.4 Dashboard
 Rechts neben dem Board (einklappbar) eine Statistik-Leiste:
-- Fortschrittsring *fertig / gesamt*, Zähler Done · Active · Backlog ·
+- Fortschrittsring *fertig / gesamt*, Zähler Done · In Progress · Backlog ·
   Fehlgeschlagen · Veraltet.
 - Laufzeiten: bisher verbrauchte Zeit, **geschätzte Restzeit** (aus den
   Dauern früherer Läufe derselben Karten), längste Karte.
@@ -264,7 +264,7 @@ Ingenieure, die Ergebnisse erwarten. Vorschlag in drei Stufen, alle in
 den Einstellungen abschaltbar (*Celebrations: off / subtle / full*):
 - **Immer an (keine Gamification, nur gute Gestaltung)**: Karten mit
   Akzentfarbe des Sub-Flows, weiches Gleiten beim Spaltenwechsel
-  (QPropertyAnimation), pulsierender Rand bei Active, Fortschrittsring
+  (QPropertyAnimation), pulsierender Rand bei In Progress, Fortschrittsring
   auf der Karte, klare Typografie, Dunkel-Theme wie im Studio.
 - **Subtle (Standard, vom User bestätigt 2026-10-23)**: kurzes
   Aufleuchten und Häkchen-Animation beim Wechsel nach Done; **playful
