@@ -4,6 +4,11 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.20.8 — 2026-10-25
+- Fix for 1.20.7: the burger menu's Settings entries are menus of
+  their own sharing the View menu's actions (attaching one QMenu to two
+  parents let PySide delete it).
+
 ## 1.20.7 — 2026-10-25
 - Viewer: Board Theme and Celebrations are also reachable from the
   burger menu (Settings) — on macOS the menu bar lives in the system
