@@ -98,8 +98,6 @@ class ViewerWindow(QMainWindow):
                                  shortcut="Ctrl+Home", triggered=self.show_start)
         self.act_open = QAction(icon("folder", "text"), "&Open Flow…", self,
                                 shortcut=QKeySequence.Open, triggered=self.open_dialog)
-        self.act_phone = QAction(icon("globe", "text"), "Follow on &Phone…", self,
-                                 shortcut="Ctrl+P", triggered=self.share_on_phone)
         self.act_about = QAction(icon("help", "text"), "&About polytess Viewer", self,
                                  triggered=self._about)
         self.act_quit = QAction("&Quit", self, shortcut=QKeySequence.Quit,
@@ -139,9 +137,6 @@ class ViewerWindow(QMainWindow):
             self.celebration_group.addAction(action)
             celebration_menu.addAction(action)
 
-        phone_menu = self.menuBar().addMenu("&Phone")
-        phone_menu.addAction(self.act_phone)
-
         help_menu = self.menuBar().addMenu("&Help")
         help_menu.addAction(self.act_about)
 
@@ -155,8 +150,6 @@ class ViewerWindow(QMainWindow):
         self.burger_menu.addAction(self.act_open)
         self.burger_menu.addMenu(self.recent_menu)
         self.burger_menu.addAction(self.act_start)
-        self.burger_menu.addSeparator()
-        self.burger_menu.addAction(self.act_phone)
         self.burger_menu.addSeparator()
         # same QActions as the View menu, in menus of their own (a QMenu
         # must not be attached to two parents — PySide deletes it)

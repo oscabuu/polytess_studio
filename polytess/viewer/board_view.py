@@ -19,7 +19,8 @@ from polytess.graph.board import (ACTIVE, DONE, FAILED, PENDING, QUEUED, STALE,
 from polytess.gui.theme import ACCENTS, COLORS
 from polytess.viewer import celebrations
 from polytess.viewer.run_panel import format_duration
-from polytess.viewer.style import STATUS_FILL, STATUS_LABEL, board_theme
+from polytess.viewer.style import (STATUS_FILL, STATUS_LABEL, board_theme,
+                                   status_colour, text_on)
 
 COLUMNS = ("backlog", "active", "done")
 COLUMN_TITLES = {"backlog": "Backlog", "active": "In Progress", "done": "Done"}
@@ -92,14 +93,14 @@ class CardItem(QGraphicsObject):
     def paint(self, painter: QPainter, option, widget=None) -> None:
         painter.setRenderHint(QPainter.Antialiasing)
         rect = QRectF(0, 0, self.width, CARD_H)
-        fill = QColor(STATUS_FILL[self.status])
+        theme = self.theme or board_theme()
+        fill = QColor(status_colour(theme, self.status))
         if self._glow > 0:
             halo = QColor(ACCENTS["green"])
             halo.setAlphaF(0.55 * self._glow)
             painter.setPen(QPen(halo, 6))
             painter.setBrush(Qt.NoBrush)
             painter.drawRoundedRect(rect.adjusted(-2, -2, 2, 2), 10, 10)
-        theme = self.theme or board_theme()
         painter.setPen(QPen(QColor(COLORS["border-active"] if self.isSelected()
                                    else theme["card_border"]), 1.5))
         painter.setBrush(QBrush(QColor(theme["card_fill"].get(self.status)
@@ -131,7 +132,7 @@ class CardItem(QGraphicsObject):
         painter.setPen(Qt.NoPen)
         painter.setBrush(fill)
         painter.drawRoundedRect(pill, 8, 8)
-        painter.setPen(QColor("#ffffff"))
+        painter.setPen(QColor(text_on(status_colour(theme, self.status))))
         painter.drawText(pill, Qt.AlignCenter, label)
 
         # description
@@ -152,7 +153,7 @@ class CardItem(QGraphicsObject):
             painter.setBrush(QColor(COLORS["bg-darkest"]))
             bar = QRectF(16, CARD_H - 22, self.width - 32, 6)
             painter.drawRoundedRect(bar, 3, 3)
-            painter.setBrush(QColor(STATUS_FILL[ACTIVE]))
+            painter.setBrush(QColor(status_colour(theme, ACTIVE)))
             painter.drawRoundedRect(QRectF(bar.x(), bar.y(),
                                            max(6.0, bar.width() * self.progress), 6), 3, 3)
         else:

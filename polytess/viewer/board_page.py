@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import os
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (QCheckBox, QDialog, QFrame, QHBoxLayout,
                                QLabel, QMessageBox, QPushButton, QSplitter,
                                QToolButton, QVBoxLayout, QWidget)
@@ -129,9 +129,12 @@ class BoardPage(QWidget):
         reset_all.setToolTip("Forget every result")
         reset_all.clicked.connect(self._reset_all)
         head.addWidget(reset_all)
-        self.phone_button = QPushButton("Follow on phone…")
-        self.phone_button.setObjectName("flat")
-        self.phone_button.setToolTip("Show a QR code — the phone mirrors this board live")
+        self.phone_button = QToolButton()
+        self.phone_button.setIcon(icon("qr", "text"))
+        self.phone_button.setIconSize(QSize(22, 22))
+        self.phone_button.setAutoRaise(True)
+        self.phone_button.setToolTip("Follow on phone — scan a QR code, the phone "
+                                     "mirrors this board live")
         self.phone_button.clicked.connect(lambda: self.window().share_on_phone())
         head.addWidget(self.phone_button)
         layout.addLayout(head)

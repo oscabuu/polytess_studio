@@ -60,6 +60,17 @@ QProgressBar::chunk {{ background: {COLORS['border-active']}; border-radius: 4px
 # card_fill per status ("" = neutral dark card), card_border, head_text.
 
 BOARD_THEMES: dict[str, dict] = {
+    "icon": {               # the app icon's three accents: purple → blue → green
+        "label": "Icon — the app icon's purple, blue and green (default)",
+        "column_body": {"backlog": "#2f2a3d", "active": "#24343d", "done": "#2b3625"},
+        "column_head": {"backlog": "#a692e9", "active": "#87d8f6", "done": "#c2f771"},
+        "head_text": {"backlog": "#1b1b1b", "active": "#1b1b1b", "done": "#1b1b1b"},
+        "card_fill": {"pending": "#3a3449", "queued": "#44391c", "active": "#2a4452",
+                      "done": "#34452c", "failed": "#4a2020", "stale": "#403516"},
+        "status_fill": {"pending": "#a692e9", "queued": "#f1c437", "active": "#87d8f6",
+                        "done": "#c2f771", "failed": "#e9754c", "stale": "#f1c437"},
+        "card_border": "#444444", "stripe": 7,
+    },
     "classic": {            # as shipped in 1.18: neutral dark columns, stripe only
         "label": "Classic — neutral columns, colour stripe on the card",
         "column_body": {"backlog": "#2a2a2a", "active": "#2a2a2a", "done": "#2a2a2a"},
@@ -104,5 +115,17 @@ BOARD_THEMES: dict[str, dict] = {
 
 def board_theme(name: str | None = None) -> dict:
     from polytess.core.app_settings import AppSettings
-    key = name or str(AppSettings.instance().get("viewer_board_theme") or "classic")
-    return BOARD_THEMES.get(key, BOARD_THEMES["classic"])
+    key = name or str(AppSettings.instance().get("viewer_board_theme") or "icon")
+    return BOARD_THEMES.get(key, BOARD_THEMES["icon"])
+
+
+def status_colour(theme: dict, status: str) -> str:
+    """Stripe/pill colour of a status — a theme may override STATUS_FILL."""
+    return theme.get("status_fill", {}).get(status) or STATUS_FILL[status]
+
+
+def text_on(colour: str) -> str:
+    """Black or white text, whichever reads on *colour*."""
+    c = colour.lstrip("#")
+    r, g, b = (int(c[i:i + 2], 16) for i in (0, 2, 4))
+    return "#1b1b1b" if (0.299 * r + 0.587 * g + 0.114 * b) > 150 else "#ffffff"

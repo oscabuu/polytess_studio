@@ -4,6 +4,16 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.21.0 — 2026-10-25
+- Viewer board theme **Icon** (new default): the app icon's three
+  accents — purple for Backlog, blue for In Progress, green for Done —
+  as column headers, with matching column tints, card fills and
+  status pills (text colour adapts to the pill's brightness). The
+  other themes stay selectable under View → Board Theme.
+- Follow on phone lives only on the board now, as a plain QR-code
+  pictogram button at the top right; the Phone menu, the burger-menu
+  entry and the Ctrl+P shortcut are gone. New "qr" icon.
+
 ## 1.20.8 — 2026-10-25
 - Fix for 1.20.7: the burger menu's Settings entries are menus of
   their own sharing the View menu's actions (attaching one QMenu to two

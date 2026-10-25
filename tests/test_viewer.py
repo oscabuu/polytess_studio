@@ -240,22 +240,27 @@ def test_board_theme_switch(tmp_path):
     window = ViewerWindow()
     window.open_flow(str(folder / "main_process.flow.json"))
     view = window._page.view
-    assert view.theme is BOARD_THEMES["classic"]
+    assert view.theme is BOARD_THEMES["icon"]            # default: app-icon colours
+    assert BOARD_THEMES["icon"]["column_head"] == {
+        "backlog": "#a692e9", "active": "#87d8f6", "done": "#c2f771"}
     window.set_board_theme("vivid")
     assert AppSettings.instance().get("viewer_board_theme") == "vivid"
     checked = [a.data() for a in window.theme_group.actions() if a.isChecked()]
     assert checked == ["vivid"]
     # menu bar like the Studio: File / View / Phone / Help, toolbar with icons
     titles = [a.text().replace("&", "") for a in window.menuBar().actions()]
-    assert titles == ["File", "View", "Phone", "Help"]
+    assert titles == ["File", "View", "Help"]           # no Phone menu
     assert window.act_open.shortcut().toString() in ("Ctrl+O", "⌘O", "Meta+O")
     # toolbar: burger menu first, no phone icon in the bar
     from PySide6.QtWidgets import QToolBar
     toolbar = window.findChild(QToolBar, "main-toolbar")
     bar_actions = [a for a in toolbar.actions() if not a.isSeparator()]
     assert bar_actions[0].defaultWidget() is window.burger_button
-    assert window.act_phone not in bar_actions
-    assert window.act_phone in window.burger_menu.actions()
+    assert not hasattr(window, "act_phone")             # phone only on the board
+    assert all("Phone" not in a.text() for a in window.burger_menu.actions())
+    from PySide6.QtWidgets import QToolButton
+    assert isinstance(window._page.phone_button, QToolButton)
+    assert window._page.phone_button.text() == ""       # pictogram only
     # NB: never fetch menus via QAction.menu() in tests — PySide 6.11 hands
     # out a wrapper that owns (and on GC deletes) the C++ menu.
     assert window.settings_menu.menuAction() in window.burger_menu.actions()
@@ -265,7 +270,9 @@ def test_board_theme_switch(tmp_path):
     assert window.celebration_sub.actions() == window.celebration_group.actions()
     assert view.theme is BOARD_THEMES["vivid"]
     assert all(i.theme is BOARD_THEMES["vivid"] for i in view.items_by_guid.values())
-    assert set(BOARD_THEMES) == {"classic", "tinted", "headers", "cards", "vivid"}
+    assert set(BOARD_THEMES) == {"icon", "classic", "tinted", "headers", "cards", "vivid"}
+    from polytess.viewer.style import text_on
+    assert text_on("#c2f771") == "#1b1b1b" and text_on("#3d7ad9") == "#ffffff"
     for theme in BOARD_THEMES.values():
         assert set(theme["column_body"]) == {"backlog", "active", "done"}
 

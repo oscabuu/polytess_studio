@@ -74,8 +74,7 @@ rewards progress of the process, never click counts, and never blocks.
 
 ## Follow on phone
 
-*Phone…* in the toolbar (or *Follow on phone…* on the board) shows a
-**QR code**. Scan it with the phone's camera: the phone opens a page
+The QR-code button at the top right of the board shows a **QR code**. Scan it with the phone's camera: the phone opens a page
 served by the Viewer itself and mirrors the board live — columns,
 progress of the running card, dashboard numbers, a card's description
 and its last log lines (tap a card). When a card finishes or fails

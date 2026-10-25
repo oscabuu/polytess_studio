@@ -159,6 +159,15 @@ def _draw(name: str, p: QPainter, c: QColor) -> None:   # noqa: C901
         p.setPen(_pen(c, 4)); p.drawLine(QPointF(16, 7), QPointF(16, 25)); p.drawLine(QPointF(7, 16), QPointF(25, 16))
     elif name == "minus":
         p.setPen(_pen(c, 4)); p.drawLine(QPointF(7, 16), QPointF(25, 16))
+    elif name == "qr":              # QR code pictogram: 3 finder squares + modules
+        p.setPen(_pen(c, 2.2))
+        for x, y in ((5, 5), (19, 5), (5, 19)):
+            p.drawRect(QRectF(x, y, 8, 8))
+            fill(); p.drawRect(QRectF(x + 2.5, y + 2.5, 3, 3)); p.setBrush(Qt.NoBrush)
+        fill()
+        for x, y in ((19, 19), (24, 19), (19, 24), (24, 24), (22, 22)):
+            p.drawRect(QRectF(x, y, 2.6, 2.6))
+        p.setBrush(Qt.NoBrush)
     elif name == "menu":            # hamburger: three bars
         p.setPen(_pen(c, 3.5))
         for y in (9, 16, 23):
