@@ -196,6 +196,8 @@ class ViewerWindow(QMainWindow):
             action.setChecked(action.data() == name)
         if isinstance(self._page, BoardPage):
             self._page.view.set_theme(name)
+        if self.mobile is not None:
+            self.mobile.notify_theme()
 
     # ---- phone mirror -------------------------------------------------------------- #
 

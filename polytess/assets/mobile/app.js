@@ -47,6 +47,18 @@
   }
 
   // ---- rendering ------------------------------------------------------------- //
+  function applyTheme(theme) {
+    if (!theme) return;
+    const root = document.documentElement.style;
+    Object.entries(theme.status || {}).forEach(([st, col]) => root.setProperty(`--${st}`, col));
+    Object.entries(theme.status_text || {}).forEach(([st, col]) => root.setProperty(`--${st}-text`, col));
+    Object.entries(theme.columns || {}).forEach(([col, c]) => {
+      root.setProperty(`--col-${col}-head`, c.head);
+      root.setProperty(`--col-${col}-body`, c.body);
+      root.setProperty(`--col-${col}-text`, c.text);
+    });
+    state.cardFill = theme.card_fill || {};
+  }
   function render() {
     $("flow-name").textContent = state.flow || "No process open";
     $("empty").hidden = !!state.flow;
@@ -56,12 +68,19 @@
     if (!state.flow) return;
     const groups = { backlog: [], progress: [], done: [] };
     state.cards.forEach((c) => groups[COLUMN[c.status] || "backlog"].push(c));
+    const themeCol = { backlog: "backlog", progress: "active", done: "done" };
     ["progress", "backlog", "done"].forEach((col) => {
       const h = document.createElement("h3");
       h.className = "column"; h.textContent = `${COLUMN_TITLE[col]} · ${groups[col].length}`;
+      h.style.background = `var(--col-${themeCol[col]}-head)`;
+      h.style.color = `var(--col-${themeCol[col]}-text)`;
       board.appendChild(h);
+      const section = document.createElement("div");
+      section.className = "section";
+      section.style.background = `var(--col-${themeCol[col]}-body)`;
       groups[col].sort((a, b) => a.level - b.level || a.title.localeCompare(b.title))
-        .forEach((c) => board.appendChild(cardEl(c)));
+        .forEach((c) => section.appendChild(cardEl(c)));
+      board.appendChild(section);
     });
     renderSummary();
     $("global-actions").hidden = !state.control;
@@ -71,6 +90,8 @@
     const el = document.createElement("div");
     el.className = "card"; el.dataset.guid = c.guid;
     el.style.setProperty("--stripe", `var(--${c.status})`);
+    el.style.setProperty("--pill-text", `var(--${c.status}-text, #fff)`);
+    if (state.cardFill && state.cardFill[c.status]) el.style.background = state.cardFill[c.status];
     let foot = "";
     if (c.status === "done" && c.duration) foot = "✔ " + duration(c.duration);
     else if (c.status === "failed") foot = "✖ " + (c.error || "failed");
@@ -161,8 +182,10 @@
   function apply(msg) {
     if (msg.type === "flow") {
       state = { flow: msg.flow, cards: msg.cards || [], summary: msg.summary, control: !!msg.control };
+      applyTheme(msg.theme);
       logs = {}; render(); return;
     }
+    if (msg.type === "theme") { applyTheme(msg.theme); render(); return; }
     if (msg.type === "control") { state.control = msg.control; render(); return; }
     const c = card(msg.guid);
     if (msg.type === "card") {

@@ -4,6 +4,12 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.21.3 — 2026-10-25
+- Phone page follows the Viewer's board theme: column headers, column
+  tints, card fills and status pills use the same colours as the
+  desktop board (default: the icon's purple / blue / green) and update
+  live when the theme is switched in the Viewer.
+
 ## 1.21.2 — 2026-10-25
 - Viewer: a page that still has running card/run tasks when you leave
   it is hidden at once but deleted only after those tasks finished —

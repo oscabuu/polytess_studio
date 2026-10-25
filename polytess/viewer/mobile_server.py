@@ -146,11 +146,31 @@ class MobileServer:
         self._progress.clear()
         self.broadcast({"type": "flow", **self.full_state()})
 
+    @staticmethod
+    def theme_payload() -> dict:
+        """The Viewer's board theme for the phone page (colours only)."""
+        from polytess.viewer.style import (STATUS_FILL, board_theme,
+                                           status_colour, text_on)
+        theme = board_theme()
+        return {
+            "columns": {col: {"head": theme["column_head"][col],
+                              "body": theme["column_body"][col],
+                              "text": text_on(theme["column_head"][col])}
+                        for col in ("backlog", "active", "done")},
+            "status": {st: status_colour(theme, st) for st in STATUS_FILL},
+            "status_text": {st: text_on(status_colour(theme, st)) for st in STATUS_FILL},
+            "card_fill": dict(theme.get("card_fill", {})),
+        }
+
+    def notify_theme(self) -> None:
+        self.broadcast({"type": "theme", "theme": self.theme_payload()})
+
     def full_state(self) -> dict:
         page = self.page
         if page is None:
             return {"flow": None, "cards": [], "summary": None,
-                    "control": bool(self.allow_control())}
+                    "control": bool(self.allow_control()),
+                    "theme": self.theme_payload()}
         runner = page.runner
         cards = []
         for card in runner.spec.cards:
@@ -173,6 +193,7 @@ class MobileServer:
                 "cards": cards, "summary": summary,
                 "problems": list(runner.spec.problems),
                 "control": bool(self.allow_control()),
+                "theme": self.theme_payload(),
                 "server_time": time.time()}
 
     # ---- notifications from the page --------------------------------------------- #

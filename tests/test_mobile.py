@@ -84,6 +84,12 @@ async def test_server_token_state_events_and_log(tmp_path):
         assert titles["Mesh"]["predecessors"] == ["Prepare Model"]
         assert titles["Report"]["blocked_by"] == ["Prepare Model", "Mesh", "Static Load Case"]
         assert data["control"] is False and data["summary"]["total"] == 5
+        # the phone follows the Viewer's board theme (default: icon colours)
+        theme = data["theme"]
+        assert theme["columns"]["backlog"]["head"] == "#a692e9"
+        assert theme["columns"]["active"]["head"] == "#87d8f6"
+        assert theme["columns"]["done"]["head"] == "#c2f771"
+        assert theme["status"]["done"] == "#c2f771" and theme["status_text"]["done"] == "#1b1b1b"
 
         # websocket: first message is the full state, then deltas while a card runs
         ws = await client.ws_connect(f"{base}/api/events")
