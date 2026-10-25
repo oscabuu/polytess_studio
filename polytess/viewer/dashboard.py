@@ -2,7 +2,7 @@
 # Licensed under the Business Source License 1.1 — see LICENSE.txt.
 # Converts to Apache License 2.0 on 2030-07-27.
 """Statistics side panel of the board: progress ring, counters, time
-spent / estimated remaining, success rate, streak, history bars."""
+spent / estimated remaining, success rate, history bars."""
 
 from __future__ import annotations
 
@@ -144,7 +144,6 @@ class Dashboard(QFrame):
         for key, text in (("time_spent", "Time spent"),
                           ("estimated_remaining", "Estimated remaining"),
                           ("success_rate", "Success rate"),
-                          ("streak", "Streak"),
                           ("most_failing", "Most failing")):
             head = QLabel(text)
             head.setObjectName("hint")
@@ -176,9 +175,5 @@ class Dashboard(QFrame):
         self._facts["success_rate"].setText(
             f"{rate * 100:.0f} % of {summary['runs']} runs" if rate is not None
             else "no runs yet")
-        streak = summary["streak"]
-        self._facts["streak"].setText(
-            f"{streak} run{'s' if streak != 1 else ''} without failure"
-            if streak else "–")
         self._facts["most_failing"].setText(summary["most_failing"] or "–")
         self.history.set_history(history)

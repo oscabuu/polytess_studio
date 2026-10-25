@@ -263,16 +263,7 @@ class BoardState:
             "time_spent": sum(durations),
             "estimated_remaining": estimate,
             "most_failing": max(failures, key=failures.get) if failures else None,
-            "streak": self._streak(),
         }
-
-    def _streak(self) -> int:
-        streak = 0
-        for item in reversed(self.history):
-            if item.get("status") != DONE:
-                break
-            streak += 1
-        return streak
 
 
 # ---- running cards ----------------------------------------------------------------- #

@@ -131,7 +131,7 @@ async def test_runner_runs_plan_with_predecessors_and_auto_advance(tmp_path):
     assert os.path.isfile(state.card(report.guid).log)
     summary = state.summary(runner.spec)
     assert summary["counts"][DONE] == 5 and summary["progress"] == 1.0
-    assert summary["streak"] == 5 and summary["success_rate"] == 1.0
+    assert summary["success_rate"] == 1.0 and "streak" not in summary
 
     # reopening: results are recognized (same inputs) -> nothing to run
     again = BoardRunner(Graph.load(graph.path))
@@ -167,7 +167,7 @@ async def test_runner_failure_stops_plan_and_unqueues(tmp_path):
     assert runner.status(report.guid) == PENDING
     assert runner.state.card(mesh.guid).error
     summary = runner.state.summary(runner.spec)
-    assert summary["most_failing"] == "mesh" and summary["streak"] == 0
+    assert summary["most_failing"] == "mesh"
     assert summary["estimated_remaining"] >= 0
 
 

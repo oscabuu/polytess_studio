@@ -57,7 +57,7 @@ card, the connections are the dependencies.
   opens the saved file under `<work folder>/.runs/`.
 - The **dashboard** shows progress, counters per status, time spent,
   estimated remaining time (from earlier durations of the same
-  cards), success rate, streak, the most failing card and the runs of
+  cards), success rate, the most failing card and the runs of
   the last 30 days.
 
 Card titles come from the node name, the text on the card from the
@@ -68,7 +68,7 @@ main process must be acyclic; `polytess-cli board` reports problems.
 
 *Celebrations* in the toolbar: `off` (plain), `subtle` (default:
 cards slide and bounce when they land in a column, a short glow and a
-toast when a card finishes, streak in the dashboard) or `full`
+toast when a card finishes) or `full`
 (additionally confetti when the whole process is done). Feedback
 rewards progress of the process, never click counts, and never blocks.
 

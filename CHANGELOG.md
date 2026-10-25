@@ -4,6 +4,15 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.20.5 — 2026-10-25
+- Viewer gets the Studio's menu bar and icon toolbar: File (Open,
+  Open Recent, Start Page, Quit), View (Board Theme, Celebrations as
+  radio entries), Phone (Follow on Phone…), Help (About); toolbar with
+  the same vector icons and sizes as the Studio. The combo boxes in
+  the old button bar are gone.
+- Streak ("n runs without failure") removed from the dashboard, the
+  phone page and the statistics on request — progress feedback only.
+
 ## 1.20.4 — 2026-10-25
 - Viewer: sporadic segmentation faults when clicking cards fixed. The
   slide animation was stored as a Qt property on the card and deleted

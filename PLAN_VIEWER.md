@@ -272,7 +272,8 @@ den Einstellungen abschaltbar (*Celebrations: off / subtle / full*):
   Anwender sie zieht oder der Auto-Weiterlauf sie verschiebt (kurzes
   Überschwingen mit QEasingCurve.OutBack, ≈ 250 ms, nie länger als die
   Interaktion selbst); Toast "Meshing fertig · 4 min 12 s", dezenter
-  Klang optional, Streak-Anzeige "7 Läufe in Folge ohne Fehler".
+  Klang optional. (Streak-Anzeige auf Wunsch des Users 2026-10-25
+  wieder entfernt — keine Zählung von Serien.)
 - **Full**: Konfetti-Partikel (QGraphicsScene) wenn der ganze
   Hauptprozess Done ist, Tagesziel-Ring ("3 von 3 geplanten Flows"),
   Abzeichen pro Projekt (erster vollständiger Durchlauf, fehlerfreie

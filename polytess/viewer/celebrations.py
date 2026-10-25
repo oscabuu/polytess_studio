@@ -6,7 +6,8 @@
 - ``off``    nothing beyond plain layout changes
 - ``subtle`` (default) smooth slide + playful bounce when a card lands
              in a column (user drag or auto-advance), short glow when a
-             card becomes Done, toast with the duration
+             card becomes Done, toast with the duration (no streaks,
+             points or badges — see PLAN_VIEWER.md 8.5)
 - ``full``   subtle + confetti when the whole process is Done
 
 Rewards progress of the process, never click counts; nothing blocks."""

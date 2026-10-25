@@ -8,16 +8,18 @@ from __future__ import annotations
 
 import os
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QComboBox, QFileDialog, QHBoxLayout, QLabel,
-                               QListWidget, QListWidgetItem, QMainWindow,
-                               QMessageBox, QPushButton, QSizePolicy,
-                               QStackedWidget, QToolBar, QVBoxLayout, QWidget)
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QAction, QActionGroup, QKeySequence
+from PySide6.QtWidgets import (QFileDialog, QLabel, QListWidget,
+                               QListWidgetItem, QMainWindow, QMessageBox,
+                               QPushButton, QStackedWidget, QVBoxLayout,
+                               QWidget)
 
 from polytess import __version__
 from polytess.core.app_settings import AppSettings
 from polytess.graph.board import board_spec
 from polytess.graph.model import Graph
+from polytess.gui.icons import icon
 from polytess.viewer import celebrations
 from polytess.viewer.board_page import BoardPage
 from polytess.viewer.form_page import FormPage
@@ -79,49 +81,8 @@ class ViewerWindow(QMainWindow):
         self.setAcceptDrops(True)
         self._page: QWidget | None = None
 
-        bar = QToolBar("Main")
-        bar.setMovable(False)
-        self.addToolBar(bar)
-        home = QPushButton("Start")
-        home.setObjectName("flat")
-        home.clicked.connect(self.show_start)
-        bar.addWidget(home)
-        open_button = QPushButton("Open…")
-        open_button.setObjectName("flat")
-        open_button.clicked.connect(self.open_dialog)
-        bar.addWidget(open_button)
-        phone_button = QPushButton("Phone…")
-        phone_button.setObjectName("flat")
-        phone_button.setToolTip("Follow the board on your phone (QR code)")
-        phone_button.clicked.connect(self.share_on_phone)
-        bar.addWidget(phone_button)
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        bar.addWidget(spacer)
-        bar.addWidget(QLabel("Board "))
-        self.theme_box = QComboBox()
-        from polytess.viewer.style import BOARD_THEMES
-        for key, theme in BOARD_THEMES.items():
-            self.theme_box.addItem(key.capitalize(), key)
-            self.theme_box.setItemData(self.theme_box.count() - 1, theme["label"],
-                                       Qt.ToolTipRole)
-        self.theme_box.setCurrentIndex(max(0, self.theme_box.findData(
-            str(AppSettings.instance().get("viewer_board_theme") or "classic"))))
-        self.theme_box.currentIndexChanged.connect(lambda _i: self._set_board_theme())
-        bar.addWidget(self.theme_box)
-        bar.addWidget(QLabel("   Celebrations "))
-        self.celebration_box = QComboBox()
-        for level in celebrations.LEVELS:
-            self.celebration_box.addItem(level, level)
-        self.celebration_box.setCurrentIndex(
-            self.celebration_box.findData(celebrations.level()))
-        self.celebration_box.currentIndexChanged.connect(
-            lambda _i: celebrations.set_level(self.celebration_box.currentData()))
-        bar.addWidget(self.celebration_box)
-        about = QPushButton("About")
-        about.setObjectName("flat")
-        about.clicked.connect(self._about)
-        bar.addWidget(about)
+        self._build_menus()
+        self._build_toolbar()
 
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
@@ -129,10 +90,89 @@ class ViewerWindow(QMainWindow):
         self.stack.addWidget(self.start_page)
         self.mobile = None                       # MobileServer, started on demand
 
-    def _set_board_theme(self) -> None:
-        name = self.theme_box.currentData()
+    # ---- menu bar + toolbar (same look as the Studio) ----------------------------- #
+
+    def _build_menus(self) -> None:
+        from polytess.viewer.style import BOARD_THEMES
+        self.act_start = QAction(icon("graph", "text"), "&Start Page", self,
+                                 shortcut="Ctrl+Home", triggered=self.show_start)
+        self.act_open = QAction(icon("folder", "text"), "&Open Flow…", self,
+                                shortcut=QKeySequence.Open, triggered=self.open_dialog)
+        self.act_phone = QAction(icon("globe", "text"), "Follow on &Phone…", self,
+                                 shortcut="Ctrl+P", triggered=self.share_on_phone)
+        self.act_about = QAction(icon("help", "text"), "&About polytess Viewer", self,
+                                 triggered=self._about)
+        self.act_quit = QAction("&Quit", self, shortcut=QKeySequence.Quit,
+                                triggered=self.close)
+
+        file_menu = self.menuBar().addMenu("&File")
+        file_menu.addAction(self.act_open)
+        self.recent_menu = file_menu.addMenu("Open &Recent")
+        self.recent_menu.aboutToShow.connect(self._fill_recent_menu)
+        file_menu.addSeparator()
+        file_menu.addAction(self.act_start)
+        file_menu.addSeparator()
+        file_menu.addAction(self.act_quit)
+
+        view_menu = self.menuBar().addMenu("&View")
+        theme_menu = view_menu.addMenu("&Board Theme")
+        self.theme_group = QActionGroup(self)
+        current_theme = str(AppSettings.instance().get("viewer_board_theme") or "classic")
+        for key, theme in BOARD_THEMES.items():
+            action = QAction(key.capitalize(), self, checkable=True)
+            action.setData(key)
+            action.setToolTip(theme["label"])
+            action.setStatusTip(theme["label"])
+            action.setChecked(key == current_theme)
+            action.triggered.connect(lambda _c=False, k=key: self.set_board_theme(k))
+            self.theme_group.addAction(action)
+            theme_menu.addAction(action)
+        celebration_menu = view_menu.addMenu("&Celebrations")
+        self.celebration_group = QActionGroup(self)
+        for level in celebrations.LEVELS:
+            action = QAction(level.capitalize(), self, checkable=True)
+            action.setData(level)
+            action.setChecked(level == celebrations.level())
+            action.triggered.connect(lambda _c=False, lv=level: celebrations.set_level(lv))
+            self.celebration_group.addAction(action)
+            celebration_menu.addAction(action)
+
+        phone_menu = self.menuBar().addMenu("&Phone")
+        phone_menu.addAction(self.act_phone)
+
+        help_menu = self.menuBar().addMenu("&Help")
+        help_menu.addAction(self.act_about)
+
+    def _build_toolbar(self) -> None:
+        toolbar = self.addToolBar("Main")
+        toolbar.setObjectName("main-toolbar")
+        toolbar.setMovable(False)
+        toolbar.setIconSize(QSize(20, 20))
+        for action in (self.act_start, self.act_open, None, self.act_phone, None,
+                       self.act_about):
+            if action is None:
+                toolbar.addSeparator()
+            else:
+                toolbar.addAction(action)
+
+    def _fill_recent_menu(self) -> None:
+        self.recent_menu.clear()
+        paths = [p for p in (AppSettings.instance().get("viewer_recent") or [])
+                 if os.path.isfile(p)]
+        if not paths:
+            empty = self.recent_menu.addAction("(nothing yet)")
+            empty.setEnabled(False)
+            return
+        for path in paths:
+            action = self.recent_menu.addAction(os.path.basename(path))
+            action.setStatusTip(path)
+            action.triggered.connect(lambda _c=False, p=path: self.open_flow(p))
+
+    def set_board_theme(self, name: str) -> None:
         AppSettings.instance().set("viewer_board_theme", name)
         AppSettings.instance().save()
+        for action in self.theme_group.actions():
+            action.setChecked(action.data() == name)
         if isinstance(self._page, BoardPage):
             self._page.view.set_theme(name)
 

@@ -100,7 +100,6 @@
     $("f-failed").textContent = s.counts.failed;
     $("f-remaining").textContent = s.estimated_remaining ? duration(s.estimated_remaining)
       : (total && done === total ? "nothing left" : "no data yet");
-    $("f-streak").textContent = s.streak ? `${s.streak} without failure` : "–";
   }
 
   // ---- detail sheet ------------------------------------------------------------ //

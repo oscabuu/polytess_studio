@@ -241,8 +241,14 @@ def test_board_theme_switch(tmp_path):
     window.open_flow(str(folder / "main_process.flow.json"))
     view = window._page.view
     assert view.theme is BOARD_THEMES["classic"]
-    window.theme_box.setCurrentIndex(window.theme_box.findData("vivid"))
+    window.set_board_theme("vivid")
     assert AppSettings.instance().get("viewer_board_theme") == "vivid"
+    checked = [a.data() for a in window.theme_group.actions() if a.isChecked()]
+    assert checked == ["vivid"]
+    # menu bar like the Studio: File / View / Phone / Help, toolbar with icons
+    titles = [a.text().replace("&", "") for a in window.menuBar().actions()]
+    assert titles == ["File", "View", "Phone", "Help"]
+    assert window.act_open.shortcut().toString() in ("Ctrl+O", "⌘O", "Meta+O")
     assert view.theme is BOARD_THEMES["vivid"]
     assert all(i.theme is BOARD_THEMES["vivid"] for i in view.items_by_guid.values())
     assert set(BOARD_THEMES) == {"classic", "tinted", "headers", "cards", "vivid"}
