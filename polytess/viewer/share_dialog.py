@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPixmap
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QHBoxLayout,
-                               QLabel, QLineEdit, QPushButton, QVBoxLayout,
-                               QApplication)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
+                               QHBoxLayout, QLabel, QLineEdit, QMenu,
+                               QPushButton, QVBoxLayout)
 
 from polytess.core.app_settings import AppSettings
 from polytess.viewer.mobile_server import MobileServer, local_addresses
@@ -35,6 +35,35 @@ def qr_pixmap(text: str, size: int = 260) -> QPixmap:
                 painter.drawRect(x * cell, y * cell, cell, cell)
     painter.end()
     return pixmap
+
+
+class _LinkField(QLineEdit):
+    """Read-only link: a click selects everything, the context menu
+    always offers 'Copy link' (the stock menu only copies a selection)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setReadOnly(True)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._menu)
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 (Qt API)
+        super().mousePressEvent(event)
+        self.selectAll()
+
+    def focusInEvent(self, event) -> None:  # noqa: N802 (Qt API)
+        super().focusInEvent(event)
+        self.selectAll()
+
+    def copy_all(self) -> None:
+        QApplication.clipboard().setText(self.text())
+        self.selectAll()
+
+    def _menu(self, pos) -> None:
+        menu = QMenu(self)
+        menu.addAction("Copy link", self.copy_all)
+        menu.addAction("Select all", self.selectAll)
+        menu.exec(self.mapToGlobal(pos))
 
 
 class ShareDialog(QDialog):
@@ -65,8 +94,8 @@ class ShareDialog(QDialog):
         row.addWidget(self.address, 1)
         layout.addLayout(row)
 
-        self.link = QLineEdit()
-        self.link.setReadOnly(True)
+        self.link = _LinkField()
+        self.link.setToolTip("Click selects the whole link; right-click → Copy link")
         layout.addWidget(self.link)
 
         self.status = QLabel("")
@@ -81,7 +110,7 @@ class ShareDialog(QDialog):
         buttons = QHBoxLayout()
         copy = QPushButton("Copy link")
         copy.setObjectName("flat")
-        copy.clicked.connect(lambda: QApplication.clipboard().setText(self.link.text()))
+        copy.clicked.connect(self.link.copy_all)
         buttons.addWidget(copy)
         renew = QPushButton("New code")
         renew.setObjectName("flat")

@@ -50,14 +50,19 @@ def _alive(item) -> bool:
 def slide(item: QGraphicsObject, target: QPointF, bounce: bool = True,
           duration: int = 260) -> QPropertyAnimation | None:
     """Move *item* to *target*: immediate when off, eased otherwise, with
-    an OutBack overshoot ("playful bounce") when *bounce* is set."""
+    an OutBack overshoot ("playful bounce") when *bounce* is set.
+
+    The animation is held as a plain Python attribute (``_slide_anim``)
+    and never as a Qt property: a property kept a QObject pointer to an
+    animation that had already deleted itself (DeleteWhenStopped), and
+    the next ``property()`` call on the card crashed the process."""
     if not _alive(item):
         return None
     stop_slide(item)
     if level() == "off" or item.pos() == target:
         item.setPos(target)
         return None
-    animation = QPropertyAnimation(item, b"pos", item)
+    animation = QPropertyAnimation(item, b"pos")
     animation.setDuration(duration)
     animation.setStartValue(item.pos())
     animation.setEndValue(target)
@@ -65,20 +70,27 @@ def slide(item: QGraphicsObject, target: QPointF, bounce: bool = True,
     if bounce:
         curve.setOvershoot(1.6)
     animation.setEasingCurve(curve)
-    animation.start(QPropertyAnimation.DeleteWhenStopped)
-    item.setProperty("_slide", animation)
+    item._slide_anim = animation
+
+    def finished(anim=animation, target_item=item):
+        if getattr(target_item, "_slide_anim", None) is anim:
+            target_item._slide_anim = None
+
+    animation.finished.connect(finished)
+    animation.start()                         # KeepWhenStopped: we own it
     return animation
 
 
 def stop_slide(item) -> None:
     """Abort a running slide so a direct setPos is not overridden by the
     animation's old target (e.g. after the view was resized)."""
-    if not _alive(item):
-        return
-    animation = item.property("_slide")
-    if isinstance(animation, QPropertyAnimation):
-        animation.stop()
-        item.setProperty("_slide", None)
+    animation = getattr(item, "_slide_anim", None)
+    item._slide_anim = None
+    if animation is not None:
+        try:
+            animation.stop()
+        except RuntimeError:                  # C++ side already gone
+            pass
 
 
 def glow(item, duration: int = 700) -> None:
@@ -167,9 +179,11 @@ class Confetti(QGraphicsObject):
         self.update()
         if not alive or self._t > 4.5:
             self._timer.stop()
+            self.hide()
             scene = self.scene()
             if scene is not None:
                 scene.removeItem(self)
+            self.deleteLater()                # not inside this very slot
 
     def paint(self, painter: QPainter, option, widget=None) -> None:
         painter.setPen(QPen(Qt.NoPen))

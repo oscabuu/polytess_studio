@@ -187,10 +187,20 @@ def test_board_columns_stretch_with_the_view(tmp_path):
     view.set_status(done_item.card.guid, DONE)        # lives in the right column
     view.resize(1500, 600)
     view.relayout(animate=True)                       # its target moved -> slide runs
-    assert done_item.property("_slide") is not None
+    assert done_item._slide_anim is not None
     view.relayout(animate=False)
-    assert all(i.property("_slide") is None and i.pos() == i._home
+    assert all(i._slide_anim is None and i.pos() == i._home
                for i in view.items_by_guid.values())
+    # a finished animation clears itself; nothing dangling is kept
+    from PySide6.QtCore import QPropertyAnimation
+    view.resize(600, 600)
+    view.relayout(animate=True)
+    anim = done_item._slide_anim
+    assert isinstance(anim, QPropertyAnimation)
+    anim.setCurrentTime(anim.duration())          # jump to the end -> finished
+    anim.stop()
+    anim.finished.emit()
+    assert done_item._slide_anim is None
 
 
 async def test_leaving_the_board_while_a_card_runs_detaches_callbacks(tmp_path):

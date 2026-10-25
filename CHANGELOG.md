@@ -4,6 +4,16 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.20.4 — 2026-10-25
+- Viewer: sporadic segmentation faults when clicking cards fixed. The
+  slide animation was stored as a Qt property on the card and deleted
+  itself when finished; the next relayout read a pointer to the
+  destroyed animation. Animations are now held as Python references
+  and cleared when they finish; confetti removes itself deferred.
+- Follow on phone: the link field selects the whole address on click
+  and its context menu always offers *Copy link* (the stock menu only
+  copied a selection, so right-click appeared to do nothing).
+
 ## 1.20.3 — 2026-10-24
 - CI: the Linux runner still segfaulted during interpreter shutdown
   after a green suite (Qt teardown). With `POLYTESS_TEST_HARD_EXIT=1`

@@ -40,6 +40,7 @@ class CardItem(QGraphicsObject):
     def __init__(self, card: Card):
         super().__init__()
         self.card = card
+        self._slide_anim = None         # running slide, see celebrations.slide
         self.theme: dict | None = None  # set by the view
         self.width = COL_W - 2 * PAD    # set by the view (stretches with it)
         self.status = PENDING

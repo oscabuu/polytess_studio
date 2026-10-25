@@ -201,3 +201,9 @@ def test_share_dialog_renders_qr_and_toggles_control(tmp_path):
     assert server.token != old and server.token in dialog.link.text()
     server.on_clients_changed(2)
     assert "2 phones" in dialog.status.text()
+    # the link field copies the whole address, selection or not
+    from PySide6.QtWidgets import QApplication
+    QApplication.clipboard().setText("")
+    dialog.link.copy_all()
+    assert QApplication.clipboard().text() == dialog.link.text()
+    assert dialog.link.selectedText() == dialog.link.text()
