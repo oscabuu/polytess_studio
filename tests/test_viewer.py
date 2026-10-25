@@ -256,6 +256,10 @@ def test_board_theme_switch(tmp_path):
     assert bar_actions[0].defaultWidget() is window.burger_button
     assert window.act_phone not in bar_actions
     assert window.act_phone in window.burger_menu.actions()
+    settings = next(a.menu() for a in window.burger_menu.actions()
+                    if a.menu() is not None and a.text() == "Settings")
+    assert [a.menu() for a in settings.actions()] == [window.theme_menu,
+                                                      window.celebration_menu]
     assert view.theme is BOARD_THEMES["vivid"]
     assert all(i.theme is BOARD_THEMES["vivid"] for i in view.items_by_guid.values())
     assert set(BOARD_THEMES) == {"classic", "tinted", "headers", "cards", "vivid"}

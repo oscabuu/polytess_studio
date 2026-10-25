@@ -127,7 +127,9 @@ class ViewerWindow(QMainWindow):
             action.triggered.connect(lambda _c=False, k=key: self.set_board_theme(k))
             self.theme_group.addAction(action)
             theme_menu.addAction(action)
+        self.theme_menu = theme_menu
         celebration_menu = view_menu.addMenu("&Celebrations")
+        self.celebration_menu = celebration_menu
         self.celebration_group = QActionGroup(self)
         for level in celebrations.LEVELS:
             action = QAction(level.capitalize(), self, checkable=True)
@@ -155,6 +157,10 @@ class ViewerWindow(QMainWindow):
         self.burger_menu.addAction(self.act_start)
         self.burger_menu.addSeparator()
         self.burger_menu.addAction(self.act_phone)
+        self.burger_menu.addSeparator()
+        settings = self.burger_menu.addMenu("Settings")
+        settings.addMenu(self.theme_menu)
+        settings.addMenu(self.celebration_menu)
         self.burger_menu.addSeparator()
         self.burger_menu.addAction(self.act_about)
         self.burger_menu.addAction(self.act_quit)

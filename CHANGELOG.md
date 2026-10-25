@@ -4,6 +4,11 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.20.7 — 2026-10-25
+- Viewer: Board Theme and Celebrations are also reachable from the
+  burger menu (Settings) — on macOS the menu bar lives in the system
+  bar at the top of the screen, which is easy to miss.
+
 ## 1.20.6 — 2026-10-25
 - Viewer toolbar: a burger menu (all commands) sits first; the phone
   icon left the bar (still in the Phone menu, the burger menu and on
