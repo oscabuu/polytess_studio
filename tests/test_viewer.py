@@ -249,6 +249,13 @@ def test_board_theme_switch(tmp_path):
     titles = [a.text().replace("&", "") for a in window.menuBar().actions()]
     assert titles == ["File", "View", "Phone", "Help"]
     assert window.act_open.shortcut().toString() in ("Ctrl+O", "⌘O", "Meta+O")
+    # toolbar: burger menu first, no phone icon in the bar
+    from PySide6.QtWidgets import QToolBar
+    toolbar = window.findChild(QToolBar, "main-toolbar")
+    bar_actions = [a for a in toolbar.actions() if not a.isSeparator()]
+    assert bar_actions[0].defaultWidget() is window.burger_button
+    assert window.act_phone not in bar_actions
+    assert window.act_phone in window.burger_menu.actions()
     assert view.theme is BOARD_THEMES["vivid"]
     assert all(i.theme is BOARD_THEMES["vivid"] for i in view.items_by_guid.values())
     assert set(BOARD_THEMES) == {"classic", "tinted", "headers", "cards", "vivid"}

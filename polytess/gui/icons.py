@@ -159,6 +159,10 @@ def _draw(name: str, p: QPainter, c: QColor) -> None:   # noqa: C901
         p.setPen(_pen(c, 4)); p.drawLine(QPointF(16, 7), QPointF(16, 25)); p.drawLine(QPointF(7, 16), QPointF(25, 16))
     elif name == "minus":
         p.setPen(_pen(c, 4)); p.drawLine(QPointF(7, 16), QPointF(25, 16))
+    elif name == "menu":            # hamburger: three bars
+        p.setPen(_pen(c, 3.5))
+        for y in (9, 16, 23):
+            p.drawLine(QPointF(7, y), QPointF(25, y))
     elif name == "breakpoint":
         fill(); p.drawEllipse(QRectF(9, 9, 14, 14))
     elif name == "dropdown":

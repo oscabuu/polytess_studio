@@ -11,9 +11,9 @@ import os
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence
 from PySide6.QtWidgets import (QFileDialog, QLabel, QListWidget,
-                               QListWidgetItem, QMainWindow, QMessageBox,
-                               QPushButton, QStackedWidget, QVBoxLayout,
-                               QWidget)
+                               QListWidgetItem, QMainWindow, QMenu,
+                               QMessageBox, QPushButton, QStackedWidget,
+                               QToolButton, QVBoxLayout, QWidget)
 
 from polytess import __version__
 from polytess.core.app_settings import AppSettings
@@ -148,12 +148,26 @@ class ViewerWindow(QMainWindow):
         toolbar.setObjectName("main-toolbar")
         toolbar.setMovable(False)
         toolbar.setIconSize(QSize(20, 20))
-        for action in (self.act_start, self.act_open, None, self.act_phone, None,
-                       self.act_about):
-            if action is None:
-                toolbar.addSeparator()
-            else:
-                toolbar.addAction(action)
+        # burger menu: every command in one place (phones and small screens)
+        self.burger_menu = QMenu(self)
+        self.burger_menu.addAction(self.act_open)
+        self.burger_menu.addMenu(self.recent_menu)
+        self.burger_menu.addAction(self.act_start)
+        self.burger_menu.addSeparator()
+        self.burger_menu.addAction(self.act_phone)
+        self.burger_menu.addSeparator()
+        self.burger_menu.addAction(self.act_about)
+        self.burger_menu.addAction(self.act_quit)
+        self.burger_button = QToolButton()
+        self.burger_button.setIcon(icon("menu", "text"))
+        self.burger_button.setToolTip("Menu")
+        self.burger_button.setMenu(self.burger_menu)
+        self.burger_button.setPopupMode(QToolButton.InstantPopup)
+        toolbar.addWidget(self.burger_button)
+        toolbar.addSeparator()
+        toolbar.addAction(self.act_open)
+        toolbar.addSeparator()
+        toolbar.addAction(self.act_about)
 
     def _fill_recent_menu(self) -> None:
         self.recent_menu.clear()

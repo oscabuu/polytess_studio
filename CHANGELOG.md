@@ -4,6 +4,11 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.20.6 — 2026-10-25
+- Viewer toolbar: a burger menu (all commands) sits first; the phone
+  icon left the bar (still in the Phone menu, the burger menu and on
+  the board). New "menu" icon in the icon set.
+
 ## 1.20.5 — 2026-10-25
 - Viewer gets the Studio's menu bar and icon toolbar: File (Open,
   Open Recent, Start Page, Quit), View (Board Theme, Celebrations as
