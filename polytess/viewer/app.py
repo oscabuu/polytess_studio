@@ -250,12 +250,32 @@ class ViewerWindow(QMainWindow):
         if self._page is not None and not self._page.confirm_close():
             return
         if self._page is not None:
-            self.stack.removeWidget(self._page)
-            self._page.deleteLater()
+            self._retire_page(self._page)
             self._page = None
         self.start_page.refresh()
         self.stack.setCurrentWidget(self.start_page)
         self._attach_mirror()
+
+    def _retire_page(self, page) -> None:
+        """Take a page out of the window and delete it — but only once its
+        card/run tasks have finished winding down (they were cancelled by
+        confirm_close). Deleting Qt widgets while a sub-flow processor is
+        still unwinding on the loop crashed the process."""
+        self.stack.removeWidget(page)
+        page.hide()
+        tasks = [t for t in getattr(page, "running_tasks", lambda: [])()
+                 if not t.done()]
+        if not tasks:
+            page.deleteLater()
+            return
+        pending = set(tasks)
+
+        def finished(task, page=page):
+            pending.discard(task)
+            if not pending:
+                page.deleteLater()
+        for task in tasks:
+            task.add_done_callback(finished)
 
     def open_dialog(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Open flow", "",
@@ -273,8 +293,7 @@ class ViewerWindow(QMainWindow):
             return
         self._remember(path)
         if self._page is not None:
-            self.stack.removeWidget(self._page)
-            self._page.deleteLater()
+            self._retire_page(self._page)
         spec = board_spec(graph)
         page = BoardPage(graph) if spec.cards else FormPage(graph)
         page.back_requested.connect(self.show_start)

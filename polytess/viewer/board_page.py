@@ -465,6 +465,9 @@ class BoardPage(QWidget):
     def is_running(self) -> bool:
         return any(not t.done() for t in self._tasks.values())
 
+    def running_tasks(self) -> list:
+        return [t for t in self._tasks.values() if not t.done()]
+
     def confirm_close(self) -> bool:
         if not self.is_running:
             self.detach()

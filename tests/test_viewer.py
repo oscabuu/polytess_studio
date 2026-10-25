@@ -217,20 +217,55 @@ async def test_leaving_the_board_while_a_card_runs_detaches_callbacks(tmp_path):
     page.start_card(prep.guid, mode="only")
     await asyncio.sleep(0.2)
     assert page.is_running
-    runner, tasks = page.runner, list(page._tasks.values())
+    runner, tasks = page.runner, page.running_tasks()
+    assert tasks
     page.detach()
     for guid in list(page._tasks):
         page.stop_card(guid)
-    page.deleteLater()
-    from PySide6.QtWidgets import QApplication
-    QApplication.processEvents()                # the C++ widgets are gone now
+    page.hide()                                 # as the window does: hide now …
     for task in tasks:
         try:
             await task
         except asyncio.CancelledError:
             pass
+    page.deleteLater()                          # … delete once the tasks are done
+    from PySide6.QtWidgets import QApplication
+    QApplication.processEvents()
     assert runner.on_change is None and runner.on_progress is None and runner.on_log is None
     assert runner.status(prep.guid) == PENDING  # cancelled run left no result
+
+
+async def test_window_retires_running_page_after_tasks_finish(tmp_path):
+    """Leaving a board with a running card: the page disappears at once
+    but is deleted only after its tasks finished."""
+    from PySide6.QtWidgets import QApplication
+    from polytess.viewer.app import ViewerWindow
+    folder = _demo_copy(tmp_path)
+    window = ViewerWindow()
+    window.open_flow(str(folder / "main_process.flow.json"))
+    page = window._page
+    page.graph.variables.set("work_folder", str(folder / "work"))
+    page.auto_box.setChecked(False)
+    page.start_card(page.runner.spec.card_by_title("Prepare Model").guid, mode="only")
+    await asyncio.sleep(0.2)
+    tasks = page.running_tasks()
+    assert tasks
+    from PySide6.QtWidgets import QMessageBox
+    QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.Yes)
+    window.show_start()
+    assert window._page is None and window.stack.indexOf(page) == -1
+    assert not page.isVisible()
+    from shiboken6 import isValid
+    QApplication.processEvents()
+    assert isValid(page)                        # not deleted while tasks wind down
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+    from PySide6.QtCore import QEvent
+    QApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    assert not isValid(page)                    # deleted after the tasks finished
 
 
 def test_board_theme_switch(tmp_path):

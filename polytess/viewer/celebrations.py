@@ -63,7 +63,10 @@ def slide(item: QGraphicsObject, target: QPointF, bounce: bool = True,
     if level() == "off" or item.pos() == target:
         item.setPos(target)
         return None
-    animation = QPropertyAnimation(item, b"pos")
+    # parent = item: Qt deletes the animation together with the card, so a
+    # running slide never outlives its target; the Python attribute is only
+    # a handle (stop_slide tolerates an already-deleted C++ object)
+    animation = QPropertyAnimation(item, b"pos", item)
     animation.setDuration(duration)
     animation.setStartValue(item.pos())
     animation.setEndValue(target)
@@ -86,10 +89,14 @@ def stop_slide(item) -> None:
     """Abort a running slide so a direct setPos is not overridden by the
     animation's old target (e.g. after the view was resized)."""
     animation = getattr(item, "_slide_anim", None)
-    item._slide_anim = None
+    try:
+        item._slide_anim = None
+    except RuntimeError:
+        return
     if animation is not None:
         try:
-            animation.stop()
+            if _alive(animation):
+                animation.stop()
         except RuntimeError:                  # C++ side already gone
             pass
 

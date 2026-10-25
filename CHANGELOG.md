@@ -4,6 +4,17 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.21.2 — 2026-10-25
+- Viewer: a page that still has running card/run tasks when you leave
+  it is hidden at once but deleted only after those tasks finished —
+  Qt widgets are never torn down while a sub-flow processor unwinds.
+- Card slide animations are children of their card again (deleted with
+  it) while being tracked as Python references, so neither a dangling
+  property nor an orphaned running animation can occur.
+- Tests: Qt garbage left by a test is collected between tests; the GC
+  used to delete widgets with live timers in the middle of another
+  test's event processing (segfault in the full suite only).
+
 ## 1.21.1 — 2026-10-25
 - New app icons, drawn as vectors: the **"P" monogram** — a single
   thick connector stroke whose bowl ends in a purple port and whose

@@ -41,6 +41,31 @@ os.environ["POLYTESS_LICENSE"] = _fh.name
 licensing.reset_cache()
 
 
+# Widgets a test left behind (MainWindow, assistant panels with running
+# QTimers …) are otherwise collected by the cyclic GC at an arbitrary
+# later moment — sometimes inside Qt's timer activation during another
+# test's processEvents(), which deletes a QObject with live timers in the
+# middle of the loop and crashes. Collect them between tests instead.
+import gc  # noqa: E402
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _collect_qt_garbage_between_tests():
+    yield
+    gc.collect()
+    try:
+        from PySide6.QtCore import QEvent
+        from PySide6.QtWidgets import QApplication
+    except ImportError:
+        return
+    app = QApplication.instance()
+    if app is not None:
+        app.sendPostedEvents(None, QEvent.DeferredDelete)
+        app.processEvents()
+
+
 # Qt + Python 3.13 segfault during interpreter shutdown on Linux after the
 # whole suite passed (PySide6 objects destroyed after the Qt libraries are
 # torn down). The result is final once the summary is printed, so on CI

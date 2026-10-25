@@ -346,6 +346,9 @@ class FormPage(QWidget):
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write(self.run_panel.log.view.toPlainText())
 
+    def running_tasks(self) -> list:
+        return [self._task] if self.is_running else []
+
     def confirm_close(self) -> bool:
         if not self.is_running:
             return True
