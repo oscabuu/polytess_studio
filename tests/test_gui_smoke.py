@@ -68,8 +68,14 @@ def test_theme_and_icons(app):
 
 
 def test_app_icon(app, tmp_path):
-    from polytess.gui.app_icon import app_icon, export_png, render_pixmap
+    from polytess.gui.app_icon import (app_icon, export_png, icon_png_bytes,
+                                       render_pixmap, viewer_icon)
     icon_obj = app_icon()
+    assert not viewer_icon().isNull() and viewer_icon() is not icon_obj
+    png = icon_png_bytes(64, "viewer")
+    assert png[:8] == b"\x89PNG\r\n\x1a\n"
+    # the two variants differ (viewer: green P + play triangle)
+    assert render_pixmap(64, "viewer").toImage() != render_pixmap(64, "studio").toImage()
     assert not icon_obj.isNull()
     assert len(icon_obj.availableSizes()) >= 5
     pixmap = render_pixmap(64)

@@ -4,6 +4,14 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.21.1 — 2026-10-25
+- New app icons, drawn as vectors: the **"P" monogram** — a single
+  thick connector stroke whose bowl ends in a purple port and whose
+  stem ends in a green port (Studio, light blue), and the same P in
+  lime green with a white play triangle (Viewer). The Viewer window
+  uses the viewer icon; the phone page serves it as favicon,
+  apple-touch-icon and web-app manifest icon.
+
 ## 1.21.0 — 2026-10-25
 - Viewer board theme **Icon** (new default): the app icon's three
   accents — purple for Backlog, blue for In Progress, green for Done —

@@ -74,6 +74,9 @@ async def test_server_token_state_events_and_log(tmp_path):
         assert "[hidden] { display: none !important; }" in css   # overlays start hidden
         assert f'const BASE = "{base}"' in js
         assert (await client.get(f"{base}/static/evil.txt")).status == 404
+        icon = await client.get(f"{base}/static/icon.png")
+        assert icon.status == 200 and (await icon.read())[:4] == b"\x89PNG"
+        assert 'rel="apple-touch-icon"' in html
         # full state
         data = await (await client.get(f"{base}/api/board")).json()
         assert data["flow"] == "Bracket Study" and len(data["cards"]) == 5

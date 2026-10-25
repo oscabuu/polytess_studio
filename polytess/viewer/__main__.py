@@ -20,8 +20,8 @@ def main(argv: list[str] | None = None) -> int:
     app.setOrganizationName("Winthir Studios")
     app.setStyle("Fusion")
 
-    from polytess.gui.app_icon import app_icon
-    app.setWindowIcon(app_icon())
+    from polytess.gui.app_icon import viewer_icon
+    app.setWindowIcon(viewer_icon())
 
     from polytess.gui.theme import build_qss
     from polytess.viewer.style import viewer_qss

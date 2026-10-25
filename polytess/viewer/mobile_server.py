@@ -237,10 +237,21 @@ class MobileServer:
         return web.Response(text=html, content_type="text/html",
                             headers={"Cache-Control": "no-store"})
 
+    _icon_png: bytes | None = None
+
     async def _static(self, request):
         from aiohttp import web
         self._check(request)
         name = request.match_info["name"]
+        if name == "icon.png":                 # favicon / home-screen icon
+            if MobileServer._icon_png is None:
+                try:
+                    from polytess.gui.app_icon import icon_png_bytes
+                    MobileServer._icon_png = icon_png_bytes(180, "viewer")
+                except Exception:
+                    raise web.HTTPNotFound()
+            return web.Response(body=MobileServer._icon_png, content_type="image/png",
+                                headers={"Cache-Control": "max-age=86400"})
         if name not in ("app.js", "style.css", "manifest.json"):
             raise web.HTTPNotFound()
         path = os.path.join(ASSETS, name)

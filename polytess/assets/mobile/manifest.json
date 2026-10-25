@@ -1,0 +1,9 @@
+{
+  "name": "polytess Viewer",
+  "short_name": "polytess",
+  "start_url": "__BASE__/",
+  "display": "standalone",
+  "background_color": "#262626",
+  "theme_color": "#262626",
+  "icons": [{"src": "__BASE__/static/icon.png", "sizes": "180x180", "type": "image/png"}]
+}
