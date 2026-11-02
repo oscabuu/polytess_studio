@@ -1,0 +1,186 @@
+{
+  "name": "Result Check",
+  "lineage": {
+    "flow_id": "6e5ed4b82fab417ebfd253050037a942",
+    "branch": "main",
+    "revision": 0,
+    "parent_branch": "",
+    "parent_revision": 0
+  },
+  "nodes": [
+    {
+      "guid": "6aa3f7c13e4e4cf5afab26a12184e44b",
+      "custom_name": "",
+      "x": -300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "StartNode"
+    },
+    {
+      "guid": "17655fd4bbb44b43a8ec74e534c89e15",
+      "custom_name": "Check limit",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "seconds": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": 0.8,
+                "$type": "GetConstantNumber"
+              },
+              "$type": "PropertyGetNumber"
+            },
+            "$type": "WaitSeconds"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "target": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "verdict",
+                "$type": "SetGraphVariable"
+              },
+              "$type": "PropertySetString"
+            },
+            "value": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "{max_stress} MPa < 250 MPa: OK",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "SetString"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "{verdict}",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "9551008dcdf34c01abcc4050bc2924e5",
+      "custom_name": "",
+      "x": 600.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "ExitNode"
+    }
+  ],
+  "edges": [
+    {
+      "guid": "170dfa244195408c88413466c17b3296",
+      "src_node": "6aa3f7c13e4e4cf5afab26a12184e44b",
+      "src_port": "out",
+      "dst_node": "17655fd4bbb44b43a8ec74e534c89e15",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "aa92d29bb59743f485af6f02bdb2a841",
+      "src_node": "17655fd4bbb44b43a8ec74e534c89e15",
+      "src_port": "out",
+      "dst_node": "9551008dcdf34c01abcc4050bc2924e5",
+      "dst_port": "in",
+      "$type": "Edge"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "variables": {
+    "items": [
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "max_stress",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": 0.0,
+          "$type": "ValueNumber"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "label": "Max. stress [MPa]"
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "verdict",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValueString"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Verdict"
+        },
+        "$type": "NameVariable"
+      }
+    ],
+    "$type": "NameVariables"
+  },
+  "lists": {
+    "items": [],
+    "$type": "ListVariables"
+  },
+  "pan_x": 0.0,
+  "pan_y": 0.0,
+  "zoom": 1.0,
+  "$type": "Graph"
+}

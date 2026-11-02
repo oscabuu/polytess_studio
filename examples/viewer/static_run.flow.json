@@ -1,0 +1,305 @@
+{
+  "name": "Static Run",
+  "lineage": {
+    "flow_id": "0963c061104e425f812a634b93b17ac3",
+    "branch": "main",
+    "revision": 0,
+    "parent_branch": "",
+    "parent_revision": 0
+  },
+  "nodes": [
+    {
+      "guid": "084b0516f3f540d6a24ecafb00b0f743",
+      "custom_name": "",
+      "x": -300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "StartNode"
+    },
+    {
+      "guid": "5d03cc1480fd42a3a3253e63e7669167",
+      "custom_name": "Solve",
+      "x": 0.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "level": "info",
+            "message": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "Solving {deck_file}",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "$type": "LogMessage"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "seconds": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": 2.0,
+                "$type": "GetConstantNumber"
+              },
+              "$type": "PropertyGetNumber"
+            },
+            "$type": "WaitSeconds"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "target": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "name": "max_stress",
+                "$type": "SetGraphVariable"
+              },
+              "$type": "PropertySetNumber"
+            },
+            "value": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": 184.6,
+                "$type": "GetConstantNumber"
+              },
+              "$type": "PropertyGetNumber"
+            },
+            "$type": "SetNumber"
+          },
+          {
+            "is_enabled": true,
+            "breakpoint": false,
+            "path": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "{deck_file}.result.txt",
+                "$type": "GetPathFormat"
+              },
+              "$type": "PropertyGetPath"
+            },
+            "content": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "template": "max_stress={max_stress}\n",
+                "$type": "GetStringFormat"
+              },
+              "$type": "PropertyGetString"
+            },
+            "append": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "source": {
+                "is_enabled": true,
+                "breakpoint": false,
+                "value": false,
+                "$type": "GetConstantBool"
+              },
+              "$type": "PropertyGetBool"
+            },
+            "$type": "WriteTextFile"
+          }
+        ],
+        "$type": "InstructionList"
+      },
+      "$type": "ActionsNode"
+    },
+    {
+      "guid": "81a2332f747d4d78beb03ca0a1492f85",
+      "custom_name": "Result Check",
+      "x": 300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "file": "static_check.flow.json",
+      "inputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "max_stress",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "max_stress",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        }
+      ],
+      "outputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "verdict",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "verdict",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        }
+      ],
+      "share_globals": true,
+      "fail_on_error": true,
+      "description": "Compares the stress with the limit.",
+      "$type": "SubGraphNode"
+    },
+    {
+      "guid": "1cb124edf88d4138b47b27f1b3f710e2",
+      "custom_name": "",
+      "x": 900.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "instructions": {
+        "instructions": [],
+        "$type": "InstructionList"
+      },
+      "$type": "ExitNode"
+    }
+  ],
+  "edges": [
+    {
+      "guid": "ab2ad74e00d44e5491de2fe6ded97b89",
+      "src_node": "084b0516f3f540d6a24ecafb00b0f743",
+      "src_port": "out",
+      "dst_node": "5d03cc1480fd42a3a3253e63e7669167",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "dd6ce53d80964dd1856463c827754c06",
+      "src_node": "5d03cc1480fd42a3a3253e63e7669167",
+      "src_port": "out",
+      "dst_node": "81a2332f747d4d78beb03ca0a1492f85",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "41a0db80976446bea8ba8d567ca5ad76",
+      "src_node": "81a2332f747d4d78beb03ca0a1492f85",
+      "src_port": "out",
+      "dst_node": "1cb124edf88d4138b47b27f1b3f710e2",
+      "dst_port": "in",
+      "$type": "Edge"
+    }
+  ],
+  "groups": [],
+  "notes": [],
+  "variables": {
+    "items": [
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "deck_file",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValuePath"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "label": "Solver deck",
+          "path_kind": "file",
+          "must_exist": true
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "max_stress",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": 0.0,
+          "$type": "ValueNumber"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Max. stress [MPa]"
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "verdict",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValueString"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Verdict"
+        },
+        "$type": "NameVariable"
+      }
+    ],
+    "$type": "NameVariables"
+  },
+  "lists": {
+    "items": [],
+    "$type": "ListVariables"
+  },
+  "pan_x": 0.0,
+  "pan_y": 0.0,
+  "zoom": 1.0,
+  "$type": "Graph"
+}

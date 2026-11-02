@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (QCheckBox, QDialog, QFrame, QHBoxLayout,
 
 from polytess.core.app_settings import AppSettings
 from polytess.graph.board import (ACTIVE, DONE, FAILED, PENDING, QUEUED, STALE,
-                                  BoardRunner)
+                                  BoardRunner, flatten_steps)
 from polytess.graph.inputs import apply_values, input_spec
 from polytess.graph.model import Graph
 from polytess.graph.processor import NodeStatus
@@ -76,9 +76,10 @@ class BoardPage(QWidget):
     def __init__(self, graph: Graph, parent=None):
         super().__init__(parent)
         self.graph = graph
+        depth = int(AppSettings.instance().get("viewer_board_depth", 1) or 0)
         self.runner = BoardRunner(graph, on_change=self._on_change,
                                   on_progress=self._on_progress,
-                                  on_log=self._on_log)
+                                  on_log=self._on_log, depth=max(0, min(3, depth)))
         self.mirror = None                     # MobileServer, set by the window
         self.runner.state.auto_advance = bool(
             AppSettings.instance().get("viewer_auto_advance", True))
@@ -88,6 +89,7 @@ class BoardPage(QWidget):
         self._selected: str | None = None
         self._node_totals: dict[str, int] = {}
         self._node_done: dict[str, set] = {}
+        self._child_status: dict[str, dict[str, str]] = {}   # card -> step -> status
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 14, 18, 14)
@@ -191,7 +193,8 @@ class BoardPage(QWidget):
             cs = self.runner.state.card(card.guid)
             blocked = [c.title for c in self.runner.unfinished_predecessors(card.guid)]
             self.view.set_status(card.guid, cs.status, duration=cs.duration,
-                                 error=cs.error, blocked_by=blocked)
+                                 error=cs.error, blocked_by=blocked,
+                                 child_status=self.child_statuses(card.guid))
         self.view.relayout(animate=True, bounce_guid=bounce_guid)
         self.dashboard.update_summary(self.runner.state.summary(self.runner.spec),
                                       self.runner.state.history)
@@ -226,9 +229,41 @@ class BoardPage(QWidget):
             self.view.celebrate_all_done()
             celebrations.toast(self.window(), f"{self.graph.name}: everything done 🎉")
 
+    def child_statuses(self, guid: str) -> dict[str, str]:
+        """Status per nested sub-step of card *guid*: live while the card
+        runs, all Done once the card is Done, Pending otherwise."""
+        card = self.runner.spec.card(guid)
+        if card is None or not card.children:
+            return {}
+        status = self.runner.status(guid)
+        live = self._child_status.get(guid, {})
+        out = {}
+        for child, _indent in flatten_steps(card.children):
+            if status == DONE:
+                out[child["guid"]] = DONE
+            elif status in (ACTIVE, FAILED):
+                out[child["guid"]] = live.get(child["guid"], PENDING)
+            else:
+                out[child["guid"]] = PENDING
+        return out
+
     def _on_progress(self, guid: str, node, status: NodeStatus) -> None:
         if self._closed:
             return
+        node_guid = getattr(node, "guid", "")
+        card = self.runner.spec.card(guid)
+        if card is not None and any(c["guid"] == node_guid
+                                    for c, _d in flatten_steps(card.children)):
+            mapped = {NodeStatus.RUNNING: ACTIVE, NodeStatus.SUCCESS: DONE,
+                      NodeStatus.FAIL: FAILED}.get(status)
+            if mapped is not None:
+                self._child_status.setdefault(guid, {})[node_guid] = mapped
+                item = self.view.items_by_guid.get(guid)
+                if item is not None:
+                    item.child_status = self.child_statuses(guid)
+                    item.update()
+                if self.mirror is not None:
+                    self.mirror.notify_children(guid, self.child_statuses(guid))
         if status == NodeStatus.RUNNING:
             self._node_totals.setdefault(guid, 0)
         if status in (NodeStatus.SUCCESS, NodeStatus.FAIL):
@@ -370,6 +405,7 @@ class BoardPage(QWidget):
         self.run_panel.begin(self.graph, f"Running {self.runner.spec.card(guid).title}…")
         self._node_totals[guid] = self._count_nodes(guid)
         self._node_done[guid] = set()
+        self._child_status[guid] = {}
 
         async def job():
             try:

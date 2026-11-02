@@ -99,11 +99,14 @@
     else if (c.status === "queued") foot = "waiting for predecessors…";
     else if (c.status === "active") foot = c.step || "running…";
     else if (c.blocked_by && c.blocked_by.length) foot = "after: " + c.blocked_by.join(", ");
+    const steps = (c.children || []).map((s) =>
+      `<li style="padding-left:${s.depth * 14}px"><i class="dot" style="background:var(--${s.status})"></i><span></span>${s.status === "done" ? " ✔" : s.status === "failed" ? " ✖" : s.status === "active" ? " …" : ""}</li>`).join("");
     el.innerHTML = `<div class="row"><div class="title"></div><div class="pill">${STATUS_LABEL[c.status]}</div></div>
-      <p class="desc"></p>${c.status === "active" ? `<div class="progress"><i style="width:${Math.round((c.progress || 0) * 100)}%"></i></div>` : ""}
+      <p class="desc"></p>${steps ? `<ul class="steps">${steps}</ul>` : ""}${c.status === "active" ? `<div class="progress"><i style="width:${Math.round((c.progress || 0) * 100)}%"></i></div>` : ""}
       <div class="foot${c.status === "failed" ? " bad" : ""}"></div>`;
     el.querySelector(".title").textContent = c.title;
     el.querySelector(".desc").textContent = c.description || "";
+    el.querySelectorAll(".steps li span").forEach((span, i) => { span.textContent = c.children[i].title; });
     el.querySelector(".foot").textContent = foot;
     el.addEventListener("click", () => { selected = c.guid; openDetail(); });
     return el;
@@ -188,9 +191,14 @@
     if (msg.type === "theme") { applyTheme(msg.theme); render(); return; }
     if (msg.type === "control") { state.control = msg.control; render(); return; }
     const c = card(msg.guid);
+    if (msg.type === "children" && c) {
+      (c.children || []).forEach((s) => { if (msg.statuses[s.guid]) s.status = msg.statuses[s.guid]; });
+      render(); return;
+    }
     if (msg.type === "card") {
       const was = c ? c.status : null;
       if (c) { c.status = msg.status; c.duration = msg.duration; c.error = msg.error;
+               if (msg.children) c.children = msg.children;
                if (msg.status !== "active") { c.progress = 0; c.step = ""; } }
       state.cards.forEach((k) => { if (msg.blocked && msg.blocked[k.guid]) k.blocked_by = msg.blocked[k.guid]; });
       state.summary = msg.summary || state.summary;

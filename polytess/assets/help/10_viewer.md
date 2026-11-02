@@ -61,7 +61,12 @@ card, the connections are the dependencies.
   the last 30 days.
 
 Card titles come from the node name, the text on the card from the
-node's *Card description* (Inspector of the Sub-Workflow node). The
+node's *Card description* (Inspector of the Sub-Workflow node). If a
+card's own flow contains Sub-Workflow nodes again, they appear as
+**sub-steps** on the card (a dot per step, coloured by its status while
+the card runs; all green once the card is Done). *View → Sub-levels on
+Cards* chooses how many nested levels are shown (none to three); the
+phone page shows the same sub-steps. The
 main process must be acyclic; `polytess-cli board` reports problems.
 
 ## Celebrations

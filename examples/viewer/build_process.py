@@ -12,6 +12,8 @@ the dashboard can be tried end to end:
                                               ↘ Modal Analysis       → Report
     prepare.flow.json, mesh.flow.json, solve_static.flow.json,
     solve_modal.flow.json, report.flow.json
+    solve_static is nested: Static Setup → Static Run (→ Result Check), so
+    the board shows sub-steps on that card (View → Sub-levels on Cards).
 
 Open main_process.flow.json in the Viewer (polytess-viewer) for the
 board, or in the Studio to see the sub-workflow nodes and bindings.
@@ -104,6 +106,81 @@ save("mesh.flow.json", {
     "edges": [{"from": "start", "to": "mesh"}, {"from": "mesh", "to": "exit"}],
 })
 
+# the static case is itself a small process: setup → run → check
+# (nested sub-workflows — the Viewer shows them as sub-steps on the card)
+
+save("static_setup.flow.json", {
+    "name": "Static Setup",
+    "variables": [
+        {"name": "mesh_file", "type": "path", "value": "",
+         "form": {"label": "Mesh file", "path_kind": "file", "must_exist": True}},
+        {"name": "load_kn", "type": "number", "value": 5.0,
+         "form": {"label": "Load [kN]"}},
+        {"name": "deck_file", "type": "path", "value": "",
+         "form": {"mode": "output", "label": "Solver deck"}},
+    ],
+    "nodes": [
+        {"id": "setup", "kind": "actions", "name": "Write deck", "instructions": [
+            log("Writing static deck for {mesh_file}"),
+            wait(1.0),
+            {"type": "SetString", "params": {
+                "value": {"template": "{mesh_file}.static.deck"}, "target": "deck_file"}},
+            {"type": "WriteTextFile", "params": {
+                "path": {"var": "deck_file"},
+                "content": {"template": "*STEP\nload={load_kn} kN\n"}}},
+        ]},
+    ],
+    "edges": [{"from": "start", "to": "setup"}, {"from": "setup", "to": "exit"}],
+})
+
+save("static_check.flow.json", {
+    "name": "Result Check",
+    "variables": [
+        {"name": "max_stress", "type": "number", "value": 0,
+         "form": {"label": "Max. stress [MPa]"}},
+        {"name": "verdict", "type": "string", "value": "",
+         "form": {"mode": "output", "label": "Verdict"}},
+    ],
+    "nodes": [
+        {"id": "chk", "kind": "actions", "name": "Check limit", "instructions": [
+            wait(0.8),
+            {"type": "SetString", "params": {
+                "value": {"template": "{max_stress} MPa < 250 MPa: OK"},
+                "target": "verdict"}},
+            log("{verdict}"),
+        ]},
+    ],
+    "edges": [{"from": "start", "to": "chk"}, {"from": "chk", "to": "exit"}],
+})
+
+save("static_run.flow.json", {
+    "name": "Static Run",
+    "variables": [
+        {"name": "deck_file", "type": "path", "value": "",
+         "form": {"label": "Solver deck", "path_kind": "file", "must_exist": True}},
+        {"name": "max_stress", "type": "number", "value": 0,
+         "form": {"mode": "output", "label": "Max. stress [MPa]"}},
+        {"name": "verdict", "type": "string", "value": "",
+         "form": {"mode": "output", "label": "Verdict"}},
+    ],
+    "nodes": [
+        {"id": "solve", "kind": "actions", "name": "Solve", "instructions": [
+            log("Solving {deck_file}"),
+            wait(2.0),
+            {"type": "SetNumber", "params": {"value": 184.6, "target": "max_stress"}},
+            {"type": "WriteTextFile", "params": {
+                "path": {"template": "{deck_file}.result.txt"},
+                "content": {"template": "max_stress={max_stress}\n"}}},
+        ]},
+        {"id": "check", "kind": "subworkflow", "file": "static_check.flow.json",
+         "name": "Result Check", "description": "Compares the stress with the limit.",
+         "inputs": {"max_stress": {"var": "max_stress"}},
+         "outputs": {"verdict": "verdict"}},
+    ],
+    "edges": [{"from": "start", "to": "solve"}, {"from": "solve", "to": "check"},
+              {"from": "check", "to": "exit"}],
+})
+
 save("solve_static.flow.json", {
     "name": "Static Load Case",
     "variables": [
@@ -113,21 +190,24 @@ save("solve_static.flow.json", {
         {"name": "load_kn", "type": "number", "value": 5.0,
          "form": {"label": "Load [kN]", "minimum": 0, "maximum": 100,
                   "required": True}},
+        {"name": "deck_file", "type": "path", "value": ""},
         {"name": "max_stress", "type": "number", "value": 0,
          "form": {"mode": "output", "label": "Max. stress [MPa]"}},
+        {"name": "verdict", "type": "string", "value": "",
+         "form": {"mode": "output", "label": "Verdict"}},
     ],
     "nodes": [
-        {"id": "solve", "kind": "actions", "name": "Solve", "instructions": [
-            log("Static analysis of {mesh_file}, load {load_kn} kN"),
-            wait(3.0),
-            {"type": "SetNumber", "params": {"value": 184.6, "target": "max_stress"}},
-            {"type": "WriteTextFile", "params": {
-                "path": {"template": "{mesh_file}.static.txt"},
-                "content": {"template": "load={load_kn} kN\nmax_stress={max_stress}\n"}}},
-            log("Static done: max stress {max_stress} MPa"),
-        ]},
+        {"id": "setup", "kind": "subworkflow", "file": "static_setup.flow.json",
+         "name": "Static Setup", "description": "Writes the solver deck.",
+         "inputs": {"mesh_file": {"var": "mesh_file"}, "load_kn": {"var": "load_kn"}},
+         "outputs": {"deck_file": "deck_file"}},
+        {"id": "run", "kind": "subworkflow", "file": "static_run.flow.json",
+         "name": "Static Run", "description": "Runs the solver and checks the result.",
+         "inputs": {"deck_file": {"var": "deck_file"}},
+         "outputs": {"max_stress": "max_stress", "verdict": "verdict"}},
     ],
-    "edges": [{"from": "start", "to": "solve"}, {"from": "solve", "to": "exit"}],
+    "edges": [{"from": "start", "to": "setup"}, {"from": "setup", "to": "run"},
+              {"from": "run", "to": "exit"}],
 })
 
 save("solve_modal.flow.json", {

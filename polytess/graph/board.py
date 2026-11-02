@@ -49,6 +49,9 @@ class Card:
     predecessors: list[str] = field(default_factory=list)   # direct, card guids
     conditional: bool = False      # a Conditions/Branch node sits before it
     level: int = 0                 # longest predecessor chain (column hint)
+    children: list = field(default_factory=list)  # nested sub-workflow steps
+    #   each: {"guid", "title", "file", "description"} — the Sub-Workflow
+    #   nodes inside this card's own flow (one level deeper), in order
 
     def to_dict(self) -> dict:
         return dict(self.__dict__)
@@ -86,7 +89,40 @@ class BoardSpec:
                 "problems": list(self.problems)}
 
 
-def board_spec(graph: Graph) -> BoardSpec:
+DEFAULT_DEPTH = 1          # sub-levels shown on a card (Viewer setting)
+
+
+def _nested_steps(node: SubGraphNode, graph: Graph, depth: int) -> list[dict]:
+    """The Sub-Workflow nodes inside *node*'s own flow, in dependency
+    order, recursively down to *depth* levels — shown as sub-steps on
+    the card. Unreadable files simply yield no children."""
+    if depth <= 0:
+        return []
+    try:
+        path = node.resolve_file(graph.path or "", os.path.dirname(graph.path or ""))
+        if not os.path.isfile(path):
+            return []
+        inner = Graph.load(path)
+    except Exception:
+        return []
+    if not any(isinstance(n, SubGraphNode) and n.enabled for n in inner.nodes):
+        return []
+    inner_spec = board_spec(inner, depth=depth - 1)
+    return [{"guid": c.guid, "title": c.title, "file": c.file,
+             "description": c.description, "children": c.children}
+            for c in inner_spec.cards]
+
+
+def flatten_steps(children: list, depth: int = 0) -> list[tuple[dict, int]]:
+    """Nested sub-steps as a flat list of (step, indent level)."""
+    out = []
+    for child in children or []:
+        out.append((child, depth))
+        out.extend(flatten_steps(child.get("children") or [], depth + 1))
+    return out
+
+
+def board_spec(graph: Graph, depth: int = DEFAULT_DEPTH) -> BoardSpec:
     """Cards = enabled Sub-Workflow nodes; a dependency A → B exists when
     B is reachable from A through non-card nodes (Actions, Conditions,
     Branch, Trigger …). Passing a Conditions/Branch node marks B as
@@ -96,7 +132,8 @@ def board_spec(graph: Graph) -> BoardSpec:
              if isinstance(n, SubGraphNode) and n.enabled}
     for node in cards.values():
         spec.cards.append(Card(guid=node.guid, title=node.name, file=node.file,
-                               description=getattr(node, "description", "")))
+                               description=getattr(node, "description", ""),
+                               children=_nested_steps(node, graph, depth)))
     preds: dict[str, set[str]] = {g: set() for g in cards}
     conditional: set[str] = set()
 
@@ -291,9 +328,9 @@ class BoardRunner:
     def __init__(self, graph: Graph, state: BoardState | None = None,
                  workdir: str = "", logger=None,
                  on_change: Callable[[str, str], None] | None = None,
-                 on_progress=None, on_log=None):
+                 on_progress=None, on_log=None, depth: int = DEFAULT_DEPTH):
         self.graph = graph
-        self.spec = board_spec(graph)
+        self.spec = board_spec(graph, depth=depth)
         self.on_log = on_log            # (guid, level, text) per card run
         self.state = state or BoardState.load(state_path(graph.path)
                                               if graph.path else "")

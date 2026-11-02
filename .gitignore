@@ -47,3 +47,6 @@ tests/test_meshvary_morph.py.meta
 # Viewer run state and card logs next to demo flows
 *.board.json
 .runs/
+
+# demo work folder of the Viewer example
+examples/viewer/bracket/

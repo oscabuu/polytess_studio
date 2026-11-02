@@ -126,6 +126,18 @@ class ViewerWindow(QMainWindow):
             action.triggered.connect(lambda _c=False, k=key: self.set_board_theme(k))
             self.theme_group.addAction(action)
             theme_menu.addAction(action)
+        depth_menu = view_menu.addMenu("&Sub-levels on Cards")
+        self.depth_menu = depth_menu
+        self.depth_group = QActionGroup(self)
+        current_depth = int(AppSettings.instance().get("viewer_board_depth", 1) or 0)
+        for depth, text in ((0, "None"), (1, "1 level"), (2, "2 levels"), (3, "3 levels")):
+            action = QAction(text, self, checkable=True)
+            action.setData(depth)
+            action.setStatusTip("Nested sub-workflows shown as sub-steps on each card")
+            action.setChecked(depth == current_depth)
+            action.triggered.connect(lambda _c=False, d=depth: self.set_board_depth(d))
+            self.depth_group.addAction(action)
+            depth_menu.addAction(action)
         celebration_menu = view_menu.addMenu("&Celebrations")
         self.celebration_menu = celebration_menu
         self.celebration_group = QActionGroup(self)
@@ -162,6 +174,9 @@ class ViewerWindow(QMainWindow):
         self.celebration_sub = self.settings_menu.addMenu("Celebrations")
         for action in self.celebration_group.actions():
             self.celebration_sub.addAction(action)
+        self.depth_sub = self.settings_menu.addMenu("Sub-levels on Cards")
+        for action in self.depth_group.actions():
+            self.depth_sub.addAction(action)
         self.burger_menu.addSeparator()
         self.burger_menu.addAction(self.act_about)
         self.burger_menu.addAction(self.act_quit)
@@ -188,6 +203,18 @@ class ViewerWindow(QMainWindow):
             action = self.recent_menu.addAction(os.path.basename(path))
             action.setStatusTip(path)
             action.triggered.connect(lambda _c=False, p=path: self.open_flow(p))
+
+    def set_board_depth(self, depth: int) -> None:
+        """Nested levels on cards; the open board is rebuilt (the running
+        state is kept — it lives in the board file, not the page)."""
+        AppSettings.instance().set("viewer_board_depth", int(depth))
+        AppSettings.instance().save()
+        for action in self.depth_group.actions():
+            action.setChecked(action.data() == depth)
+        if isinstance(self._page, BoardPage) and not self._page.is_running:
+            path = self._page.graph.path
+            if path:
+                self.open_flow(path)
 
     def set_board_theme(self, name: str) -> None:
         AppSettings.instance().set("viewer_board_theme", name)

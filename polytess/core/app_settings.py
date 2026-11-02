@@ -68,6 +68,7 @@ DEFAULTS: dict[str, Any] = {
     "viewer_celebrations": "subtle",  # off | subtle | full
     "viewer_auto_advance": True,      # board: start ready successors
     "viewer_board_theme": "icon",     # see viewer.style.BOARD_THEMES
+    "viewer_board_depth": 1,          # nested sub-flow levels shown on cards (0-3)
     "mobile_port": 8765,              # Viewer: phone mirror server port
     "mobile_allow_control": False,    # phone may start/stop cards
 }

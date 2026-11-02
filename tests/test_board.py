@@ -191,3 +191,70 @@ def test_cli_board_show_run_reset(tmp_path, capsys):
     assert main(["board", graph.path, "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert len(data["cards"]) == 5
+
+
+def test_board_spec_nested_children_with_depth(tmp_path):
+    """Cards list the Sub-Workflow nodes of their own flow as sub-steps,
+    recursively down to the requested depth."""
+    from polytess.graph.board import flatten_steps
+    _save(tmp_path, "leaf.flow.json", _sub("leaf"))
+    _save(tmp_path, "mid.flow.json", {
+        "name": "mid",
+        "variables": [{"name": "x", "type": "number", "value": 1},
+                      {"name": "y", "type": "number", "value": 0}],
+        "nodes": [{"id": "l1", "kind": "subworkflow", "file": "leaf.flow.json",
+                   "name": "Leaf One", "inputs": {"x": {"var": "x"}}, "outputs": {"y": "y"}},
+                  {"id": "l2", "kind": "subworkflow", "file": "leaf.flow.json",
+                   "name": "Leaf Two"}],
+        "edges": [{"from": "start", "to": "l1"}, {"from": "l1", "to": "l2"},
+                  {"from": "l2", "to": "exit"}]})
+    path = _save(tmp_path, "top.flow.json", {
+        "name": "top",
+        "variables": [{"name": "a", "type": "number", "value": 5},
+                      {"name": "r", "type": "number", "value": 0}],
+        "nodes": [{"id": "m", "kind": "subworkflow", "file": "mid.flow.json",
+                   "name": "Middle", "inputs": {"x": {"var": "a"}}, "outputs": {"y": "r"}},
+                  {"id": "p", "kind": "subworkflow", "file": "leaf.flow.json",
+                   "name": "Plain"}],
+        "edges": [{"from": "start", "to": "m"}, {"from": "m", "to": "p"},
+                  {"from": "p", "to": "exit"}]})
+    graph = Graph.load(path)
+    spec = board_spec(graph)                              # default depth 1
+    middle = spec.card_by_title("Middle")
+    assert [c["title"] for c in middle.children] == ["Leaf One", "Leaf Two"]
+    assert middle.children[0]["children"] == []           # depth exhausted
+    assert spec.card_by_title("Plain").children == []     # leaf has no sub-flows
+    assert board_spec(graph, depth=0).card_by_title("Middle").children == []
+    assert [(c["title"], d) for c, d in flatten_steps(middle.children)] \
+        == [("Leaf One", 0), ("Leaf Two", 0)]
+    # a card's dict (CLI --json) carries the children
+    assert json.loads(json.dumps(spec.to_dict()))["cards"][0]["children"][0]["title"] == "Leaf One"
+
+
+async def test_nested_progress_is_relayed_to_the_board(tmp_path):
+    """Node statuses of nested sub-flows reach the BoardRunner's on_progress
+    (SubGraphNode relays them), keyed by the card they belong to."""
+    _save(tmp_path, "leaf.flow.json", _sub("leaf"))
+    _save(tmp_path, "mid.flow.json", {
+        "name": "mid",
+        "variables": [{"name": "x", "type": "number", "value": 1},
+                      {"name": "y", "type": "number", "value": 0}],
+        "nodes": [{"id": "l1", "kind": "subworkflow", "file": "leaf.flow.json",
+                   "name": "Leaf One", "inputs": {"x": {"var": "x"}}, "outputs": {"y": "y"}}],
+        "edges": [{"from": "start", "to": "l1"}, {"from": "l1", "to": "exit"}]})
+    path = _save(tmp_path, "top.flow.json", {
+        "name": "top",
+        "variables": [{"name": "a", "type": "number", "value": 5},
+                      {"name": "r", "type": "number", "value": 0}],
+        "nodes": [{"id": "m", "kind": "subworkflow", "file": "mid.flow.json",
+                   "name": "Middle", "inputs": {"x": {"var": "a"}}, "outputs": {"y": "r"}}],
+        "edges": [{"from": "start", "to": "m"}, {"from": "m", "to": "exit"}]})
+    graph = Graph.load(path)
+    seen = []
+    runner = BoardRunner(graph, on_progress=lambda g, n, s: seen.append((g, n.guid, s.value)))
+    middle = runner.spec.card_by_title("Middle")
+    leaf_guid = middle.children[0]["guid"]
+    assert await runner.run_card(middle.guid) == DONE
+    assert (middle.guid, leaf_guid, "running") in seen
+    assert (middle.guid, leaf_guid, "success") in seen
+    assert graph.variables.get("r") == 7

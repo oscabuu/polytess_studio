@@ -1,7 +1,7 @@
 {
   "name": "Modal Analysis",
   "lineage": {
-    "flow_id": "70fa9ed7940b45a88b5af5606f81d96e",
+    "flow_id": "9a0e0d1907be4aa0beb2a177f63c1051",
     "branch": "main",
     "revision": 0,
     "parent_branch": "",
@@ -9,7 +9,7 @@
   },
   "nodes": [
     {
-      "guid": "bf6e1d28d9d54fbba8f48246906177a6",
+      "guid": "7fd6ae27dbd24ff481f40ff96efef8f9",
       "custom_name": "",
       "x": -300.0,
       "y": 0.0,
@@ -24,7 +24,7 @@
       "$type": "StartNode"
     },
     {
-      "guid": "87f72537ab7c447884a564e1c2935f2a",
+      "guid": "84a7b29da9944aa5864fc89c56f91861",
       "custom_name": "Solve modes",
       "x": 0.0,
       "y": 0.0,
@@ -155,7 +155,7 @@
       "$type": "ActionsNode"
     },
     {
-      "guid": "f624a496db004fc8a8d6e6618d67e13e",
+      "guid": "7be87678350c47939e111cb3b6ad1364",
       "custom_name": "",
       "x": 600.0,
       "y": 0.0,
@@ -172,18 +172,18 @@
   ],
   "edges": [
     {
-      "guid": "091dede8862e4acdac9cda5254cdf671",
-      "src_node": "bf6e1d28d9d54fbba8f48246906177a6",
+      "guid": "9fb3c11b478245d6a46fc04b4886dd63",
+      "src_node": "7fd6ae27dbd24ff481f40ff96efef8f9",
       "src_port": "out",
-      "dst_node": "87f72537ab7c447884a564e1c2935f2a",
+      "dst_node": "84a7b29da9944aa5864fc89c56f91861",
       "dst_port": "in",
       "$type": "Edge"
     },
     {
-      "guid": "279a67a28f254cb99cc106293a59bb6c",
-      "src_node": "87f72537ab7c447884a564e1c2935f2a",
+      "guid": "6019a37c53e34e24a96f4de59fc2cacd",
+      "src_node": "84a7b29da9944aa5864fc89c56f91861",
       "src_port": "out",
-      "dst_node": "f624a496db004fc8a8d6e6618d67e13e",
+      "dst_node": "7be87678350c47939e111cb3b6ad1364",
       "dst_port": "in",
       "$type": "Edge"
     }

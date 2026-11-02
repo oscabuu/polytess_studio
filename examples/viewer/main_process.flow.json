@@ -1,7 +1,7 @@
 {
   "name": "Bracket Study",
   "lineage": {
-    "flow_id": "c2723e4be6ff4bedb03de3f98e8bc6d9",
+    "flow_id": "62bbcc6dc7144ebe8e6963edaf2831aa",
     "branch": "main",
     "revision": 0,
     "parent_branch": "",
@@ -9,7 +9,7 @@
   },
   "nodes": [
     {
-      "guid": "93651bb3ebe44ae186f217ed898a4390",
+      "guid": "77c5a20d07c9415190fee81a00f7be56",
       "custom_name": "",
       "x": 0.0,
       "y": 390.0,
@@ -24,7 +24,7 @@
       "$type": "StartNode"
     },
     {
-      "guid": "0b43a2efc60c4e639aabc1ca9ca370b4",
+      "guid": "2fdc123a41884c81836faecae05496dd",
       "custom_name": "Prepare Model",
       "x": 0.0,
       "y": 0.0,
@@ -94,7 +94,7 @@
       "$type": "SubGraphNode"
     },
     {
-      "guid": "df0d65232e0b40b58ce4bbc9ea4a7119",
+      "guid": "5e1983f8de2745e98b03dd652591dcf4",
       "custom_name": "Mesh",
       "x": 340.0,
       "y": 0.0,
@@ -181,7 +181,7 @@
       "$type": "SubGraphNode"
     },
     {
-      "guid": "86ca8ce7922548d9a424c511c2f5a7bd",
+      "guid": "d71fd793e4ca45a2874dff64c5f8e8b6",
       "custom_name": "Static Load Case",
       "x": 720.0,
       "y": 0.0,
@@ -251,7 +251,7 @@
       "$type": "SubGraphNode"
     },
     {
-      "guid": "dcc01817c71c46bca4ba1dcfe27449e9",
+      "guid": "b0aded85b85f44f49efc2a931af2aa3b",
       "custom_name": "Modal Analysis",
       "x": 720.0,
       "y": 200.0,
@@ -304,7 +304,7 @@
       "$type": "SubGraphNode"
     },
     {
-      "guid": "e876e4b7f5144feba18df52cbd448c7d",
+      "guid": "80da03ddc807412cb4e0f5d497287208",
       "custom_name": "Report",
       "x": 1100.0,
       "y": 0.0,
@@ -425,7 +425,7 @@
       "$type": "SubGraphNode"
     },
     {
-      "guid": "f1f3457771944e98bb5ad5bd89880f06",
+      "guid": "04255a92c9ae45df99d55aecb7cb854f",
       "custom_name": "",
       "x": 300.0,
       "y": 390.0,
@@ -442,57 +442,57 @@
   ],
   "edges": [
     {
-      "guid": "8d7506e675b146a29602129546e24f64",
-      "src_node": "93651bb3ebe44ae186f217ed898a4390",
+      "guid": "ef2ac5dac66640af95b403fca559d7ba",
+      "src_node": "77c5a20d07c9415190fee81a00f7be56",
       "src_port": "out",
-      "dst_node": "0b43a2efc60c4e639aabc1ca9ca370b4",
+      "dst_node": "2fdc123a41884c81836faecae05496dd",
       "dst_port": "in",
       "$type": "Edge"
     },
     {
-      "guid": "6efe7ff2acdf4365ba9eb4a87a97b04b",
-      "src_node": "0b43a2efc60c4e639aabc1ca9ca370b4",
+      "guid": "3a51538116d742398a1645d436314986",
+      "src_node": "2fdc123a41884c81836faecae05496dd",
       "src_port": "out",
-      "dst_node": "df0d65232e0b40b58ce4bbc9ea4a7119",
+      "dst_node": "5e1983f8de2745e98b03dd652591dcf4",
       "dst_port": "in",
       "$type": "Edge"
     },
     {
-      "guid": "184d6382f22b4625a0f199fc5d882bde",
-      "src_node": "df0d65232e0b40b58ce4bbc9ea4a7119",
+      "guid": "b6108b34296141c5a6070d5c0e64cca5",
+      "src_node": "5e1983f8de2745e98b03dd652591dcf4",
       "src_port": "out",
-      "dst_node": "86ca8ce7922548d9a424c511c2f5a7bd",
+      "dst_node": "d71fd793e4ca45a2874dff64c5f8e8b6",
       "dst_port": "in",
       "$type": "Edge"
     },
     {
-      "guid": "8a268764481a4d72b4b164e35786af06",
-      "src_node": "df0d65232e0b40b58ce4bbc9ea4a7119",
+      "guid": "3efdc3b39f4d43dc98a6d4de21d27caf",
+      "src_node": "5e1983f8de2745e98b03dd652591dcf4",
       "src_port": "out",
-      "dst_node": "dcc01817c71c46bca4ba1dcfe27449e9",
+      "dst_node": "b0aded85b85f44f49efc2a931af2aa3b",
       "dst_port": "in",
       "$type": "Edge"
     },
     {
-      "guid": "4524d2f607a44440b2e3975504c16b64",
-      "src_node": "86ca8ce7922548d9a424c511c2f5a7bd",
+      "guid": "63f7f84f43ca4e4abd53ad0e6166026b",
+      "src_node": "d71fd793e4ca45a2874dff64c5f8e8b6",
       "src_port": "out",
-      "dst_node": "e876e4b7f5144feba18df52cbd448c7d",
+      "dst_node": "80da03ddc807412cb4e0f5d497287208",
       "dst_port": "in",
       "$type": "Edge"
     },
     {
-      "guid": "57c175fb6cec4076bb4529c400446189",
-      "src_node": "e876e4b7f5144feba18df52cbd448c7d",
+      "guid": "c4d6beb518304b86a1157041a4fee0f8",
+      "src_node": "80da03ddc807412cb4e0f5d497287208",
       "src_port": "out",
-      "dst_node": "f1f3457771944e98bb5ad5bd89880f06",
+      "dst_node": "04255a92c9ae45df99d55aecb7cb854f",
       "dst_port": "in",
       "$type": "Edge"
     }
   ],
   "groups": [
     {
-      "guid": "fdc0b32fae17473b8800cce078db34d8",
+      "guid": "40ee33268053423e9fd55215fd6eef06",
       "title": "Pre-processing",
       "x": -120.0,
       "y": -80.0,
@@ -502,7 +502,7 @@
       "$type": "Group"
     },
     {
-      "guid": "cf75bb1e2b1f49afa9e96d849020f5db",
+      "guid": "480afa169f614ce59209c17254e2b9ed",
       "title": "Solving",
       "x": 680.0,
       "y": -80.0,

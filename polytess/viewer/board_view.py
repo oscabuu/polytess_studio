@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QGraphicsItem, QGraphicsObject, QGraphicsScene,
                                QGraphicsView)
 
 from polytess.graph.board import (ACTIVE, DONE, FAILED, PENDING, QUEUED, STALE,
-                                  BoardSpec, Card)
+                                  BoardSpec, Card, flatten_steps)
 from polytess.gui.theme import ACCENTS, COLORS
 from polytess.viewer import celebrations
 from polytess.viewer.run_panel import format_duration
@@ -29,7 +29,13 @@ COLUMN_OF = {PENDING: "backlog", STALE: "backlog", FAILED: "backlog",
 
 COL_W, COL_GAP, PAD = 270.0, 18.0, 14.0        # COL_W = minimum column width
 CARD_H, CARD_GAP = 118.0, 12.0
+CHILD_ROW_H, CHILD_PAD = 18.0, 6.0        # sub-step rows below the description
 HEADER_H = 44.0
+
+
+def card_height(card: Card) -> float:
+    rows = len(flatten_steps(getattr(card, "children", None)))
+    return CARD_H + (CHILD_PAD + rows * CHILD_ROW_H if rows else 0.0)
 
 
 class CardItem(QGraphicsObject):
@@ -48,6 +54,7 @@ class CardItem(QGraphicsObject):
         self.duration: float | None = None
         self.progress = 0.0             # 0..1 while active
         self.blocked_by: list[str] = []  # titles of unfinished predecessors
+        self.child_status: dict[str, str] = {}   # nested step guid -> status
         self.error = ""
         self._glow = 0.0
         self._drag_origin: QPointF | None = None
@@ -71,8 +78,12 @@ class CardItem(QGraphicsObject):
 
     # ---- geometry ---------------------------------------------------------------- #
 
+    @property
+    def height(self) -> float:
+        return card_height(self.card)
+
     def boundingRect(self) -> QRectF:
-        return QRectF(-4, -4, self.width + 8, CARD_H + 8)
+        return QRectF(-4, -4, self.width + 8, self.height + 8)
 
     def set_width(self, width: float) -> None:
         if abs(width - self.width) > 0.5:
@@ -92,7 +103,7 @@ class CardItem(QGraphicsObject):
 
     def paint(self, painter: QPainter, option, widget=None) -> None:
         painter.setRenderHint(QPainter.Antialiasing)
-        rect = QRectF(0, 0, self.width, CARD_H)
+        rect = QRectF(0, 0, self.width, self.height)
         theme = self.theme or board_theme()
         fill = QColor(status_colour(theme, self.status))
         if self._glow > 0:
@@ -109,7 +120,7 @@ class CardItem(QGraphicsObject):
         # accent stripe
         painter.setPen(Qt.NoPen)
         painter.setBrush(fill)
-        painter.drawRoundedRect(QRectF(0, 0, theme["stripe"], CARD_H), 3, 3)
+        painter.drawRoundedRect(QRectF(0, 0, theme["stripe"], self.height), 3, 3)
 
         # title
         font = QFont(painter.font())
@@ -146,12 +157,34 @@ class CardItem(QGraphicsObject):
                          Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap,
                          QFontMetrics(body_font).elidedText(text, Qt.ElideRight,
                                                             int((self.width - 28) * 2)))
+        # nested sub-steps (one level deeper): dot + title per row
+        steps = flatten_steps(self.card.children)
+        if steps:
+            row_font = QFont(body_font)
+            row_font.setPointSize(10)
+            painter.setFont(row_font)
+            y = 68.0
+            for child, indent in steps:
+                x = 20 + indent * 14
+                child_state = self.child_status.get(child["guid"], PENDING)
+                painter.setPen(Qt.NoPen)
+                painter.setBrush(QColor(status_colour(theme, child_state)))
+                painter.drawEllipse(QRectF(x, y + 5, 8, 8))
+                painter.setPen(QColor(ACCENTS["text"] if child_state == ACTIVE
+                                      else ACCENTS["text-light"]))
+                suffix = {ACTIVE: "  …", DONE: "  ✔", FAILED: "  ✖"}.get(child_state, "")
+                painter.drawText(QRectF(x + 14, y, self.width - x - 26, CHILD_ROW_H),
+                                 Qt.AlignLeft | Qt.AlignVCenter,
+                                 QFontMetrics(row_font).elidedText(
+                                     child["title"] + suffix, Qt.ElideRight,
+                                     int(self.width - x - 26)))
+                y += CHILD_ROW_H
         # footer line
         painter.setPen(QColor(ACCENTS["text-light"]))
         if self.status == ACTIVE:
             painter.setPen(Qt.NoPen)
             painter.setBrush(QColor(COLORS["bg-darkest"]))
-            bar = QRectF(16, CARD_H - 22, self.width - 32, 6)
+            bar = QRectF(16, self.height - 22, self.width - 32, 6)
             painter.drawRoundedRect(bar, 3, 3)
             painter.setBrush(QColor(status_colour(theme, ACTIVE)))
             painter.drawRoundedRect(QRectF(bar.x(), bar.y(),
@@ -172,7 +205,7 @@ class CardItem(QGraphicsObject):
                 footer = "conditional step"
             painter.setPen(QColor(ACCENTS["red"] if self.status == FAILED
                                   else ACCENTS["text-light"]))
-            painter.drawText(QRectF(16, CARD_H - 26, self.width - 28, 18),
+            painter.drawText(QRectF(16, self.height - 26, self.width - 28, 18),
                              Qt.AlignLeft | Qt.AlignVCenter,
                              QFontMetrics(body_font).elidedText(footer, Qt.ElideRight,
                                                                 int(self.width - 28)))
@@ -277,21 +310,24 @@ class BoardView(QGraphicsView):
             item.set_width(card_w)
             columns[COLUMN_OF[item.status]].append(item)
         rows = 1
+        tallest = 0.0
         for index, column in enumerate(COLUMNS):
             items = sorted(columns[column],
                            key=lambda i: (i.card.level, i.card.title.lower()))
             rows = max(rows, len(items))
-            for row, item in enumerate(items):
-                target = QPointF(column_x(index, self._col_w) + PAD,
-                                 HEADER_H + PAD + row * (CARD_H + CARD_GAP))
+            y = HEADER_H + PAD
+            for item in items:
+                target = QPointF(column_x(index, self._col_w) + PAD, y)
+                y += item.height + CARD_GAP
                 if animate:
                     item.set_home(target, bounce=(item.card.guid == bounce_guid))
                 else:
                     celebrations.stop_slide(item)
                     item._home = target
                     item.setPos(target)
+            tallest = max(tallest, y)
         self._rows = rows
-        height = HEADER_H + PAD * 2 + rows * (CARD_H + CARD_GAP)
+        height = tallest + PAD
         self._scene.setSceneRect(0, 0, 3 * self._col_w + 2 * COL_GAP,
                                  max(height, self.viewport().height() - 4, 300))
 

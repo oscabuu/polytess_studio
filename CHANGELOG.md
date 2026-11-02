@@ -4,6 +4,22 @@ Semantic versioning (`polytess/__init__.py` is the single source; the
 window title, `--version`, pyproject and tarball names derive from it).
 Every commit bumps at least the patch version.
 
+## 1.22.0 — 2026-11-02
+- **Sub-steps on cards:** when a card's own flow contains Sub-Workflow
+  nodes, they are listed on the card (a status dot per step), nested
+  down to a chosen depth — *View → Sub-levels on Cards*: none, 1 (the
+  default), 2 or 3 levels (`viewer_board_depth`; also in the burger
+  menu's Settings). While the card runs the dots follow the nested
+  steps live, once it is Done they are all green; cards grow with
+  their step list and columns stack them accordingly. The phone page
+  shows the same sub-steps. `polytess board --json` lists them as
+  `children`.
+- Sub-Workflow nodes relay the node progress of nested sub-flows to
+  the enclosing processor's status listeners, so the Studio's live
+  highlighting and the Viewer see steps at any depth.
+- Demo: the Static Load Case is now a nested process (Static Setup →
+  Static Run → Result Check).
+
 ## 1.21.3 — 2026-10-25
 - Phone page follows the Viewer's board theme: column headers, column
   tints, card fills and status pills use the same colours as the

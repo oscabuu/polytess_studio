@@ -162,6 +162,17 @@ class MobileServer:
             "card_fill": dict(theme.get("card_fill", {})),
         }
 
+    @staticmethod
+    def _children_payload(page, card) -> list[dict]:
+        from polytess.graph.board import flatten_steps
+        statuses = page.child_statuses(card.guid) if hasattr(page, "child_statuses") else {}
+        return [{"guid": c["guid"], "title": c["title"], "depth": d,
+                 "status": statuses.get(c["guid"], "pending")}
+                for c, d in flatten_steps(card.children)]
+
+    def notify_children(self, guid: str, statuses: dict) -> None:
+        self.broadcast({"type": "children", "guid": guid, "statuses": statuses})
+
     def notify_theme(self) -> None:
         self.broadcast({"type": "theme", "theme": self.theme_payload()})
 
@@ -186,6 +197,7 @@ class MobileServer:
                 "started": cs.started, "finished": cs.finished,
                 "progress": progress.get("fraction", 0.0),
                 "step": progress.get("step", ""),
+                "children": self._children_payload(page, card),
             })
         summary = runner.state.summary(runner.spec)
         return {"flow": page.graph.name,
@@ -204,7 +216,10 @@ class MobileServer:
         cs = self.page.runner.state.card(guid)
         if status != "active":
             self._progress.pop(guid, None)
+        card = self.page.runner.spec.card(guid)
         self.broadcast({"type": "card", "guid": guid, "status": status,
+                        "children": self._children_payload(self.page, card)
+                        if card is not None else [],
                         "duration": cs.duration, "error": cs.error,
                         "blocked": {c.guid: [b.title for b in
                                              self.page.runner.unfinished_predecessors(c.guid)]

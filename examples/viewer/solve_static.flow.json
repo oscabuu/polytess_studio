@@ -1,7 +1,7 @@
 {
   "name": "Static Load Case",
   "lineage": {
-    "flow_id": "2d27f79232ad45a1b7a4c8c67d0f9d74",
+    "flow_id": "c97fb954208e494990f10f79af8fffd7",
     "branch": "main",
     "revision": 0,
     "parent_branch": "",
@@ -9,7 +9,7 @@
   },
   "nodes": [
     {
-      "guid": "8dc17543f0994a8e9bd696366b3ff5a9",
+      "guid": "9761946aa1db46e2af66ba4ba6824fa9",
       "custom_name": "",
       "x": -300.0,
       "y": 0.0,
@@ -24,140 +24,149 @@
       "$type": "StartNode"
     },
     {
-      "guid": "ff4eb84d8a3640e69bc9ee52586445d8",
-      "custom_name": "Solve",
+      "guid": "f5d53a727b2948658cba524d3dee2939",
+      "custom_name": "Static Setup",
       "x": 0.0,
       "y": 0.0,
       "width": 220.0,
       "enabled": true,
       "expanded": true,
       "breakpoint": false,
-      "instructions": {
-        "instructions": [
-          {
+      "file": "static_setup.flow.json",
+      "inputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "mesh_file",
+          "value": {
             "is_enabled": true,
             "breakpoint": false,
-            "level": "info",
-            "message": {
+            "source": {
               "is_enabled": true,
               "breakpoint": false,
-              "source": {
-                "is_enabled": true,
-                "breakpoint": false,
-                "template": "Static analysis of {mesh_file}, load {load_kn} kN",
-                "$type": "GetStringFormat"
-              },
-              "$type": "PropertyGetString"
+              "name": "mesh_file",
+              "$type": "GetGraphVariable"
             },
-            "$type": "LogMessage"
+            "$type": "PropertyGetAny"
           },
-          {
+          "$type": "SubFlowInput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "load_kn",
+          "value": {
             "is_enabled": true,
             "breakpoint": false,
-            "seconds": {
+            "source": {
               "is_enabled": true,
               "breakpoint": false,
-              "source": {
-                "is_enabled": true,
-                "breakpoint": false,
-                "value": 3.0,
-                "$type": "GetConstantNumber"
-              },
-              "$type": "PropertyGetNumber"
+              "name": "load_kn",
+              "$type": "GetGraphVariable"
             },
-            "$type": "WaitSeconds"
+            "$type": "PropertyGetAny"
           },
-          {
+          "$type": "SubFlowInput"
+        }
+      ],
+      "outputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "deck_file",
+          "target": {
             "is_enabled": true,
             "breakpoint": false,
-            "target": {
+            "source": {
               "is_enabled": true,
               "breakpoint": false,
-              "source": {
-                "is_enabled": true,
-                "breakpoint": false,
-                "name": "max_stress",
-                "$type": "SetGraphVariable"
-              },
-              "$type": "PropertySetNumber"
+              "name": "deck_file",
+              "$type": "SetGraphVariable"
             },
-            "value": {
-              "is_enabled": true,
-              "breakpoint": false,
-              "source": {
-                "is_enabled": true,
-                "breakpoint": false,
-                "value": 184.6,
-                "$type": "GetConstantNumber"
-              },
-              "$type": "PropertyGetNumber"
-            },
-            "$type": "SetNumber"
+            "$type": "PropertySetAny"
           },
-          {
-            "is_enabled": true,
-            "breakpoint": false,
-            "path": {
-              "is_enabled": true,
-              "breakpoint": false,
-              "source": {
-                "is_enabled": true,
-                "breakpoint": false,
-                "template": "{mesh_file}.static.txt",
-                "$type": "GetPathFormat"
-              },
-              "$type": "PropertyGetPath"
-            },
-            "content": {
-              "is_enabled": true,
-              "breakpoint": false,
-              "source": {
-                "is_enabled": true,
-                "breakpoint": false,
-                "template": "load={load_kn} kN\nmax_stress={max_stress}\n",
-                "$type": "GetStringFormat"
-              },
-              "$type": "PropertyGetString"
-            },
-            "append": {
-              "is_enabled": true,
-              "breakpoint": false,
-              "source": {
-                "is_enabled": true,
-                "breakpoint": false,
-                "value": false,
-                "$type": "GetConstantBool"
-              },
-              "$type": "PropertyGetBool"
-            },
-            "$type": "WriteTextFile"
-          },
-          {
-            "is_enabled": true,
-            "breakpoint": false,
-            "level": "info",
-            "message": {
-              "is_enabled": true,
-              "breakpoint": false,
-              "source": {
-                "is_enabled": true,
-                "breakpoint": false,
-                "template": "Static done: max stress {max_stress} MPa",
-                "$type": "GetStringFormat"
-              },
-              "$type": "PropertyGetString"
-            },
-            "$type": "LogMessage"
-          }
-        ],
-        "$type": "InstructionList"
-      },
-      "$type": "ActionsNode"
+          "$type": "SubFlowOutput"
+        }
+      ],
+      "share_globals": true,
+      "fail_on_error": true,
+      "description": "Writes the solver deck.",
+      "$type": "SubGraphNode"
     },
     {
-      "guid": "8ed64af242f84b068af05f591412928a",
+      "guid": "716a261197ce4859bf8492430223930e",
+      "custom_name": "Static Run",
+      "x": 300.0,
+      "y": 0.0,
+      "width": 220.0,
+      "enabled": true,
+      "expanded": true,
+      "breakpoint": false,
+      "file": "static_run.flow.json",
+      "inputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "deck_file",
+          "value": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "deck_file",
+              "$type": "GetGraphVariable"
+            },
+            "$type": "PropertyGetAny"
+          },
+          "$type": "SubFlowInput"
+        }
+      ],
+      "outputs": [
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "max_stress",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "max_stress",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        },
+        {
+          "is_enabled": true,
+          "breakpoint": false,
+          "param": "verdict",
+          "target": {
+            "is_enabled": true,
+            "breakpoint": false,
+            "source": {
+              "is_enabled": true,
+              "breakpoint": false,
+              "name": "verdict",
+              "$type": "SetGraphVariable"
+            },
+            "$type": "PropertySetAny"
+          },
+          "$type": "SubFlowOutput"
+        }
+      ],
+      "share_globals": true,
+      "fail_on_error": true,
+      "description": "Runs the solver and checks the result.",
+      "$type": "SubGraphNode"
+    },
+    {
+      "guid": "65ff68acc34147b0b91fc24f00f780d0",
       "custom_name": "",
-      "x": 600.0,
+      "x": 900.0,
       "y": 0.0,
       "width": 220.0,
       "enabled": true,
@@ -172,18 +181,26 @@
   ],
   "edges": [
     {
-      "guid": "b82bd8035f504f7289fee5d9530aa72b",
-      "src_node": "8dc17543f0994a8e9bd696366b3ff5a9",
+      "guid": "a8019389732948c582cb96d31634f8d7",
+      "src_node": "9761946aa1db46e2af66ba4ba6824fa9",
       "src_port": "out",
-      "dst_node": "ff4eb84d8a3640e69bc9ee52586445d8",
+      "dst_node": "f5d53a727b2948658cba524d3dee2939",
       "dst_port": "in",
       "$type": "Edge"
     },
     {
-      "guid": "7b7becdbe1db47d9a617d2a83932628b",
-      "src_node": "ff4eb84d8a3640e69bc9ee52586445d8",
+      "guid": "bf5201490a97458199bdf6378adb9c22",
+      "src_node": "f5d53a727b2948658cba524d3dee2939",
       "src_port": "out",
-      "dst_node": "8ed64af242f84b068af05f591412928a",
+      "dst_node": "716a261197ce4859bf8492430223930e",
+      "dst_port": "in",
+      "$type": "Edge"
+    },
+    {
+      "guid": "79fba6db841e4b66b96155f64229b447",
+      "src_node": "716a261197ce4859bf8492430223930e",
+      "src_port": "out",
+      "dst_node": "65ff68acc34147b0b91fc24f00f780d0",
       "dst_port": "in",
       "$type": "Edge"
     }
@@ -235,6 +252,21 @@
       {
         "is_enabled": true,
         "breakpoint": false,
+        "name": "deck_file",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValuePath"
+        },
+        "group": "",
+        "status": "",
+        "form": {},
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
         "name": "max_stress",
         "value": {
           "is_enabled": true,
@@ -247,6 +279,24 @@
         "form": {
           "mode": "output",
           "label": "Max. stress [MPa]"
+        },
+        "$type": "NameVariable"
+      },
+      {
+        "is_enabled": true,
+        "breakpoint": false,
+        "name": "verdict",
+        "value": {
+          "is_enabled": true,
+          "breakpoint": false,
+          "value": "",
+          "$type": "ValueString"
+        },
+        "group": "",
+        "status": "",
+        "form": {
+          "mode": "output",
+          "label": "Verdict"
         },
         "$type": "NameVariable"
       }

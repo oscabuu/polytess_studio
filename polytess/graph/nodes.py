@@ -378,7 +378,19 @@ class SubGraphNode(Node):
 
     async def process(self, ctx: Context, processor) -> None:
         if self.file:
-            await self.call(ctx)
+            # nested sub-flows report their node progress to the same
+            # listeners as this flow (Viewer board: sub-steps at any depth)
+            listeners = list(getattr(processor, "on_status", []))
+
+            def relay(node, status):
+                for fn in listeners:
+                    fn(node, status)
+            await self.call(ctx, on_status=relay if listeners else None)
+            # the processor reports SUCCESS only after the successors ran;
+            # listeners (board sub-steps) want to know that THIS step is done
+            if listeners and not ctx.is_cancelled:
+                from polytess.graph.processor import NodeStatus
+                relay(self, NodeStatus.SUCCESS)
         if not ctx.is_cancelled:
             await processor.run_children(self, "out", ctx)
 

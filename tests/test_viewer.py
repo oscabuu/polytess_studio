@@ -300,7 +300,8 @@ def test_board_theme_switch(tmp_path):
     # out a wrapper that owns (and on GC deletes) the C++ menu.
     assert window.settings_menu.menuAction() in window.burger_menu.actions()
     assert [a.text() for a in window.settings_menu.actions()] \
-        == ["Board Theme", "Celebrations"]
+        == ["Board Theme", "Celebrations", "Sub-levels on Cards"]
+    assert [a.data() for a in window.depth_group.actions()] == [0, 1, 2, 3]
     assert window.theme_sub.actions() == window.theme_group.actions()
     assert window.celebration_sub.actions() == window.celebration_group.actions()
     assert view.theme is BOARD_THEMES["vivid"]
@@ -327,3 +328,45 @@ def test_viewer_window_routes_board_and_form(tmp_path):
     window.show_start()
     assert window.stack.currentWidget() is window.start_page
     assert window.start_page.recent.count() == 2
+
+
+async def test_cards_show_nested_sub_steps(tmp_path):
+    """The Static Load Case card of the demo lists its nested sub-flows
+    (depth setting), grows accordingly, and their status follows the run."""
+    from polytess.viewer.board_page import BoardPage
+    from polytess.viewer.board_view import CARD_H, card_height
+    from polytess.graph.board import DONE, ACTIVE
+    folder = _demo_copy(tmp_path)
+    graph = Graph.load(str(folder / "main_process.flow.json"))
+    graph.variables.set("work_folder", str(folder / "work"))
+    AppSettings.instance().set("viewer_board_depth", 2)
+    page = BoardPage(graph)
+    static = page.runner.spec.card_by_title("Static Load Case")
+    titles = [c["title"] for c in static.children]
+    assert titles == ["Static Setup", "Static Run"]
+    assert [c["title"] for c in static.children[1]["children"]] == ["Result Check"]
+    assert card_height(static) > CARD_H
+    assert card_height(page.runner.spec.card_by_title("Mesh")) == CARD_H
+    item = page.view.items_by_guid[static.guid]
+    assert item.height == card_height(static)
+    # cards stack with their own heights (no overlap in a column)
+    page.view.relayout(animate=False)
+    tops = sorted((i.pos().y(), i.height) for i in page.view.items_by_guid.values())
+    for (y1, h1), (y2, _h2) in zip(tops, tops[1:]):
+        assert y2 >= y1 + h1 or y2 == y1       # same column: below; else same row
+    # depth 0: no sub-steps at all
+    AppSettings.instance().set("viewer_board_depth", 0)
+    assert BoardPage(graph).runner.spec.card_by_title("Static Load Case").children == []
+    AppSettings.instance().set("viewer_board_depth", 2)
+
+    # run the whole chain; sub-step statuses end up Done
+    page.auto_box.setChecked(True)
+    page.start_card(page.runner.spec.card_by_title("Prepare Model").guid, mode="only")
+    for _ in range(600):
+        await asyncio.sleep(0.1)
+        if not page.is_running and page.runner.status(static.guid) == DONE:
+            break
+    statuses = page.child_statuses(static.guid)
+    assert set(statuses.values()) == {DONE} and len(statuses) == 3
+    assert item.child_status == statuses
+    assert page.runner.status(page.runner.spec.card_by_title("Report").guid) == DONE
